@@ -1,99 +1,128 @@
 # MCD - NDA / Confidentiality and IP Agreement
 
-> **Template status: working draft for legal review.** Complete every bracketed field before publishing in GHL.
+> **GHL upload rendition of the MCD business-approved draft dated June 30, 2026. Draft only — not legal advice. The MCD source intentionally contains no non-compete and no non-solicitation clause. California counsel must approve the final version before use.**
 
 ## GHL template setup
 
 - **Template name:** `MCD - NDA / Confidentiality and IP Agreement`
-- **Recipient / signer:** Agent only.
-- **Company signature:** Not required for Phase 1; the document becomes effective when Company provides access or Confidential Information after the Agent signs.
+- **Recipient / signer:** Sales Partner only for Phase 1.
+- **GHL execution approach:** This agent-signed version supplements the Sales Partner Agreement. The related Sales Partner Agreement is the Company-countersigned agreement that controls the commercial relationship and contains the incorporated dispute-resolution provision.
+- **Map into GHL fields:** effective date, legal/business name, verified personal email, signature, and signature date.
 
 ---
 
-# NONDISCLOSURE, CONFIDENTIALITY, DATA SECURITY, AND INTELLECTUAL PROPERTY AGREEMENT
+# CONFIDENTIALITY AND INTELLECTUAL PROPERTY AGREEMENT (DRAFT)
 
-This Nondisclosure, Confidentiality, Data Security, and Intellectual Property Agreement (this **“Agreement”**) is entered into by **[AGENT LEGAL NAME]** (**“Recipient”**) for the benefit of **[LEGAL ENTITY NAME]**, doing business as **Mercury Call Desk** (**“Company”**).
+This Confidentiality and Intellectual Property Agreement (the **“Agreement”**) is entered into as of **[EFFECTIVE DATE]** by and between **Charter Oaks Assets, Inc. d/b/a Mercury Call Desk** (**“MCD”** or **“Company”**) and **[SALES PARTNER LEGAL NAME / BUSINESS NAME]** (**“Partner”**). It supplements the Sales Partner Agreement.
 
-## 1. Purpose
+## 1. Confidential Information
 
-Company may provide Recipient access to Company Confidential Information solely so Recipient can evaluate, perform, or support authorized work for Company (the **“Purpose”**). Recipient may use Confidential Information only for the Purpose and only as expressly authorized by Company.
+### 1.1 Definition
 
-## 2. Confidential Information
+**“Confidential Information”** means all non-public information disclosed by or on behalf of MCD, whether oral, written, visual, electronic, or accessed through MCD systems, including:
 
-**“Confidential Information”** means all non-public information, whether oral, written, electronic, visual, recorded, or otherwise, relating to Company, its affiliates, customers, prospects, vendors, systems, and business operations. Confidential Information includes:
+- internal pricing mechanics, published wholesale costs, margin floors, setup-fee economics, commission calculations, statements, and compensation terms;
+- sales scripts, prospecting methods, discovery frameworks, objection handling, training, playbooks, and internal collateral;
+- leads, prospects, clients, customer lists, contact data, CRM records, notes, calendars, proposals, contracts, recordings, support activity, billing data, and account information;
+- platform, vendor, reseller, technical, integration, implementation, backend, security, business, marketing, strategy, and financial information;
+- the identity and relationship of MCD’s underlying platform/vendor; and
+- any information marked confidential or reasonably understood to be confidential.
 
-- customer, prospect, lead, contact, payment, account, support, and communication data;
-- login credentials, access tokens, phone numbers, recordings, CRM data, workflows, scripts, templates, campaign information, pricing, package details, commission information, and operating procedures;
-- software, source code, product concepts, designs, documentation, prompts, automations, integrations, analytics, business methods, marketing plans, financial information, and trade secrets;
-- information that a reasonable person would understand to be confidential because of its content or the circumstances of disclosure.
+### 1.2 Exclusions
 
-Confidential Information does not include information Recipient can prove through contemporaneous written records: (a) became public through no breach of this Agreement; (b) was lawfully known by Recipient without a confidentiality duty before disclosure; (c) was independently developed without using Confidential Information; or (d) was lawfully received from a third party without breach of a duty.
+Confidential Information does not include information Partner can prove: (a) became public through no breach by Partner; (b) was lawfully known by Partner without an obligation of confidentiality before disclosure; or (c) was independently developed without use of MCD Confidential Information.
 
-## 3. Confidentiality Obligations
+## 2. Confidentiality and Data Obligations
 
-Recipient will:
+### 2.1 Authorized use only
 
-1. protect Confidential Information using at least reasonable care and no less care than Recipient uses for Recipient’s own sensitive information;
-2. disclose Confidential Information only to persons specifically authorized in writing by Company and who are bound by confidentiality obligations at least as protective as this Agreement;
-3. not copy, download, export, photograph, screen-record, transmit, publish, sell, license, reverse engineer, or use Confidential Information outside the Purpose;
-4. not enter Confidential Information into personal AI tools, unapproved software, unapproved cloud storage, personal email, personal messaging apps, or unapproved devices;
-5. use strong unique passwords, multi-factor authentication where available, current device security, and Company-approved communication channels;
-6. immediately report any suspected loss, unauthorized access, disclosure, phishing attempt, compromised credential, security incident, or misuse to **[SECURITY / NOTICE EMAIL]**; and
-7. cooperate with Company in investigating and containing any suspected incident.
+Partner will use Confidential Information solely to perform authorized work under the Sales Partner Agreement and will not disclose, publish, forward, reproduce, distribute, sell, or share it outside authorized MCD systems or personnel.
 
-## 4. Customer and Prospect Data
+### 2.2 Reasonable protection
 
-Recipient acknowledges that customer and prospect data is Company Confidential Information and Company property. Recipient may access it only through Company-authorized systems and only as necessary for the Purpose. Recipient will not retain any customer or prospect information after access ends, contact Company leads or customers outside authorized Company systems, or use Company data for any personal or third-party benefit.
+Partner will use reasonable care to protect Confidential Information and will access only the records assigned or authorized to Partner.
 
-## 5. Required Disclosure
+### 2.3 No export or personal storage
 
-If Recipient is legally required to disclose Confidential Information, Recipient will, to the extent legally permitted, give Company prompt written notice and reasonable assistance so Company may seek a protective order or other remedy. Recipient will disclose only the minimum information legally required.
+Partner will not export, download, screenshot, copy, retain, or place MCD Confidential Information in personal email, spreadsheets, personal storage, messaging apps, social media, or any unapproved tool or device.
 
-## 6. Return and Destruction
+### 2.4 Personal prospecting accounts
 
-Upon Company’s request or when Recipient’s access or relationship ends, Recipient will immediately stop using Confidential Information and, as directed by Company, return or securely destroy all copies in Recipient’s possession or control, including copies on personal devices, cloud storage, notes, exports, and backups that Recipient can reasonably access. Recipient will provide written confirmation of completion on request.
+Partner may use personal social accounts and devices only for permitted independent prospecting. Meaningful contact must be logged in CRM, and MCD lead/customer information may not be copied or exposed through personal accounts.
 
-## 7. Intellectual Property and Work Product
+### 2.5 Incident reporting
 
-### 7.1 Company Materials
+Partner must report any actual or suspected improper storage, loss, export, screenshot, access, disclosure, security incident, or misuse of Confidential Information to MCD within twenty-four (24) hours.
 
-All Company materials, including branding, software, systems, documentation, workflows, prompts, templates, scripts, campaigns, customer lists, recordings, product concepts, and data, are and remain Company property. No ownership right or license is granted except the limited, revocable right to use approved materials solely for the Purpose.
+### 2.6 Separation and deletion
 
-### 7.2 Work Product Assignment
+On separation, Partner must delete any local copies, screenshots, exports, and messages containing MCD Confidential Information within twenty-four (24) hours and must not use or retain them thereafter.
 
-**“Work Product”** means all deliverables, improvements, discoveries, inventions, concepts, content, designs, documentation, workflows, automations, prompts, code, configurations, analyses, and other materials that Recipient creates alone or with others specifically for Company or in connection with the Purpose.
+## 3. Intellectual Property
 
-To the fullest extent permitted by law, Work Product is specially commissioned by Company and will be deemed a work made for hire where applicable. To the extent any Work Product is not a work made for hire, Recipient irrevocably assigns to Company all worldwide right, title, and interest in and to that Work Product, including all intellectual-property rights, without further compensation other than compensation expressly agreed in writing.
+### 3.1 Company materials
 
-Recipient will sign reasonable documents and take reasonable actions needed to confirm, perfect, or enforce Company’s rights in Work Product.
+All MCD-provided materials, branding, scripts, processes, content, software, technical materials, data, CRM configurations, customer records, leads, proposals, recordings, and derivatives remain the exclusive property of MCD or its licensors.
 
-### 7.3 Pre-Existing Materials
+### 3.2 MCD-specific work product
 
-Recipient retains ownership of materials demonstrably created before the Purpose and not based on Company Confidential Information (**“Pre-Existing Materials”**). If Recipient incorporates Pre-Existing Materials into Work Product, Recipient grants Company a perpetual, worldwide, transferable, sublicensable, royalty-free license to use, reproduce, modify, distribute, display, perform, and otherwise exploit the incorporated Pre-Existing Materials as necessary for Company to use and commercialize the Work Product.
+To the extent Partner creates or contributes any MCD-specific work product in connection with MCD materials, customers, prospects, marketing, demos, scripts, recordings, CRM configurations, content, or operations, Partner assigns to MCD all right, title, and interest in that MCD-specific work product and will sign reasonable documents needed to confirm the assignment.
 
-## 8. No Publicity or Unauthorized Representation
+### 3.3 Partner-retained materials
 
-Recipient may not use Company’s name, logos, customer names, projects, testimonials, screenshots, recordings, or Confidential Information in a portfolio, social-media post, case study, press statement, advertisement, or other public communication without Company’s prior written approval.
+Partner retains general sales skills, pre-existing independently created materials, and non-confidential experience, provided Partner does not use or disclose MCD Confidential Information or MCD-owned work product.
 
-## 9. Remedies
+### 3.4 Limited brand license
 
-Recipient acknowledges that unauthorized use or disclosure may cause irreparable harm for which money damages may be inadequate. Company may seek injunctive or equitable relief in addition to any other remedies available at law or equity.
+MCD grants Partner a limited, revocable, non-transferable right to use approved MCD brand assets and materials only while authorized under the Sales Partner Agreement and only for approved MCD-related activity.
 
-## 10. Term and Survival
+### 3.5 Public case-study use
 
-This Agreement begins when Recipient signs it and continues while Recipient has access to Confidential Information. Recipient’s confidentiality obligations continue for five (5) years after the last disclosure of Confidential Information; however, obligations concerning trade secrets, customer data, credentials, and information protected by law continue for as long as the information remains protected under applicable law.
+Partner may publicly use generic, anonymized experience or metrics in good faith. Use of an identifiable client name, logo, screenshot, testimonial, case study, or result requires prior written approval from both MCD and the client.
 
-## 11. General Terms
+## 4. Public Statements and Brand Use
 
-This Agreement is governed by the laws of **[GOVERNING-LAW STATE]**, without regard to conflict-of-law rules. Recipient may not assign this Agreement. If any provision is unenforceable, the remainder will remain in effect. This Agreement may be accepted electronically and electronic records and signatures are intended to be binding to the fullest extent permitted by law.
+Partner may represent itself in authorized outbound business activity as an MCD Account Executive, Sales Representative, or Sales Agent and may use approved MCD website/brand assets in good faith.
+
+Partner may not disclose internal pricing mechanics, wholesale costs, commission splits, vendor/platform relationships, backend operations, scripts, client/lead data, or any other Confidential Information.
+
+Partner may not make false, misleading, or unapproved claims about MCD, including guaranteed income, revenue, savings, compliance, staffing reduction, service level, implementation timing, customer outcome, or reseller status.
+
+## 5. Return of Materials and Access
+
+MCD may revoke access to systems, email, assets, documents, and materials at any time as allowed by the Sales Partner Agreement.
+
+Upon termination or request, Partner must promptly stop using MCD brand/assets and return or delete MCD materials as directed. Company email and active access end immediately on separation.
+
+A former Partner granted restricted retained-client CRM access receives only the access expressly approved by MCD and remains bound by this Agreement.
+
+## 6. Remedies
+
+Partner acknowledges that unauthorized use or disclosure of Confidential Information or MCD IP may cause harm that cannot be fully remedied by money damages. MCD may seek injunctive or equitable relief where permitted, in addition to other remedies. Suspected theft, fraud, or criminal data misuse may be referred to law enforcement.
+
+## 7. Term and Survival
+
+This Agreement begins on the Effective Date. Confidentiality obligations continue while information remains confidential and for at least three (3) years after termination, except trade-secret obligations continue for as long as information remains protected as a trade secret under applicable law.
+
+IP assignment and ownership provisions are perpetual. Data-use, deletion, and restricted-access obligations survive termination.
+
+## 8. General
+
+This Agreement supplements the Sales Partner Agreement. If the agreements conflict regarding confidentiality, data, brand, or intellectual property, this Agreement controls.
+
+California law governs this Agreement without regard to conflict-of-laws rules.
+
+The dispute-resolution provisions in the Sales Partner Agreement apply to this Agreement, except MCD may seek court injunctive or equitable relief where permitted to protect Confidential Information or IP.
+
+If any provision is unenforceable, the remainder remains in effect. No waiver is implied by non-enforcement.
 
 ---
 
-## Recipient Acknowledgment and Signature
+## Partner Signature
 
-I have read, understand, and agree to this Agreement.
+I have read, understand, and agree to this Confidentiality and Intellectual Property Agreement.
 
-Name: [AGENT LEGAL NAME]  
-Email: [AGENT EMAIL]  
-Signature: [GHL SIGNATURE FIELD]  
-Date: [GHL DATE FIELD]
+Legal Name / Business Name: [GHL LEGAL OR BUSINESS NAME FIELD]  
+Verified Personal Email: [GHL VERIFIED PERSONAL EMAIL FIELD]  
+Signature: [GHL SALES PARTNER SIGNATURE FIELD]  
+Date: [GHL SALES PARTNER DATE FIELD]
