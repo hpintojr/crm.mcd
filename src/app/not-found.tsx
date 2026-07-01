@@ -1,0 +1,3 @@
+export default function MissingPage() {
+  return <main className="flex min-h-screen items-center justify-center bg-ink-950 px-6 text-center"><section className="rounded-2xl border border-ink-700 bg-ink-900 p-8"><p className="text-sm text-brand-400">Mercury Call Desk</p><h1 className="mt-3 text-2xl font-semibold text-white">Page not found</h1><p className="mt-3 text-sm text-gray-400">This page is unavailable or your account does not have access to it.</p><a className="mt-6 inline-block rounded-lg bg-brand-500 px-4 py-2 text-sm font-medium text-ink-950" href="/portal">Return to portal</a></section></main>;
+}
