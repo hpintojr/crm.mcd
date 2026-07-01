@@ -5,6 +5,8 @@ import { ADMIN_ROLES, requireRole } from "@/lib/authz";
 import { db } from "@/lib/db";
 import { features } from "@/lib/features";
 
+export const dynamic = "force-dynamic";
+
 const actionSchema = z.object({
   leadId: z.string().cuid(),
   action: z.enum(["approve", "suppress", "disqualify"]),
