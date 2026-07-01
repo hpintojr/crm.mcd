@@ -73,7 +73,7 @@ export async function releaseClaimedRecord(actor: WorkActor, recordId: string, r
   await db.$transaction([
     db.lead.update({ where: { id: recordId }, data: { ownerAgentId: null, lifecycle: "AVAILABLE", claimedAt: null, openPoolReleaseAt: null, lastActionAt: now } }),
     db.leadClaimEvent.create({ data: { leadId: recordId, agentId: agent.id, action: "RELEASED", reason } }),
-    db.leadActivity.create({ data: { leadId: recordId, agentId: agent.id, type: "LEAD_RELEASED", metadata: reason ? { reason } : undefined }),
+    db.leadActivity.create({ data: { leadId: recordId, agentId: agent.id, type: "LEAD_RELEASED", metadata: reason ? { reason } : undefined } }),
     db.auditLog.create({ data: { actorUserId: actor.userId, actorRole: actor.role, actionType: "LEAD_RELEASED", entityType: "Lead", entityId: recordId, reason } }),
   ]);
 }
