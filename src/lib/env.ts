@@ -9,6 +9,12 @@ export const env = {
   appUrl: get("APP_URL", "http://localhost:3000"),
   appName: get("APP_NAME", "Mercury Call Desk"),
 
+  auth: {
+    secret: get("AUTH_SECRET"),
+    url: get("AUTH_URL", "http://localhost:3000"),
+    trustHost: get("AUTH_TRUST_HOST", "true") === "true",
+  },
+
   databaseUrl: get("DATABASE_URL"),
 
   ghl: {
@@ -19,11 +25,8 @@ export const env = {
     webhookSecret: get("GHL_WEBHOOK_SECRET"),
   },
 
-  // Server-only email access token (IONOS). Agents never log in directly.
   emailAccessToken: get("EMAIL_ACCESS_TOKEN"),
-
   payoutProvider: get("PAYOUT_PROVIDER", "stripe"),
 };
 
-/** True when the GHL backend is configured; lets the app run in a safe "stub" mode until then. */
 export const ghlConfigured = Boolean(env.ghl.token && env.ghl.salesHqLocationId);
