@@ -162,13 +162,16 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
   ],
   events: {
     async signOut(message) {
-      const userId = message.token?.id;
+      if (!("token" in message) || !message.token) return;
+      const userId = typeof message.token.id === "string" ? message.token.id : null;
       if (!userId) return;
+
       const user = await db.user.findUnique({
         where: { id: userId },
         select: { role: true },
       });
       if (!user) return;
+
       await db.auditLog.create({
         data: {
           actorUserId: userId,
