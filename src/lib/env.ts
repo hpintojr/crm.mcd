@@ -11,6 +11,11 @@ export const env = {
 
   databaseUrl: get("DATABASE_URL"),
 
+  // Temporary internal-admin API guard. This must stay server-only until full RBAC lands.
+  admin: {
+    apiKey: get("MCD_ADMIN_API_KEY"),
+  },
+
   ghl: {
     token: get("GHL_PRIVATE_TOKEN"),
     apiBase: get("GHL_API_BASE", "https://services.leadconnectorhq.com"),
