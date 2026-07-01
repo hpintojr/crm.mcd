@@ -44,12 +44,24 @@ export async function recordInboundEvent(event: GhlInboundEvent) {
         payload: event.payload,
       },
     });
-    return { firstTime: true as const };
+    return { firstTime: true as const, retry: false as const };
   } catch (error) {
-    if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === "P2002") {
-      return { firstTime: false as const };
-    }
-    throw error;
+    if (!(error instanceof Prisma.PrismaClientKnownRequestError) || error.code !== "P2002") throw error;
+
+    const existing = await db.webhookEvent.findUnique({ where: { ghlEventId: event.ghlEventId } });
+    if (existing?.status !== "ERROR") return { firstTime: false as const, retry: false as const };
+
+    await db.webhookEvent.update({
+      where: { ghlEventId: event.ghlEventId },
+      data: {
+        status: "RECEIVED",
+        processedAt: null,
+        locationId: event.locationId,
+        type: event.type,
+        payload: event.payload,
+      },
+    });
+    return { firstTime: true as const, retry: true as const };
   }
 }
 
