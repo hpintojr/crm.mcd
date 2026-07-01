@@ -71,3 +71,36 @@ export async function upsertSalesHqContact(
     return { ok: false, error: err instanceof Error ? err.message : "GHL request error" };
   }
 }
+
+/**
+ * Adds tags to an existing Sales HQ contact. Approval uses `agent-approved` to start
+ * the GHL document workflow. The CRM does not advance local state if this call fails.
+ */
+export async function addSalesHqContactTags(
+  contactId: string,
+  tags: string[],
+): Promise<GhlResult<{ contactId: string }>> {
+  if (!ghlConfigured) {
+    return { ok: true, stub: true, data: { contactId } };
+  }
+
+  try {
+    const res = await fetch(
+      `${env.ghl.apiBase}/contacts/${encodeURIComponent(contactId)}/tags`,
+      {
+        method: "POST",
+        headers: headers(),
+        body: JSON.stringify({ tags }),
+      },
+    );
+
+    if (!res.ok) {
+      const text = await res.text();
+      return { ok: false, error: `GHL tag update failed (${res.status}): ${text.slice(0, 300)}` };
+    }
+
+    return { ok: true, data: { contactId } };
+  } catch (err) {
+    return { ok: false, error: err instanceof Error ? err.message : "GHL tag request error" };
+  }
+}
