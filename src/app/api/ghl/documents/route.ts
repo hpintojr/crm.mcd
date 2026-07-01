@@ -3,6 +3,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { createActivation } from "@/lib/activation";
 import { db } from "@/lib/db";
+import { activationEmail } from "@/lib/emails/activation-email";
 import {
   finishInboundEvent,
   logIntegrationError,
@@ -10,6 +11,7 @@ import {
   requestIp,
   verifyGhlWebhook,
 } from "@/lib/ghl-webhook";
+import { sendMail } from "@/lib/mail";
 
 const requiredDocuments = ["SALES_AGREEMENT", "NDA_IP", "W9_PAYOUT", "ACKNOWLEDGMENT"] as const;
 
@@ -154,9 +156,22 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ ok: true, conflict: true }, { status: 202 });
     }
 
-    const user = existingUser ?? await db.user.create({
-      data: { email: current.personalEmail, role: "AGENT", status: "INVITED" },
-    });
+    let user = existingUser;
+    if (!user) {
+      try {
+        user = await db.user.create({
+          data: { email: current.personalEmail, role: "AGENT", status: "INVITED" },
+        });
+      } catch (error) {
+        // Two document-completion webhooks landing concurrently can both reach this point
+        // for the same agent; the loser of the race just picks up the winner's user row.
+        if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === "P2002") {
+          user = await db.user.findUniqueOrThrow({ where: { email: current.personalEmail } });
+        } else {
+          throw error;
+        }
+      }
+    }
     await db.$transaction([
       db.agent.update({
         where: { id: current.id },
@@ -175,6 +190,12 @@ export async function POST(request: NextRequest) {
     ]);
 
     const activation = await createActivation(user.id);
+    const { subject, text, html } = activationEmail({
+      activationUrl: activation.url,
+      expiresAt: activation.expiresAt,
+    });
+    const delivery = await sendMail({ to: user.email, subject, text, html });
+
     await db.$transaction([
       db.auditLog.create({
         data: {
@@ -183,7 +204,11 @@ export async function POST(request: NextRequest) {
           actionType: "ACTIVATION_LINK_ISSUED",
           entityType: "User",
           entityId: user.id,
-          metadata: { delivery: "webhook-response-stub", expiresAt: activation.expiresAt.toISOString() },
+          metadata: {
+            delivery: delivery.ok ? (delivery.stub ? "smtp-not-configured" : "smtp-sent") : "smtp-failed",
+            deliveryError: delivery.ok ? null : delivery.error,
+            expiresAt: activation.expiresAt.toISOString(),
+          },
         },
       }),
       db.webhookEvent.update({
@@ -192,7 +217,17 @@ export async function POST(request: NextRequest) {
       }),
     ]);
 
-    return NextResponse.json({ ok: true, provisioned: true, activationUrl: activation.url });
+    if (!delivery.ok) {
+      await logIntegrationError({
+        source: "activation.email",
+        refId: user.id,
+        message: delivery.error,
+      });
+    }
+
+    // Do not echo the one-time activation URL back in the webhook response body —
+    // it's a bearer credential and GHL's webhook delivery log would retain it.
+    return NextResponse.json({ ok: true, provisioned: true, emailDelivered: delivery.ok && !delivery.stub });
   } catch (error) {
     const message = error instanceof Error ? error.message : "Unknown webhook processing failure.";
     await logIntegrationError({

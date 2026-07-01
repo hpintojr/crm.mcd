@@ -35,9 +35,19 @@ export const env = {
 
   emailAccessToken: get("EMAIL_ACCESS_TOKEN"),
   payoutProvider: get("PAYOUT_PROVIDER", "stripe"),
+
+  smtp: {
+    host: get("EMAIL_SMTP_HOST", "smtp.ionos.com"),
+    port: Number(get("EMAIL_SMTP_PORT", "587")) || 587,
+    user: get("EMAIL_SMTP_USER"),
+    password: get("EMAIL_SMTP_PASSWORD"),
+    fromAddress: get("EMAIL_FROM_ADDRESS", "no-reply@mercurycalldesk.com"),
+    fromName: get("EMAIL_FROM_NAME", "Mercury Call Desk"),
+  },
 };
 
 export const ghlConfigured = Boolean(env.ghl.token && env.ghl.salesHqLocationId);
+export const smtpConfigured = Boolean(env.smtp.user && env.smtp.password);
 
 export function allowedGhlLocations(): Set<string> {
   return new Set([env.ghl.salesHqLocationId, ...env.ghl.allowedLocationIds].filter(Boolean));
