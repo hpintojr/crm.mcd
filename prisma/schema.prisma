@@ -1,8 +1,6 @@
 // Mercury Call Desk — Mini CRM
-// Phase 1 domain: agents + onboarding gates + audit.
-// Compliance note: SSN / raw tax IDs and raw bank numbers are NEVER stored here.
-// Onboarding documents live in GHL; we keep references + completion state only.
-// Next domain: lead pools, atomic claims, activities, callbacks, and internal suppressions.
+// Sensitive data policy: SSNs, tax IDs, raw bank numbers, and account credentials are NEVER stored here.
+// GHL remains a backend integration; agents never receive GHL credentials.
 
 generator client {
   provider = "prisma-client-js"
@@ -66,6 +64,81 @@ enum CertDecision {
   APPROVED_FOR_LIVE
   APPROVED_WITH_COACHING
   NOT_YET_APPROVED
+}
+
+enum LeadLifecycle {
+  RAW
+  PENDING_REVIEW
+  AVAILABLE
+  CLAIMED
+  CONTACTED
+  NURTURING
+  DEMO_BOOKED
+  CLOSED_WON
+  CLOSED_LOST
+  DISQUALIFIED
+  SUPPRESSED
+}
+
+enum LeadPool {
+  COLD
+  OPEN
+  HOT
+  REFERRAL
+  SHARK_TANK
+  HOUSE
+  NURTURE
+}
+
+enum LeadClaimAction {
+  CLAIMED
+  RELEASED
+  REASSIGNED
+  RETURNED_TO_POOL
+  DENIED
+}
+
+enum LeadActivityType {
+  LEAD_CREATED
+  LEAD_CLAIMED
+  LEAD_RELEASED
+  CALL_INITIATED
+  CALL_COMPLETED
+  NOTE_ADDED
+  DISPOSITION_SET
+  CALLBACK_SCHEDULED
+  CALLBACK_COMPLETED
+  DNC_REQUESTED
+  DEMO_BOOKED
+  REASSIGNED
+}
+
+enum LeadDisposition {
+  NO_ANSWER
+  VOICEMAIL
+  CALLBACK_REQUESTED
+  QUALIFIED
+  NOT_INTERESTED
+  DO_NOT_CONTACT
+  WRONG_NUMBER
+  OUT_OF_BUSINESS
+  DEMO_BOOKED
+  FOLLOW_UP
+}
+
+enum LeadCallbackStatus {
+  SCHEDULED
+  COMPLETED
+  CANCELLED
+}
+
+enum SuppressionType {
+  DNC
+  OPT_OUT
+  INVALID_PHONE
+  DUPLICATE
+  COMPLIANCE_HOLD
+  LEGAL_HOLD
 }
 
 model User {
@@ -159,6 +232,112 @@ model Certification {
   createdAt       DateTime     @default(now())
 }
 
+model Lead {
+  id                String        @id @default(cuid())
+  company           String
+  contactFirstName  String?
+  contactLastName   String?
+  email             String?
+  businessPhone     String
+  normalizedPhone   String?
+  website           String?
+  industry          String?
+  city              String?
+  state             String?
+  country           String?
+  timezone          String?
+  source            String?
+  sourceReference   String?
+  score             Int           @default(0)
+  lifecycle         LeadLifecycle @default(PENDING_REVIEW)
+  pool              LeadPool      @default(COLD)
+  ownerAgentId      String?
+  claimedAt         DateTime?
+  twoWayContactAt   DateTime?
+  lastActionAt      DateTime?
+  nextActionAt      DateTime?
+  openPoolReleaseAt DateTime?
+  isReferral        Boolean       @default(false)
+  referralSource    String?
+  suppressed        Boolean       @default(false)
+  dnc               Boolean       @default(false)
+  ghlContactId      String?
+  ghlOpportunityId String?
+  ghlAppointmentId String?
+  packageInterest   String?
+  createdAt         DateTime      @default(now())
+  updatedAt         DateTime      @updatedAt
+
+  @@index([pool, lifecycle, ownerAgentId])
+  @@index([nextActionAt])
+  @@index([openPoolReleaseAt])
+  @@index([normalizedPhone])
+  @@index([ghlContactId])
+}
+
+model LeadClaimEvent {
+  id        String          @id @default(cuid())
+  leadId    String
+  agentId   String?
+  action    LeadClaimAction
+  reason    String?
+  createdAt DateTime        @default(now())
+
+  @@index([leadId, createdAt])
+  @@index([agentId, createdAt])
+}
+
+model LeadActivity {
+  id          String           @id @default(cuid())
+  leadId      String
+  agentId     String?
+  type        LeadActivityType
+  disposition LeadDisposition?
+  metadata    Json?
+  occurredAt  DateTime         @default(now())
+
+  @@index([leadId, occurredAt])
+  @@index([agentId, occurredAt])
+}
+
+model LeadNote {
+  id        String   @id @default(cuid())
+  leadId    String
+  agentId   String?
+  body      String
+  createdAt DateTime @default(now())
+
+  @@index([leadId, createdAt])
+}
+
+model LeadCallback {
+  id          String             @id @default(cuid())
+  leadId      String
+  agentId     String?
+  dueAt       DateTime
+  status      LeadCallbackStatus @default(SCHEDULED)
+  completedAt DateTime?
+  createdAt   DateTime           @default(now())
+
+  @@index([agentId, status, dueAt])
+  @@index([leadId, status])
+}
+
+model LeadSuppression {
+  id          String          @id @default(cuid())
+  leadId      String?
+  identifier  String
+  type        SuppressionType
+  reason      String?
+  createdById String?
+  active      Boolean         @default(true)
+  createdAt   DateTime        @default(now())
+  liftedAt    DateTime?
+
+  @@index([identifier, active])
+  @@index([leadId, active])
+}
+
 model WebhookEvent {
   id          String   @id @default(cuid())
   provider    String   @default("GHL")
@@ -175,15 +354,15 @@ model WebhookEvent {
 }
 
 model IntegrationError {
-  id         String   @id @default(cuid())
-  source     String
-  refId      String?
-  message    String
-  payload    Json?
-  resolved   Boolean  @default(false)
-  resolvedAt DateTime?
+  id           String   @id @default(cuid())
+  source       String
+  refId        String?
+  message      String
+  payload      Json?
+  resolved     Boolean  @default(false)
+  resolvedAt   DateTime?
   resolvedById String?
-  createdAt  DateTime @default(now())
+  createdAt    DateTime @default(now())
 
   @@index([resolved, createdAt])
   @@index([source, refId])
