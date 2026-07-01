@@ -1,63 +1,63 @@
 # MCD - W-9 / Payout Intake
 
-> **Template status: working draft for secure intake.** This document is **not** a substitute for the official IRS Form W-9. Do not place a Social Security number, EIN, routing number, bank-account number, copy of an ID, or tax document in this GHL template, an email, an SMS message, or this repository.
+> **GHL secure-intake acknowledgement. This is not a substitute for the current official IRS Form W-9.** Do not place a Social Security number, EIN, routing number, bank-account number, copy of an ID, or tax document in this GHL template, email, SMS message, workflow note, or repository.
 
 ## GHL template setup
 
 - **Template name:** `MCD - W-9 / Payout Intake`
-- **Recipient / signer:** Agent only.
-- **Required secure link before publishing:** Replace `[SECURE W-9 UPLOAD LINK]` with the company’s approved secure upload destination. Do not use an unprotected public form or shared-drive link.
-- **Operational requirement:** Before activating an agent for payout, obtain and retain the then-current official IRS Form W-9 through the secure intake process and verify the payout profile outside this acknowledgement.
+- **Recipient / signer:** Sales Partner only.
+- **Before publishing:** Replace `[SECURE W-9 UPLOAD LINK]` with an approved, access-controlled upload destination.
+- **Operational rule:** MCD may not countersign the Sales Partner Agreement, grant active MiniCRM/GHL access, or release payout until the official W-9 and verified payout instructions are received through the approved secure process.
 
 ---
 
 # W-9 / PAYOUT INTAKE ACKNOWLEDGMENT
 
-This W-9 / Payout Intake Acknowledgment is provided by **[AGENT LEGAL NAME]** (**“Payee”**) to **[LEGAL ENTITY NAME]**, doing business as **Mercury Call Desk** (**“Company”**).
+This W-9 / Payout Intake Acknowledgment is provided by **[SALES PARTNER LEGAL NAME / BUSINESS NAME]** (**“Payee”**) to **Charter Oaks Assets, Inc. d/b/a Mercury Call Desk** (**“MCD”** or **“Company”**), with a business address at **231 E Alessandro Blvd A-208, Riverside, CA 92508**.
 
-## 1. Tax Documentation
+## 1. Mandatory tax documentation
 
-Payee understands that Company requires a completed, current official IRS Form W-9 or other legally required tax documentation before Company can activate payout eligibility.
+I understand that MCD requires a completed, current official IRS Form W-9 or other legally required tax documentation before I am eligible for payout.
 
-Payee agrees to complete the official IRS Form W-9 accurately and submit it only through Company’s approved secure intake process:
+I will submit the official Form W-9 only through MCD’s approved secure intake process:
 
 **Approved secure upload destination:** [SECURE W-9 UPLOAD LINK]
 
-Payee will promptly notify Company if the legal name, tax classification, taxpayer identification information, address, or any other information submitted on the Form W-9 becomes inaccurate or outdated.
+I will promptly notify MCD if my legal name, tax classification, taxpayer-identification information, address, or other information submitted on the Form W-9 becomes inaccurate or outdated.
 
-## 2. Payout Contact Information
+## 2. Payout contact information
 
-The following information may be used to contact Payee about payout setup. Do **not** place a taxpayer identification number or bank-account information in this document.
+The following information may be used to contact me about tax and payout setup. I will not place taxpayer-identification or bank-account information in this document.
 
-- Legal payee name: [AGENT LEGAL NAME]
+- Legal payee name: [GHL LEGAL OR BUSINESS NAME FIELD]
 - Business name, if different: [BUSINESS NAME OR N/A]
-- Payout contact email: [AGENT EMAIL]
-- Payout contact phone: [AGENT PHONE]
-- Mailing address: [AGENT MAILING ADDRESS]
+- Verified personal email: [GHL VERIFIED PERSONAL EMAIL FIELD]
+- Payout contact phone: [GHL PHONE FIELD]
+- Mailing address: [GHL MAILING ADDRESS FIELD]
 - Preferred payout method: [ACH / OTHER APPROVED METHOD]
 
-For ACH or other electronic payout setup, Payee will provide bank information only through the Company-approved secure payout method. Company may require verification before changing payout instructions.
+For ACH or other electronic payout setup, I will provide bank information only through the MCD-approved secure payout method. MCD may require verification before activating or changing payout instructions.
 
-## 3. Certifications and Responsibilities
+## 3. Certifications and responsibilities
 
-Payee certifies and agrees that:
+I certify and agree that:
 
-1. the information Payee provides to Company for payout and tax reporting is accurate and complete to the best of Payee’s knowledge;
-2. Payee is responsible for reviewing and completing the official Form W-9 and for obtaining independent tax advice when needed;
-3. Payee will not submit sensitive information through unapproved email, SMS, chat, or shared links;
-4. Company may delay or hold payout when required tax documentation or verified payout instructions are missing, incomplete, inconsistent, or reasonably suspected to be fraudulent;
-5. Company may issue required tax reporting documents based on information Payee provides and applicable law; and
-6. this acknowledgement does not create an employment relationship or alter the independent-contractor relationship described in the Sales Partner Agreement.
+1. Information I provide for payout and tax reporting is accurate and complete to the best of my knowledge.
+2. I am responsible for completing the official Form W-9 and for obtaining independent tax advice when needed.
+3. I will not submit sensitive information through unapproved email, SMS, chat, shared links, or personal storage.
+4. MCD may delay or hold access or payout when required tax documentation or verified payout instructions are missing, incomplete, inconsistent, or reasonably suspected to be fraudulent.
+5. MCD may issue required tax reporting documents based on the information I provide and applicable law.
+6. This acknowledgement does not create an employment relationship or alter the independent-contractor relationship described in the Sales Partner Agreement.
 
-## 4. Secure Delivery Confirmation
+## 4. Secure delivery confirmation
 
-By signing below, Payee confirms that Payee has received the secure submission instructions, understands that this document is not the official IRS Form W-9, and will use the approved secure method to submit tax and payout documentation.
+By signing below, I confirm that I received the secure submission instructions, understand that this document is not the official IRS Form W-9, and will use the approved secure method to submit tax and payout documentation.
 
 ---
 
 ## Payee Signature
 
-Name: [AGENT LEGAL NAME]  
-Email: [AGENT EMAIL]  
-Signature: [GHL SIGNATURE FIELD]  
-Date: [GHL DATE FIELD]
+Legal Name / Business Name: [GHL LEGAL OR BUSINESS NAME FIELD]  
+Verified Personal Email: [GHL VERIFIED PERSONAL EMAIL FIELD]  
+Signature: [GHL SALES PARTNER SIGNATURE FIELD]  
+Date: [GHL SALES PARTNER DATE FIELD]
