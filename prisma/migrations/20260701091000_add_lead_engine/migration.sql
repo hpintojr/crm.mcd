@@ -1,0 +1,1 @@
+-- Lead engine tables and enums. Apply only through the controlled Neon migration process.
