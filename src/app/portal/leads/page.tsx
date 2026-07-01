@@ -1,9 +1,9 @@
 import { revalidatePath } from "next/cache";
 import { notFound } from "next/navigation";
 import { ADMIN_ROLES, requireRole } from "@/lib/authz";
+import { claimAvailableLead } from "@/lib/claims";
 import { db } from "@/lib/db";
 import { features } from "@/lib/features";
-import { claimAvailableRecord } from "@/lib/workflow";
 
 export const dynamic = "force-dynamic";
 
@@ -33,7 +33,7 @@ export default async function LeadsPage() {
     const actor = await requireRole(["AGENT", ...ADMIN_ROLES]);
     const leadId = String(formData.get("leadId") ?? "");
     if (!leadId) throw new Error("Lead is required.");
-    await claimAvailableRecord({ userId: actor.id, role: actor.role }, leadId);
+    await claimAvailableLead({ userId: actor.id, role: actor.role }, leadId);
     revalidatePath("/portal/leads");
   }
 
@@ -47,7 +47,7 @@ export default async function LeadsPage() {
         <div className="rounded-2xl border border-ink-700 bg-ink-900">
           <div className="border-b border-ink-700 px-6 py-4">
             <h2 className="font-semibold text-white">Available pool</h2>
-            <p className="mt-1 text-sm text-gray-400">Claiming is atomic. A record can only be assigned once.</p>
+            <p className="mt-1 text-sm text-gray-400">Claiming is atomic. Cold-lead protection begins only after documented two-way contact.</p>
           </div>
           {available.length === 0 ? <p className="px-6 py-10 text-sm text-gray-400">No available records.</p> : (
             <div className="divide-y divide-ink-700">
