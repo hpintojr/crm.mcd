@@ -2,6 +2,7 @@
 // Phase 1 domain: agents + onboarding gates + audit.
 // Compliance note: SSN / raw tax IDs and raw bank numbers are NEVER stored here.
 // Onboarding documents live in GHL; we keep references + completion state only.
+// Next domain: lead pools, atomic claims, activities, callbacks, and internal suppressions.
 
 generator client {
   provider = "prisma-client-js"
@@ -102,14 +103,12 @@ model Agent {
   id               String      @id @default(cuid())
   userId           String?     @unique
   user             User?       @relation(fields: [userId], references: [id])
-
   legalName        String
   preferredName    String?
   personalEmail    String      @unique
   mobile           String
   mailingAddress   String?
   emergencyContact String?
-
   status           AgentStatus @default(SUBMITTED)
   canClaimLeads    Boolean     @default(false)
   confirmedCallAt  DateTime?
@@ -117,11 +116,8 @@ model Agent {
   approvedAt       DateTime?
   reviewNote       String?
   provisionedAt    DateTime?
-
-  // GHL linkage (Sales HQ). We store the backend-user + contact ids; agents never log into GHL.
   ghlContactId     String?
   ghlUserId        String?
-
   onboardingDocs   OnboardingDocument[]
   certifications   Certification[]
   createdAt        DateTime    @default(now())
