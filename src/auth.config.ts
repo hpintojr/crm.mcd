@@ -29,10 +29,15 @@ export const authConfig = {
     },
     session({ session, token }) {
       if (session.user) {
-        session.user.id = token.id ?? token.sub ?? "";
-        session.user.role = token.role ?? "AGENT";
-        session.user.status = token.status ?? "INVITED";
-        session.user.mfaEnabled = token.mfaEnabled ?? false;
+        const id = typeof token.id === "string" ? token.id : typeof token.sub === "string" ? token.sub : "";
+        const role = typeof token.role === "string" ? token.role : "AGENT";
+        const status = typeof token.status === "string" ? token.status : "INVITED";
+        const mfaEnabled = token.mfaEnabled === true;
+
+        session.user.id = id;
+        session.user.role = role as typeof session.user.role;
+        session.user.status = status as typeof session.user.status;
+        session.user.mfaEnabled = mfaEnabled;
       }
       return session;
     },
