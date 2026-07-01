@@ -31,6 +31,20 @@ function requestIp(request: Request): string | null {
   return request.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ?? null;
 }
 
+async function auditMfaFailure(userId: string, role: string, ipAddress: string | null, reason: string) {
+  await db.auditLog.create({
+    data: {
+      actorUserId: userId,
+      actorRole: role,
+      actionType: "LOGIN_FAILED",
+      entityType: "User",
+      entityId: userId,
+      ipAddress,
+      metadata: { reason },
+    },
+  });
+}
+
 export const { handlers, auth, signIn, signOut } = NextAuth({
   ...authConfig,
   providers: [
@@ -105,8 +119,12 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         }
 
         if (user.mfaEnabled) {
-          if (!totp) throw new MfaRequiredError();
+          if (!totp) {
+            await auditMfaFailure(user.id, user.role, ipAddress, "MFA_REQUIRED");
+            throw new MfaRequiredError();
+          }
           if (!user.totpSecret || !authenticator.check(totp, user.totpSecret)) {
+            await auditMfaFailure(user.id, user.role, ipAddress, "MFA_INVALID");
             throw new MfaInvalidError();
           }
         }
@@ -142,4 +160,24 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
       },
     }),
   ],
+  events: {
+    async signOut(message) {
+      const userId = message.token?.id;
+      if (!userId) return;
+      const user = await db.user.findUnique({
+        where: { id: userId },
+        select: { role: true },
+      });
+      if (!user) return;
+      await db.auditLog.create({
+        data: {
+          actorUserId: userId,
+          actorRole: user.role,
+          actionType: "LOGOUT",
+          entityType: "User",
+          entityId: userId,
+        },
+      });
+    },
+  },
 });
