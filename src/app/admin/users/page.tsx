@@ -4,7 +4,7 @@ import { z } from "zod";
 import { requireRole } from "@/lib/authz";
 import { db } from "@/lib/db";
 
-const MANAGERS = ["OWNER", "SUPER_ADMIN"] as const;
+const MANAGERS: UserRole[] = ["OWNER", "SUPER_ADMIN"];
 const assignableRoles = ["SUPER_ADMIN", "SALES_MANAGER", "COMPLIANCE_MANAGER", "FINANCE_MANAGER", "AGENT", "FORMER_SERVICING_AGENT", "READ_ONLY", "HOUSE_SERVICE"] as const;
 const assignableStatuses = ["ACTIVE", "SUSPENDED", "DISABLED", "INVITED"] as const;
 
