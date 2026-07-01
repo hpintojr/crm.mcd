@@ -5,6 +5,8 @@ import { db } from "@/lib/db";
 import { features } from "@/lib/features";
 import { claimAvailableRecord } from "@/lib/workflow";
 
+export const dynamic = "force-dynamic";
+
 function label(value: string) {
   return value.replaceAll("_", " ").toLowerCase().replace(/^./, (letter) => letter.toUpperCase());
 }
@@ -76,7 +78,7 @@ export default async function LeadsPage() {
           {mine.length === 0 ? <p className="px-6 py-10 text-sm text-gray-400">No records are assigned to you.</p> : (
             <div className="divide-y divide-ink-700">
               {mine.map((lead) => (
-                <a className="block px-6 py-5 hover:bg-ink-950" href={`/portal/leads/${lead.id}`} key={lead.id}>
+                <a className="block px-6 py-5 hover:bg-ink-950" href={`/portal/leads?selected=${lead.id}`} key={lead.id}>
                   <p className="font-medium text-white">{lead.company}</p>
                   <p className="mt-1 text-sm text-gray-400">{lead.businessPhone} · {label(lead.lifecycle)}</p>
                   <p className="mt-1 text-xs text-gray-500">Next action: {lead.nextActionAt ? lead.nextActionAt.toLocaleString() : "Not scheduled"}</p>
