@@ -1,8 +1,8 @@
 // GoHighLevel API v2 client (server-only).
 // GHL is a one-way backend: the MiniCRM writes at onboarding/handoff and receives events via webhooks.
-// Agents NEVER get GHL logins. If the token isn't configured yet, calls run in a safe stub mode
-// so the app is fully runnable before the GHL account is wired.
+// Agents NEVER get GHL logins. If the token isn't configured yet, calls run in a safe stub mode.
 
+import "server-only";
 import { env, ghlConfigured } from "@/lib/env";
 
 type UpsertContactInput = {
@@ -11,12 +11,11 @@ type UpsertContactInput = {
   personalEmail: string;
   mobile: string;
   mailingAddress?: string | null;
-  // Attribution custom fields (Flow B) — keyed by your GHL custom-field ids at wire-up time.
   customFields?: Record<string, string>;
   tags?: string[];
 };
 
-type GhlResult<T> = { ok: true; stub?: boolean; data: T } | { ok: false; error: string };
+export type GhlResult<T> = { ok: true; stub?: boolean; data: T } | { ok: false; error: string };
 
 function headers() {
   return {
@@ -27,11 +26,6 @@ function headers() {
   };
 }
 
-/**
- * Create or update a Contact in the Sales HQ sub-account and stamp attribution fields.
- * Returns the GHL contact id. In stub mode (no token) returns a synthetic id so the
- * onboarding flow is testable end-to-end locally.
- */
 export async function upsertSalesHqContact(
   input: UpsertContactInput,
 ): Promise<GhlResult<{ contactId: string }>> {
@@ -67,7 +61,29 @@ export async function upsertSalesHqContact(
     const contactId = json.contact?.id ?? json.id;
     if (!contactId) return { ok: false, error: "GHL upsert returned no contact id" };
     return { ok: true, data: { contactId } };
-  } catch (err) {
-    return { ok: false, error: err instanceof Error ? err.message : "GHL request error" };
+  } catch (error) {
+    return { ok: false, error: error instanceof Error ? error.message : "GHL request error" };
+  }
+}
+
+/** Adds a GHL tag while preserving a stub-safe local workflow before the token is configured. */
+export async function addContactTag(contactId: string, tag: string): Promise<GhlResult<{ ok: true }>> {
+  if (!ghlConfigured || contactId.startsWith("stub_")) {
+    return { ok: true, stub: true, data: { ok: true } };
+  }
+
+  try {
+    const res = await fetch(`${env.ghl.apiBase}/contacts/${encodeURIComponent(contactId)}/tags`, {
+      method: "POST",
+      headers: headers(),
+      body: JSON.stringify({ tags: [tag] }),
+    });
+    if (!res.ok) {
+      const text = await res.text();
+      return { ok: false, error: `GHL tag failed (${res.status}): ${text.slice(0, 300)}` };
+    }
+    return { ok: true, data: { ok: true } };
+  } catch (error) {
+    return { ok: false, error: error instanceof Error ? error.message : "GHL tag request error" };
   }
 }
