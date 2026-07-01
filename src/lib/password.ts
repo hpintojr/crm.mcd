@@ -1,10 +1,11 @@
 import "server-only";
 
 import { createHash, randomBytes } from "node:crypto";
-import { Algorithm, hash, verify } from "@node-rs/argon2";
+import { hash, verify } from "@node-rs/argon2";
 
+// The library defaults to Argon2id. Keep only explicit cost parameters here so this
+// file remains compatible with Next.js isolated module compilation.
 const ARGON2_OPTIONS = {
-  algorithm: Algorithm.Argon2id,
   memoryCost: 19_456,
   timeCost: 2,
   parallelism: 1,
@@ -15,7 +16,7 @@ export async function hashPassword(plain: string): Promise<string> {
 }
 
 export async function verifyPassword(passwordHash: string, plain: string): Promise<boolean> {
-  return verify(passwordHash, plain, ARGON2_OPTIONS);
+  return verify(passwordHash, plain);
 }
 
 /** Hashes a one-time token for storage. Raw token values are never persisted. */
