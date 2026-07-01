@@ -25,6 +25,13 @@ enum UserRole {
   HOUSE_SERVICE
 }
 
+enum UserStatus {
+  INVITED
+  ACTIVE
+  SUSPENDED
+  DISABLED
+}
+
 enum AgentStatus {
   DRAFT
   SUBMITTED
@@ -62,74 +69,95 @@ enum CertDecision {
 
 // A login identity (agents, admins, finance, etc.). Password is set only after activation.
 model User {
-  id           String      @id @default(cuid())
-  email        String      @unique
-  role         UserRole    @default(AGENT)
-  passwordHash String?
-  mfaEnabled   Boolean     @default(false)
-  agent        Agent?
-  createdAt    DateTime    @default(now())
-  updatedAt    DateTime    @updatedAt
+  id               String            @id @default(cuid())
+  email            String            @unique
+  role             UserRole          @default(AGENT)
+  status           UserStatus        @default(INVITED)
+  passwordHash     String?
+  mfaEnabled       Boolean           @default(false)
+  totpSecret       String?
+  lastLoginAt      DateTime?
+  failedLogins     Int               @default(0)
+  lockedUntil      DateTime?
+  agent            Agent?
+  activationTokens ActivationToken[]
+  createdAt        DateTime          @default(now())
+  updatedAt        DateTime          @updatedAt
+}
+
+// One-time activation / password-set token. The raw value is never stored.
+model ActivationToken {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  tokenHash String   @unique
+  purpose   String   @default("ACTIVATION")
+  expiresAt DateTime
+  usedAt    DateTime?
+  createdAt DateTime @default(now())
+
+  @@index([userId])
+  @@index([expiresAt])
 }
 
 // A sales partner / agent record. Created at signup (status SUBMITTED), activated after gates.
 model Agent {
-  id            String      @id @default(cuid())
-  userId        String?     @unique
-  user          User?       @relation(fields: [userId], references: [id])
+  id             String      @id @default(cuid())
+  userId         String?     @unique
+  user           User?       @relation(fields: [userId], references: [id])
 
-  legalName     String
-  preferredName String?
-  personalEmail String      @unique
-  mobile        String
+  legalName      String
+  preferredName  String?
+  personalEmail  String      @unique
+  mobile         String
   mailingAddress String?
   emergencyContact String?
 
-  status        AgentStatus @default(SUBMITTED)
-  canClaimLeads Boolean     @default(false)
+  status         AgentStatus @default(SUBMITTED)
+  canClaimLeads  Boolean     @default(false)
 
   // GHL linkage (Sales HQ). We store the backend-user + contact ids; agents never log into GHL.
-  ghlContactId  String?
-  ghlUserId     String?
+  ghlContactId   String?
+  ghlUserId      String?
 
   onboardingDocs OnboardingDocument[]
   certifications Certification[]
-  createdAt     DateTime    @default(now())
-  updatedAt     DateTime    @updatedAt
+  createdAt      DateTime    @default(now())
+  updatedAt      DateTime    @updatedAt
 
   @@index([status])
 }
 
 // Reference + completion state for an onboarding document. Raw docs live in GHL; we keep the ref.
 model OnboardingDocument {
-  id          String            @id @default(cuid())
-  agentId     String
-  agent       Agent             @relation(fields: [agentId], references: [id])
-  docType     OnboardingDocType
-  version     String?
-  status      DocStatus         @default(PENDING)
-  ghlDocumentId String?         // GHL Documents & Contracts id
-  r2Key       String?           // mirror of signed PDF for the 7-year record
-  signerIp    String?
-  countersigned Boolean         @default(false)
-  completedAt DateTime?
-  createdAt   DateTime          @default(now())
+  id            String            @id @default(cuid())
+  agentId       String
+  agent         Agent             @relation(fields: [agentId], references: [id])
+  docType       OnboardingDocType
+  version       String?
+  status        DocStatus         @default(PENDING)
+  ghlDocumentId String?           // GHL Documents & Contracts id
+  r2Key         String?           // mirror of signed PDF for the 7-year record
+  signerIp      String?
+  countersigned Boolean           @default(false)
+  completedAt   DateTime?
+  createdAt     DateTime          @default(now())
 
   @@unique([agentId, docType])
 }
 
 model Certification {
-  id             String       @id @default(cuid())
-  agentId        String
-  agent          Agent        @relation(fields: [agentId], references: [id])
-  managerId      String?
-  productScore   Int?
-  discoveryScore Int?
-  crmScore       Int?
+  id              String       @id @default(cuid())
+  agentId         String
+  agent           Agent        @relation(fields: [agentId], references: [id])
+  managerId       String?
+  productScore    Int?
+  discoveryScore  Int?
+  crmScore        Int?
   complianceScore Int?
-  decision       CertDecision @default(NOT_YET_APPROVED)
-  signedAt       DateTime?
-  createdAt      DateTime     @default(now())
+  decision        CertDecision @default(NOT_YET_APPROVED)
+  signedAt        DateTime?
+  createdAt       DateTime     @default(now())
 }
 
 // Immutable audit trail for sensitive actions.
