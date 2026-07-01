@@ -4,6 +4,7 @@ import { signOut } from "next-auth/react";
 
 export function SignOutButton() {
   async function handleClick() {
+    await fetch("/api/auth/logout-audit", { method: "POST" });
     await signOut({ callbackUrl: "/login" });
   }
 
