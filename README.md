@@ -1,11 +1,11 @@
 # Mercury Call Desk — Mini CRM (`crm.mcd`)
 
-Secure Agent + Admin portals for Mercury Call Desk. GoHighLevel (GHL) is a **one-way backend**; agents never log into GHL. The CRM uses Neon Postgres as its system of record and deploys from GitHub `main` through Vercel.
+Secure Agent + Admin portals for Mercury Call Desk. GoHighLevel (GHL) is a **one-way backend**; agents never log into GHL. The CRM uses Neon Postgres as its system of record and releases from GitHub `main` once the Vercel Git integration is connected.
 
 ## Production workflow
 
 - `main` is the production source branch.
-- GitHub → Vercel integration deploys each `main` update.
+- Connect this GitHub repository to the MCD CRM project in Vercel; after that, each `main` update triggers the production deployment.
 - Production environment values live in Vercel only; never commit credentials.
 - Neon schema changes are staged and verified before being applied to the Neon production branch.
 - There is no local-machine step required for normal operation.
