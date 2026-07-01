@@ -12,6 +12,13 @@ const ADMIN_ROLES = new Set([
   "FINANCE_MANAGER",
 ]);
 
+function readErrorCode(result: unknown): string {
+  if (!result || typeof result !== "object") return "";
+  const record = result as Record<string, unknown>;
+  if (typeof record.code === "string") return record.code;
+  return typeof record.error === "string" ? record.error : "";
+}
+
 export function LoginForm() {
   const router = useRouter();
   const [email, setEmail] = useState("");
@@ -33,7 +40,7 @@ export function LoginForm() {
       redirect: false,
     });
 
-    const errorCode = result?.code ?? result?.error ?? "";
+    const errorCode = readErrorCode(result);
     if (!result || result.error) {
       if (errorCode.includes("MFA")) {
         setShowTotp(true);
