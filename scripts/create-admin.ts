@@ -1,4 +1,4 @@
-import { Algorithm, hash } from "@node-rs/argon2";
+import { hash } from "@node-rs/argon2";
 import { PrismaClient } from "@prisma/client";
 import { z } from "zod";
 
@@ -8,6 +8,12 @@ const inputSchema = z.object({
   email: z.string().trim().email("ADMIN_EMAIL must be a valid email"),
   password: z.string().min(12, "ADMIN_PASSWORD must be at least 12 characters"),
 });
+
+const passwordOptions = {
+  memoryCost: 19_456,
+  timeCost: 2,
+  parallelism: 1,
+};
 
 async function main() {
   const parsed = inputSchema.safeParse({
@@ -21,12 +27,7 @@ async function main() {
     return;
   }
 
-  const passwordHash = await hash(parsed.data.password, {
-    algorithm: Algorithm.Argon2id,
-    memoryCost: 19_456,
-    timeCost: 2,
-    parallelism: 1,
-  });
+  const passwordHash = await hash(parsed.data.password, passwordOptions);
 
   const user = await db.user.upsert({
     where: { email: parsed.data.email },
