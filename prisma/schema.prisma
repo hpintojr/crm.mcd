@@ -67,7 +67,6 @@ enum CertDecision {
   NOT_YET_APPROVED
 }
 
-// A login identity (agents, admins, finance, etc.). Password is set only after activation.
 model User {
   id               String            @id @default(cuid())
   email            String            @unique
@@ -85,7 +84,6 @@ model User {
   updatedAt        DateTime          @updatedAt
 }
 
-// One-time activation / password-set token. The raw value is never stored.
 model ActivationToken {
   id        String   @id @default(cuid())
   userId    String
@@ -100,35 +98,39 @@ model ActivationToken {
   @@index([expiresAt])
 }
 
-// A sales partner / agent record. Created at signup (status SUBMITTED), activated after gates.
 model Agent {
-  id             String      @id @default(cuid())
-  userId         String?     @unique
-  user           User?       @relation(fields: [userId], references: [id])
+  id               String      @id @default(cuid())
+  userId           String?     @unique
+  user             User?       @relation(fields: [userId], references: [id])
 
-  legalName      String
-  preferredName  String?
-  personalEmail  String      @unique
-  mobile         String
-  mailingAddress String?
+  legalName        String
+  preferredName    String?
+  personalEmail    String      @unique
+  mobile           String
+  mailingAddress   String?
   emergencyContact String?
 
-  status         AgentStatus @default(SUBMITTED)
-  canClaimLeads  Boolean     @default(false)
+  status           AgentStatus @default(SUBMITTED)
+  canClaimLeads    Boolean     @default(false)
+  confirmedCallAt  DateTime?
+  approvedById     String?
+  approvedAt       DateTime?
+  reviewNote       String?
+  provisionedAt    DateTime?
 
   // GHL linkage (Sales HQ). We store the backend-user + contact ids; agents never log into GHL.
-  ghlContactId   String?
-  ghlUserId      String?
+  ghlContactId     String?
+  ghlUserId        String?
 
-  onboardingDocs OnboardingDocument[]
-  certifications Certification[]
-  createdAt      DateTime    @default(now())
-  updatedAt      DateTime    @updatedAt
+  onboardingDocs   OnboardingDocument[]
+  certifications   Certification[]
+  createdAt        DateTime    @default(now())
+  updatedAt        DateTime    @updatedAt
 
   @@index([status])
+  @@index([ghlContactId])
 }
 
-// Reference + completion state for an onboarding document. Raw docs live in GHL; we keep the ref.
 model OnboardingDocument {
   id            String            @id @default(cuid())
   agentId       String
@@ -136,14 +138,15 @@ model OnboardingDocument {
   docType       OnboardingDocType
   version       String?
   status        DocStatus         @default(PENDING)
-  ghlDocumentId String?           // GHL Documents & Contracts id
-  r2Key         String?           // mirror of signed PDF for the 7-year record
+  ghlDocumentId String?
+  r2Key         String?
   signerIp      String?
   countersigned Boolean           @default(false)
   completedAt   DateTime?
   createdAt     DateTime          @default(now())
 
   @@unique([agentId, docType])
+  @@index([ghlDocumentId])
 }
 
 model Certification {
@@ -160,7 +163,36 @@ model Certification {
   createdAt       DateTime     @default(now())
 }
 
-// Immutable audit trail for sensitive actions.
+model WebhookEvent {
+  id          String   @id @default(cuid())
+  provider    String   @default("GHL")
+  ghlEventId  String   @unique
+  locationId  String?
+  type        String
+  payload     Json
+  status      String   @default("RECEIVED")
+  processedAt DateTime?
+  createdAt   DateTime @default(now())
+
+  @@index([type])
+  @@index([locationId])
+}
+
+model IntegrationError {
+  id         String   @id @default(cuid())
+  source     String
+  refId      String?
+  message    String
+  payload    Json?
+  resolved   Boolean  @default(false)
+  resolvedAt DateTime?
+  resolvedById String?
+  createdAt  DateTime @default(now())
+
+  @@index([resolved, createdAt])
+  @@index([source, refId])
+}
+
 model AuditLog {
   id          String   @id @default(cuid())
   actorUserId String?
