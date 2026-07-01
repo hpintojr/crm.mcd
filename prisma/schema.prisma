@@ -1,0 +1,149 @@
+// Mercury Call Desk — Mini CRM
+// Phase 1 domain: agents + onboarding gates + audit.
+// Compliance note: SSN / raw tax IDs and raw bank numbers are NEVER stored here.
+// Onboarding documents live in GHL; we keep references + completion state only.
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
+}
+
+enum UserRole {
+  OWNER
+  SUPER_ADMIN
+  SALES_MANAGER
+  COMPLIANCE_MANAGER
+  FINANCE_MANAGER
+  AGENT
+  FORMER_SERVICING_AGENT
+  READ_ONLY
+  HOUSE_SERVICE
+}
+
+enum AgentStatus {
+  DRAFT
+  SUBMITTED
+  PENDING_REVIEW
+  NEEDS_CORRECTION
+  APPROVED
+  REJECTED
+  INVITED
+  ACTIVE
+  SUSPENDED
+  OFFBOARDED
+}
+
+enum OnboardingDocType {
+  SALES_AGREEMENT
+  NDA_IP
+  W9_PAYOUT
+  ACKNOWLEDGMENT
+}
+
+enum DocStatus {
+  PENDING
+  SENT
+  VIEWED
+  SIGNED
+  COMPLETED
+  REJECTED
+}
+
+enum CertDecision {
+  APPROVED_FOR_LIVE
+  APPROVED_WITH_COACHING
+  NOT_YET_APPROVED
+}
+
+// A login identity (agents, admins, finance, etc.). Password is set only after activation.
+model User {
+  id           String      @id @default(cuid())
+  email        String      @unique
+  role         UserRole    @default(AGENT)
+  passwordHash String?
+  mfaEnabled   Boolean     @default(false)
+  agent        Agent?
+  createdAt    DateTime    @default(now())
+  updatedAt    DateTime    @updatedAt
+}
+
+// A sales partner / agent record. Created at signup (status SUBMITTED), activated after gates.
+model Agent {
+  id            String      @id @default(cuid())
+  userId        String?     @unique
+  user          User?       @relation(fields: [userId], references: [id])
+
+  legalName     String
+  preferredName String?
+  personalEmail String      @unique
+  mobile        String
+  mailingAddress String?
+  emergencyContact String?
+
+  status        AgentStatus @default(SUBMITTED)
+  canClaimLeads Boolean     @default(false)
+
+  // GHL linkage (Sales HQ). We store the backend-user + contact ids; agents never log into GHL.
+  ghlContactId  String?
+  ghlUserId     String?
+
+  onboardingDocs OnboardingDocument[]
+  certifications Certification[]
+  createdAt     DateTime    @default(now())
+  updatedAt     DateTime    @updatedAt
+
+  @@index([status])
+}
+
+// Reference + completion state for an onboarding document. Raw docs live in GHL; we keep the ref.
+model OnboardingDocument {
+  id          String            @id @default(cuid())
+  agentId     String
+  agent       Agent             @relation(fields: [agentId], references: [id])
+  docType     OnboardingDocType
+  version     String?
+  status      DocStatus         @default(PENDING)
+  ghlDocumentId String?         // GHL Documents & Contracts id
+  r2Key       String?           // mirror of signed PDF for the 7-year record
+  signerIp    String?
+  countersigned Boolean         @default(false)
+  completedAt DateTime?
+  createdAt   DateTime          @default(now())
+
+  @@unique([agentId, docType])
+}
+
+model Certification {
+  id             String       @id @default(cuid())
+  agentId        String
+  agent          Agent        @relation(fields: [agentId], references: [id])
+  managerId      String?
+  productScore   Int?
+  discoveryScore Int?
+  crmScore       Int?
+  complianceScore Int?
+  decision       CertDecision @default(NOT_YET_APPROVED)
+  signedAt       DateTime?
+  createdAt      DateTime     @default(now())
+}
+
+// Immutable audit trail for sensitive actions.
+model AuditLog {
+  id          String   @id @default(cuid())
+  actorUserId String?
+  actorRole   String?
+  actionType  String
+  entityType  String
+  entityId    String?
+  reason      String?
+  ipAddress   String?
+  metadata    Json?
+  createdAt   DateTime @default(now())
+
+  @@index([entityType, entityId])
+}
