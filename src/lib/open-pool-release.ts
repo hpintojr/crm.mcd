@@ -11,7 +11,7 @@ const releaseSchema = z.object({
 });
 
 function eligibleLifecycle(value: string) {
-  return value === "CLAIMED" || value === "CONTACTED" || value === "NURTURING" || value === "DEMO_BOOKED";
+  return value === "CLAIMED" || value === "CONTACTED" || value === "NURTURING";
 }
 
 export async function releaseLeadToOpenPool(input: { leadId: string; reason: string }) {
@@ -22,6 +22,7 @@ export async function releaseLeadToOpenPool(input: { leadId: string; reason: str
   if (!lead) throw new Error("Lead not found.");
   if (lead.dnc || lead.suppressed) throw new Error("Suppressed records cannot enter Open Pool.");
   if (lead.isReferral || lead.pool === "REFERRAL") throw new Error("Referral records are protected and cannot enter Open Pool.");
+  if (lead.lifecycle === "DEMO_BOOKED") throw new Error("Demo-booked records cannot enter Open Pool.");
   if (!lead.ownerAgentId || !lead.twoWayContactAt) throw new Error("Only a previously assigned lead with documented two-way contact can be returned to Open Pool.");
   if (!eligibleLifecycle(lead.lifecycle)) throw new Error("This lead is not eligible for an Open Pool return.");
 
