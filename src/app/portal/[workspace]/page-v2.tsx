@@ -32,7 +32,7 @@ export default async function WorkspacePage({ params }: PageProps) {
     const now = new Date();
     const recentCutoff = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
     const viewerFilter = isAdmin ? {} : agent ? { agentId: agent.id } : { id: "__none__" };
-    const [upcomingAppointments, recentOutcomes] = await Promise.all([
+    const [upcomingAppointments, awaitingOutcome, recentOutcomes] = await Promise.all([
       db.appointment.findMany({
         where: {
           ...viewerFilter,
@@ -41,6 +41,16 @@ export default async function WorkspacePage({ params }: PageProps) {
         },
         orderBy: { startAt: "asc" },
         take: 50,
+      }),
+      db.appointment.findMany({
+        where: {
+          ...viewerFilter,
+          status: { in: [...MEETING_ACTIVE_STATUSES] },
+          startAt: { gte: recentCutoff },
+          OR: [{ endAt: { lt: now } }, { endAt: null, startAt: { lt: now } }],
+        },
+        orderBy: { startAt: "desc" },
+        take: 20,
       }),
       db.appointment.findMany({
         where: {
@@ -73,6 +83,7 @@ export default async function WorkspacePage({ params }: PageProps) {
             </div>
           )}
         </section>
+        {awaitingOutcome.length > 0 && <section className="portal-card mt-6 max-w-4xl"><div><h2 className="portal-heading text-lg font-semibold">Appointments awaiting outcome</h2><p className="portal-copy mt-1 text-sm">These appointment times have passed, but GHL has not relayed Completed, No-show, or Cancelled yet. Confirm the attendance result in GHL; this list protects the record from disappearing silently.</p></div><div className="mt-5 divide-y portal-border">{awaitingOutcome.map((appointment) => <article className="py-4" key={appointment.id}><div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between"><div><p className="portal-heading font-medium">{appointment.title}</p><ViewerTime startAt={appointment.startAt.toISOString()} endAt={appointment.endAt?.toISOString() ?? null} /><p className="portal-copy mt-1 text-xs">{appointment.calendarName || "Mercury Call Desk calendar"} · Awaiting final status</p></div><span className="portal-status-pending text-sm font-semibold">Needs GHL outcome</span></div></article>)}</div></section>}
         {recentOutcomes.length > 0 && <section className="portal-card mt-6 max-w-4xl"><div><h2 className="portal-heading text-lg font-semibold">Recent appointment activity</h2><p className="portal-copy mt-1 text-sm">Completed, cancelled, and no-show appointments remain visible here for seven days. They are not deleted from Mercury Call Desk records.</p></div><div className="mt-5 divide-y portal-border">{recentOutcomes.map((appointment) => <article className="py-4" key={appointment.id}><div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between"><div><p className="portal-heading font-medium">{appointment.title}</p><ViewerTime startAt={appointment.startAt.toISOString()} endAt={appointment.endAt?.toISOString() ?? null} /><p className="portal-copy mt-1 text-xs">{appointment.calendarName || "Mercury Call Desk calendar"} · {title(appointment.status)}</p></div><span className={appointment.status === "NO_SHOW" ? "portal-status-pending text-sm font-semibold" : "portal-copy text-sm"}>{title(appointment.status)}</span></div><p className="portal-copy mt-2 text-sm">{outcomeMessage(appointment.status)}</p></article>)}</div></section>}
       </PortalFeaturePage>
     );
