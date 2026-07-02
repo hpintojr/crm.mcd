@@ -1,5 +1,6 @@
 "use client";
 
+import { useRouter } from "next/navigation";
 import { useState } from "react";
 
 type Result = { error?: string; rows?: Array<{ rowNumber: number; status: string; issues: string[] }>; inserted?: number; duplicateInDatabase?: number; suppressed?: number; rejected?: number };
@@ -16,6 +17,7 @@ const sample = `[
 ]`;
 
 export function AdminLeadImportForm() {
+  const router = useRouter();
   const [payload, setPayload] = useState(sample);
   const [result, setResult] = useState<Result | null>(null);
   const [previewed, setPreviewed] = useState(false);
@@ -32,6 +34,7 @@ export function AdminLeadImportForm() {
       const body = await response.json().catch(() => ({ error: "Invalid server response." })) as Result;
       setResult(body);
       setPreviewed(mode === "preview" && response.ok);
+      if (mode === "commit" && response.ok) router.refresh();
     } catch { setResult({ error: "Request failed. Confirm your admin session and try again." }); }
     finally { setBusy(false); }
   }
