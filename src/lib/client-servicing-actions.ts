@@ -61,7 +61,7 @@ function openingActivity(trigger: z.infer<typeof triggerSchema>) {
   return "CLIENT_REQUEST";
 }
 
-export async function createClientAccount(input: z.infer<typeof createAccountSchema>) {
+export async function createClientAccount(input: z.input<typeof createAccountSchema>) {
   requireFeature("servicing");
   const actor = await requireRole(ADMIN_ROLES);
   const parsed = createAccountSchema.parse(input);
@@ -86,7 +86,7 @@ export async function createClientAccount(input: z.infer<typeof createAccountSch
   return { accountId };
 }
 
-export async function openClientServiceCase(input: z.infer<typeof openCaseSchema>) {
+export async function openClientServiceCase(input: z.input<typeof openCaseSchema>) {
   const actor = await servicingActor();
   const parsed = openCaseSchema.parse(input);
   const account = await accountAccess(parsed.clientAccountId, actor);
