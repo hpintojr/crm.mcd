@@ -54,3 +54,14 @@ export async function listAgentServicingAccounts(agentId: string) {
     ORDER BY CASE account."healthStatus"::text WHEN 'PAYMENT_FAILED' THEN 0 WHEN 'AT_RISK' THEN 1 WHEN 'NEEDS_ATTENTION' THEN 2 ELSE 3 END, account."needsAttentionAt" NULLS LAST, account."clientName" ASC
   `);
 }
+
+export async function listOpenServiceCases(agentId?: string) {
+  const agentFilter = agentId ? Prisma.sql`AND service_case."assignedAgentId" = ${agentId}` : Prisma.empty;
+  return db.$queryRaw<ClientServiceCaseSummary[]>(Prisma.sql`
+    SELECT service_case."id", service_case."clientAccountId", account."clientName", service_case."assignedAgentId", service_case."trigger"::text AS "trigger", service_case."priority"::text AS "priority", service_case."status"::text AS "status", service_case."summary", service_case."openedAt", service_case."dueAt", service_case."resolvedAt"
+    FROM "ClientServiceCase" service_case
+    INNER JOIN "ClientAccount" account ON account."id" = service_case."clientAccountId"
+    WHERE service_case."status" IN ('OPEN','IN_PROGRESS','WAITING_ON_CLIENT') ${agentFilter}
+    ORDER BY CASE service_case."priority"::text WHEN 'URGENT' THEN 0 WHEN 'HIGH' THEN 1 WHEN 'NORMAL' THEN 2 ELSE 3 END, service_case."dueAt" NULLS LAST, service_case."openedAt" ASC
+  `);
+}
