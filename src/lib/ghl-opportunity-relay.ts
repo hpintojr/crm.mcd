@@ -13,7 +13,7 @@ export type GhlOpportunityRelayInput = {
   ghlContactId?: string;
   miniCrmLeadId?: string;
   rawPayload: Prisma.InputJsonValue;
-  ipAddress?: string;
+  ipAddress?: string | null;
 };
 
 export async function relayGhlOpportunity(input: GhlOpportunityRelayInput) {
@@ -32,7 +32,7 @@ export async function relayGhlOpportunity(input: GhlOpportunityRelayInput) {
       actionType: "GHL_OPPORTUNITY_RELAYED",
       entityType: "WebhookEvent",
       entityId: input.ghlEventId,
-      ipAddress: input.ipAddress,
+      ipAddress: input.ipAddress ?? null,
       metadata: { leadMatched: attribution.matched, leadGated: attribution.gated, eventType: input.eventType, ghlOpportunityId: input.ghlOpportunityId },
     },
   });
