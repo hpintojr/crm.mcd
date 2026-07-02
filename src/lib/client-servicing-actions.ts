@@ -29,6 +29,15 @@ const openCaseSchema = z.object({
   assignedAgentId: safeId.optional(),
 });
 
+export type OpenClientServiceCaseInput = {
+  clientAccountId: string;
+  trigger: z.infer<typeof triggerSchema>;
+  priority?: z.infer<typeof prioritySchema>;
+  summary: string;
+  dueAt?: string | Date;
+  assignedAgentId?: string;
+};
+
 function nullable(value?: string) {
   const trimmed = value?.trim();
   return trimmed ? trimmed : null;
@@ -86,7 +95,7 @@ export async function createClientAccount(input: z.input<typeof createAccountSch
   return { accountId };
 }
 
-export async function openClientServiceCase(input: z.input<typeof openCaseSchema>) {
+export async function openClientServiceCase(input: OpenClientServiceCaseInput) {
   const actor = await servicingActor();
   const parsed = openCaseSchema.parse(input);
   const account = await accountAccess(parsed.clientAccountId, actor);
