@@ -3,7 +3,9 @@ import "server-only";
 import { ADMIN_ROLES, requireRole } from "@/lib/authz";
 import { db } from "@/lib/db";
 import { requireFeature } from "@/lib/features";
+import { normalizeEmail, normalizePhone } from "@/lib/lead-normalization";
 import { previewLeadImport, type LeadImportPreviewRow } from "@/lib/lead-import-preview";
+import { defaultWebsiteOpportunityStatus, websiteStatusFromRecordedUrl } from "@/lib/lead-taxonomy";
 
 export type LeadImportCommitResult = {
   inserted: number;
@@ -15,7 +17,7 @@ export type LeadImportCommitResult = {
 
 export async function commitLeadImport(rows: unknown[]): Promise<LeadImportCommitResult> {
   requireFeature("leads");
-  await requireRole(ADMIN_ROLES);
+  const actor = await requireRole(ADMIN_ROLES);
   if (!Array.isArray(rows) || rows.length === 0) throw new Error("Provide at least one import row.");
   if (rows.length > 500) throw new Error("Import batches are limited to 500 rows.");
 
@@ -29,6 +31,7 @@ export async function commitLeadImport(rows: unknown[]): Promise<LeadImportCommi
   ]);
   const existingKeys = new Set(existingLeads.map((lead) => lead.dedupeKey).filter(Boolean));
   const suppressedIdentifiers = new Set(activeSuppressions.map((item) => item.identifier));
+  const approved: typeof valid = [];
   let duplicateInDatabase = 0;
   let suppressed = 0;
   let rejected = preview.filter((item) => item.status !== "VALID").length;
@@ -55,7 +58,57 @@ export async function commitLeadImport(rows: unknown[]): Promise<LeadImportCommi
       continue;
     }
     existingKeys.add(normalized.dedupeKey);
+    approved.push(item);
   }
 
-  return { inserted: 0, duplicateInDatabase, suppressed, rejected, rows: preview };
+  await db.$transaction(async (tx) => {
+    for (const item of approved) {
+      const row = item.row!;
+      const normalized = item.normalized!;
+      const websiteStatus = websiteStatusFromRecordedUrl(row.website);
+      const lead = await tx.lead.create({
+        data: {
+          company: row.company,
+          contactFirstName: row.contactFirstName,
+          contactLastName: row.contactLastName,
+          email: normalizeEmail(row.email),
+          businessPhone: row.businessPhone!,
+          normalizedPhone: normalizePhone(row.businessPhone),
+          website: row.website,
+          industry: row.industry,
+          city: row.city,
+          state: row.state,
+          country: row.country,
+          timezone: row.timezone,
+          source: row.originalSource,
+          sourceReference: row.sourceRecordUrl,
+          originalSource: row.originalSource,
+          sourceDetail: row.sourceDetail,
+          sourceRecordUrl: row.sourceRecordUrl,
+          campaignName: row.campaignName,
+          campaignExternalId: row.campaignExternalId,
+          intakeMethod: row.intakeMethod,
+          referrerName: row.referrerName,
+          referrerType: row.referrerType,
+          referrerLeadId: row.referrerLeadId,
+          utmSource: row.utmSource,
+          utmMedium: row.utmMedium,
+          utmCampaign: row.utmCampaign,
+          utmContent: row.utmContent,
+          utmTerm: row.utmTerm,
+          websiteStatus,
+          websiteOpportunityStatus: defaultWebsiteOpportunityStatus(websiteStatus),
+          dedupeKey: normalized.dedupeKey,
+          lifecycle: "PENDING_REVIEW",
+          pool: normalized.pool,
+          isReferral: row.originalSource === "REFERRAL",
+          referralSource: row.referrerName,
+        },
+      });
+      await tx.leadActivity.create({ data: { leadId: lead.id, type: "LEAD_CREATED", metadata: { imported: true, originalSource: row.originalSource, intakeMethod: row.intakeMethod } } });
+      await tx.auditLog.create({ data: { actorUserId: actor.id, actorRole: actor.role, actionType: "LEAD_IMPORTED_TO_REVIEW", entityType: "Lead", entityId: lead.id, metadata: { dedupeKey: normalized.dedupeKey, originalSource: row.originalSource } } });
+    }
+  });
+
+  return { inserted: approved.length, duplicateInDatabase, suppressed, rejected, rows: preview };
 }
