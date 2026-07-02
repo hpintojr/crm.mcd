@@ -20,5 +20,20 @@ export async function attributeAppointmentToLead(input: AppointmentLeadEvent) {
       ? await db.lead.findFirst({ where: { ghlContactId: input.ghlContactId }, orderBy: { updatedAt: "desc" } })
       : null;
   if (!lead) return { matched: false, gated: false };
+
+  const now = new Date();
+  const booked = input.eventType === "APPOINTMENT_BOOKED" || input.eventType === "APPOINTMENT_CONFIRMED" || input.eventType === "APPOINTMENT_RESCHEDULED";
+  const recovery = input.eventType === "APPOINTMENT_CANCELLED" || input.eventType === "APPOINTMENT_NO_SHOW";
+  await db.lead.update({
+    where: { id: lead.id },
+    data: {
+      lifecycle: booked ? "DEMO_BOOKED" : recovery && lead.lifecycle !== "CLOSED_WON" ? "CONTACTED" : lead.lifecycle,
+      ghlContactId: input.ghlContactId ?? lead.ghlContactId,
+      ghlAppointmentId: input.ghlAppointmentId,
+      lastActionAt: now,
+      nextActionAt: recovery ? now : lead.nextActionAt,
+    },
+  });
+
   return { matched: true, gated: false, leadId: lead.id };
 }
