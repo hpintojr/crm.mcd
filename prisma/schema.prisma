@@ -177,6 +177,7 @@ model Agent {
   userId           String?     @unique
   user             User?       @relation(fields: [userId], references: [id])
   legalName        String
+  companyName      String?
   preferredName    String?
   personalEmail    String      @unique
   mobile           String
@@ -262,8 +263,8 @@ model Lead {
   suppressed        Boolean       @default(false)
   dnc               Boolean       @default(false)
   ghlContactId      String?
-  ghlOpportunityId String?
-  ghlAppointmentId String?
+  ghlOpportunityId  String?
+  ghlAppointmentId  String?
   packageInterest   String?
   createdAt         DateTime      @default(now())
   updatedAt         DateTime      @updatedAt
