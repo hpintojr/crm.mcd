@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { db } from "@/lib/db";
-import { finishInboundEvent, recordInboundEvent, requestIp, verifyGhlWebhook } from "@/lib/ghl-webhook";
+import { finishInboundEvent, logIntegrationError, recordInboundEvent, requestIp, verifyGhlWebhook } from "@/lib/ghl-webhook";
 import { parseGhlAppointmentDate } from "@/lib/ghl-appointment-time";
 import { attributeAppointmentToLead } from "@/lib/lead-appointment-attribution";
 
@@ -59,7 +59,11 @@ export async function POST(request: NextRequest) {
     ]);
     return NextResponse.json({ ok: true, relayed: true, appointmentId: appointment.id, agentMatched: Boolean(agent), leadMatched: leadAttribution.matched });
   } catch (error) {
-    await finishInboundEvent(payload.ghl_event_id, "ERROR").catch(() => undefined);
-    return NextResponse.json({ error: error instanceof Error ? error.message : "Appointment webhook processing failed." }, { status: 500 });
+    const message = error instanceof Error ? error.message : "Appointment webhook processing failed.";
+    await Promise.allSettled([
+      finishInboundEvent(payload.ghl_event_id, "ERROR"),
+      logIntegrationError({ source: "ghl.appointments", refId: payload.ghl_event_id, message }),
+    ]);
+    return NextResponse.json({ error: message }, { status: 500 });
   }
 }
