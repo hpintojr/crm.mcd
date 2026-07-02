@@ -35,7 +35,7 @@ export async function attributeAppointmentToLead(input: AppointmentLeadEvent) {
         nextActionAt: recovery ? now : lead.nextActionAt,
       },
     });
-    await tx.leadActivity.create({ data: { leadId: lead.id, agentId: lead.ownerAgentId, type: booked ? "DEMO_BOOKED" : recovery ? "DISPOSITION_SET" : "CALL_COMPLETED", disposition: recovery ? "FOLLOW_UP" : undefined, metadata: { eventType: input.eventType, ghlEventId: input.ghlEventId, ghlAppointmentId: input.ghlAppointmentId, startsAt: input.startsAt?.toISOString() } } });
+    await tx.leadActivity.create({ data: { leadId: lead.id, agentId: lead.ownerAgentId, type: booked ? "DEMO_BOOKED" : recovery ? "DISPOSITION_SET" : "CALL_COMPLETED", disposition: recovery ? "FOLLOW_UP" : undefined, metadata: { eventType: input.eventType, ghlEventId: input.ghlEventId, ghlAppointmentId: input.ghlAppointmentId, startsAt: input.startsAt?.toISOString() ?? null } } });
     if (recovery && lead.ownerAgentId) await tx.leadCallback.create({ data: { leadId: lead.id, agentId: lead.ownerAgentId, dueAt: now } });
     await tx.auditLog.create({ data: { actionType: "GHL_APPOINTMENT_ATTRIBUTED", entityType: "Lead", entityId: lead.id, metadata: { eventType: input.eventType, ghlEventId: input.ghlEventId, ghlAppointmentId: input.ghlAppointmentId } } });
   });
