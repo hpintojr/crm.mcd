@@ -45,7 +45,7 @@ type ServiceActivityRow = {
   id: string;
   type: string;
   notes: string | null;
-  metadata: unknown;
+  metadata: Prisma.JsonValue | null;
   occurredAt: Date;
 };
 
@@ -175,7 +175,7 @@ export default async function AdminClientServiceDetailPage({ params }: { params:
                 <p className="font-medium text-white">{label(activity.type)}</p>
                 {activity.notes && <p className="mt-1 text-sm text-gray-300">{activity.notes}</p>}
                 <p className="mt-1 text-xs text-gray-500">{pacific(activity.occurredAt)}</p>
-                {activity.metadata && <pre className="mt-2 overflow-x-auto rounded-lg bg-ink-950 p-2 text-xs text-gray-400">{JSON.stringify(activity.metadata, null, 2)}</pre>}
+                {activity.metadata !== null && <pre className="mt-2 overflow-x-auto rounded-lg bg-ink-950 p-2 text-xs text-gray-400">{JSON.stringify(activity.metadata, null, 2)}</pre>}
               </div>
             ))}
           </div>
