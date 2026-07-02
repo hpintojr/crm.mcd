@@ -19,13 +19,25 @@ export const leadPools = ["COLD", "NURTURE", "HOT", "OPEN", "SHARK_TANK", "REFER
 
 export const leadIntakeMethods = ["SCRAPE_IMPORT", "WEB_FORM_SUBMISSION", "DIRECT_MESSAGE", "MANUAL_ENTRY", "API_IMPORT", "REFERRAL_ENTRY"] as const;
 
+export const websiteStatuses = ["UNKNOWN", "LISTED", "NO_WEBSITE_LISTED", "VERIFIED_NO_WEBSITE", "NEEDS_REVIEW"] as const;
+
+export const websiteOpportunityStatuses = ["NOT_EVALUATED", "ELIGIBLE_REVIEW", "BUNDLE_OFFERED", "WEBSITE_ONLY_QUOTE", "WEBSITE_ONLY_WON", "DECLINED", "NOT_ELIGIBLE"] as const;
+
+export const websiteOfferTracks = ["BUNDLE_INCENTIVE", "WEBSITE_ONLY"] as const;
+
 export const leadSourcesSchema = z.enum(leadSources);
 export const leadPoolsSchema = z.enum(leadPools);
 export const leadIntakeMethodSchema = z.enum(leadIntakeMethods);
+export const websiteStatusSchema = z.enum(websiteStatuses);
+export const websiteOpportunityStatusSchema = z.enum(websiteOpportunityStatuses);
+export const websiteOfferTrackSchema = z.enum(websiteOfferTracks);
 
 export type LeadSourceValue = z.infer<typeof leadSourcesSchema>;
 export type LeadPoolValue = z.infer<typeof leadPoolsSchema>;
 export type LeadIntakeMethodValue = z.infer<typeof leadIntakeMethodSchema>;
+export type WebsiteStatusValue = z.infer<typeof websiteStatusSchema>;
+export type WebsiteOpportunityStatusValue = z.infer<typeof websiteOpportunityStatusSchema>;
+export type WebsiteOfferTrackValue = z.infer<typeof websiteOfferTrackSchema>;
 
 export const leadSourceLabels: Record<LeadSourceValue, string> = {
   GOOGLE_MAPS: "Google Maps",
@@ -50,6 +62,24 @@ export const leadPoolLabels: Record<LeadPoolValue, string> = {
   HOUSE: "House",
 };
 
+export const websiteStatusLabels: Record<WebsiteStatusValue, string> = {
+  UNKNOWN: "Website not reviewed",
+  LISTED: "Website listed",
+  NO_WEBSITE_LISTED: "No website listed",
+  VERIFIED_NO_WEBSITE: "No website verified",
+  NEEDS_REVIEW: "Website needs review",
+};
+
+export const websiteOpportunityStatusLabels: Record<WebsiteOpportunityStatusValue, string> = {
+  NOT_EVALUATED: "Not evaluated",
+  ELIGIBLE_REVIEW: "Website opportunity review",
+  BUNDLE_OFFERED: "Website included with package offered",
+  WEBSITE_ONLY_QUOTE: "Website-only quote sent",
+  WEBSITE_ONLY_WON: "Website-only won",
+  DECLINED: "Website offer declined",
+  NOT_ELIGIBLE: "Not eligible",
+};
+
 export const leadSourceInputSchema = z.object({
   originalSource: leadSourcesSchema,
   sourceDetail: z.string().trim().max(250).optional(),
@@ -71,6 +101,31 @@ export const leadSourceInputSchema = z.object({
   }
   if (value.originalSource === "REFERRAL" && !value.referrerName) {
     ctx.addIssue({ code: z.ZodIssueCode.custom, path: ["referrerName"], message: "A referrer name is required for referral leads." });
+  }
+});
+
+export const leadWebsiteInputSchema = z.object({
+  websiteStatus: websiteStatusSchema,
+  websiteReviewedAt: z.coerce.date().optional(),
+  websiteReviewNote: z.string().trim().max(1000).optional(),
+}).superRefine((value, ctx) => {
+  if (value.websiteStatus === "VERIFIED_NO_WEBSITE" && !value.websiteReviewedAt) {
+    ctx.addIssue({ code: z.ZodIssueCode.custom, path: ["websiteReviewedAt"], message: "A review date is required when no website has been verified." });
+  }
+});
+
+export const websiteOpportunityInputSchema = z.object({
+  status: websiteOpportunityStatusSchema,
+  offerTrack: websiteOfferTrackSchema.optional(),
+  quotedAmountCents: z.number().int().min(50_000).max(300_000).optional(),
+  quoteExpiresAt: z.coerce.date().optional(),
+  scopeNote: z.string().trim().max(4000).optional(),
+}).superRefine((value, ctx) => {
+  if (value.status === "WEBSITE_ONLY_QUOTE" && (!value.offerTrack || value.offerTrack !== "WEBSITE_ONLY")) {
+    ctx.addIssue({ code: z.ZodIssueCode.custom, path: ["offerTrack"], message: "Website-only quotes must use the website-only offer track." });
+  }
+  if (value.status === "WEBSITE_ONLY_QUOTE" && !value.quotedAmountCents) {
+    ctx.addIssue({ code: z.ZodIssueCode.custom, path: ["quotedAmountCents"], message: "A quoted website amount is required." });
   }
 });
 
@@ -99,4 +154,12 @@ export function assertLeadImportAllowed(row: LeadImportRow) {
 export function defaultPoolForSource(source: LeadSourceValue): LeadPoolValue {
   if (source === "REFERRAL") return "REFERRAL";
   return "COLD";
+}
+
+export function websiteStatusFromRecordedUrl(website?: string | null): WebsiteStatusValue {
+  return website?.trim() ? "LISTED" : "NO_WEBSITE_LISTED";
+}
+
+export function defaultWebsiteOpportunityStatus(websiteStatus: WebsiteStatusValue): WebsiteOpportunityStatusValue {
+  return websiteStatus === "VERIFIED_NO_WEBSITE" ? "ELIGIBLE_REVIEW" : "NOT_EVALUATED";
 }
