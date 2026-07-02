@@ -4,6 +4,7 @@ import { randomUUID } from "node:crypto";
 import { z } from "zod";
 import { ADMIN_ROLES, requireRole } from "@/lib/authz";
 import { db } from "@/lib/db";
+import { ghlConfigured } from "@/lib/env";
 import { requireFeature } from "@/lib/features";
 import { upsertSalesHqContact } from "@/lib/ghl";
 
@@ -32,6 +33,11 @@ export async function handoffDemoBookedLeadToGhl(input: z.input<typeof handoffSc
   }
 
   const replacingStub = isStubContactId(lead.ghlContactId);
+  if (replacingStub && !ghlConfigured) {
+    await db.auditLog.create({ data: { actorUserId: actor.id, actorRole: actor.role, actionType: "LEAD_GHL_HANDOFF_SKIPPED", entityType: "Lead", entityId: lead.id, metadata: { ghlContactId: lead.ghlContactId, reason: "Stub mapping retained until GHL is configured" } } });
+    return { ghlContactId: lead.ghlContactId!, alreadyLinked: true, stub: true, replacedStub: false };
+  }
+
   const result = await upsertSalesHqContact({
     legalName: contactName(lead),
     preferredName: lead.contactFirstName || undefined,
