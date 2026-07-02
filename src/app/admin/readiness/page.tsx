@@ -25,6 +25,7 @@ export default async function ReadinessBoardPage() {
   ]);
 
   const cards = [
+    { label: "Lead MVP acceptance", value: features.leads ? "Run now" : "Staged", href: "/admin/leads/testing", detail: "Run the owner-approved import, ownership, DNC, Open Pool, and GHL attribution checks before normal Lead use." },
     { label: "Pending Lead review", value: pendingLeads, href: "/admin/leads", detail: "Review source, duplicates, and suppression before pool assignment." },
     { label: "Demo-booked handoffs", value: demoBooked, href: "/admin/leads/handoff", detail: "Send eligible demo-booked Leads to GHL through the controlled handoff queue." },
     { label: "Won Leads awaiting onboarding", value: closedWonUnonboarded, href: "/admin/servicing/onboarding", detail: "Create the Client Service account, then document client launch." },
