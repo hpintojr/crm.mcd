@@ -1,0 +1,44 @@
+name: Database Release Gate
+
+on:
+  workflow_dispatch:
+    inputs:
+      target:
+        description: Target environment
+        required: true
+        type: choice
+        options:
+          - neon-safety
+          - production
+      release:
+        description: Immutable release package
+        required: true
+        type: choice
+        options:
+          - lead-mvp
+      confirmation:
+        description: Type the required release confirmation
+        required: true
+
+permissions:
+  contents: read
+
+jobs:
+  gate:
+    runs-on: ubuntu-latest
+    environment: ${{ inputs.target }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: Verify release confirmation
+        shell: bash
+        run: |
+          expected="APPLY_${{ inputs.target == 'production' && 'PRODUCTION' || 'SAFETY' }}_LEAD_MVP"
+          test "${{ inputs.confirmation }}" = "$expected"
+      - name: Record immutable migration fingerprints
+        shell: bash
+        run: |
+          sha256sum \
+            database/migrations/20260702_000_production_baseline.sql \
+            prisma/migrations/20260701091000_add_lead_engine/migration.sql \
+            prisma/migrations/20260701091100_add_lead_integrity/migration.sql \
+            prisma/migrations/20260702130000_add_lead_import_taxonomy/migration.sql
