@@ -60,9 +60,9 @@ export default async function OperatingStatusPage() {
         <div>
           <p className="text-sm font-medium uppercase tracking-widest text-brand-400">Mercury Call Desk</p>
           <h1 className="mt-2 text-3xl font-semibold text-white">Operating status</h1>
-          <p className="mt-2 max-w-4xl text-gray-400">One place to review rollout sequence, feature gates, and the next approval required for each module.</p>
+          <p className="mt-2 max-w-4xl text-gray-400">One place to review rollout sequence, feature gates, integration health, and the next approval required for each module.</p>
         </div>
-        <p className="text-sm text-gray-500">Admin session: {user.email}</p>
+        <div className="flex items-center gap-3"><Link className="rounded-lg border border-ink-700 px-3 py-2 text-sm text-gray-200" href="/admin/integrations">Integration monitor</Link><p className="text-sm text-gray-500">Admin session: {user.email}</p></div>
       </div>
       <section className="mt-8 grid gap-5 lg:grid-cols-2">
         {phases.map((phase) => (
