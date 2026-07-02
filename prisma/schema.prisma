@@ -141,6 +141,60 @@ enum SuppressionType {
   LEGAL_HOLD
 }
 
+enum LeadOriginalSource {
+  GOOGLE_MAPS
+  INSTAGRAM
+  REFERRAL
+  PPC
+  EMAIL
+  SMS
+  LINKEDIN
+  WEB_FORM
+  FACEBOOK
+  OTHER
+}
+
+enum LeadIntakeMethod {
+  SCRAPE_IMPORT
+  WEB_FORM_SUBMISSION
+  DIRECT_MESSAGE
+  MANUAL_ENTRY
+  API_IMPORT
+  REFERRAL_ENTRY
+}
+
+enum LeadReferrerType {
+  CUSTOMER
+  PARTNER
+  AGENT
+  EMPLOYEE
+  VENDOR
+  OTHER
+}
+
+enum WebsiteStatus {
+  UNKNOWN
+  LISTED
+  NO_WEBSITE_LISTED
+  VERIFIED_NO_WEBSITE
+  NEEDS_REVIEW
+}
+
+enum WebsiteOpportunityStatus {
+  NOT_EVALUATED
+  ELIGIBLE_REVIEW
+  BUNDLE_OFFERED
+  WEBSITE_ONLY_QUOTE
+  WEBSITE_ONLY_WON
+  DECLINED
+  NOT_ELIGIBLE
+}
+
+enum WebsiteOfferTrack {
+  BUNDLE_INCENTIVE
+  WEBSITE_ONLY
+}
+
 model User {
   id               String            @id @default(cuid())
   email            String            @unique
@@ -274,6 +328,29 @@ model Lead {
   timezone          String?
   source            String?
   sourceReference   String?
+  originalSource      LeadOriginalSource?
+  sourceDetail        String?
+  sourceRecordUrl     String?
+  campaignName        String?
+  campaignExternalId  String?
+  intakeMethod        LeadIntakeMethod?
+  referrerName        String?
+  referrerType        LeadReferrerType?
+  referrerLeadId      String?
+  utmSource           String?
+  utmMedium           String?
+  utmCampaign         String?
+  utmContent          String?
+  utmTerm             String?
+  websiteStatus            WebsiteStatus             @default(UNKNOWN)
+  websiteReviewedAt        DateTime?
+  websiteReviewNote        String?
+  websiteOpportunityStatus WebsiteOpportunityStatus  @default(NOT_EVALUATED)
+  websiteOfferTrack        WebsiteOfferTrack?
+  websiteQuotedAmountCents Int?
+  websiteQuoteExpiresAt    DateTime?
+  websiteScopeNote         String?
+  dedupeKey         String?       @unique
   score             Int           @default(0)
   lifecycle         LeadLifecycle @default(PENDING_REVIEW)
   pool              LeadPool      @default(COLD)
@@ -299,6 +376,10 @@ model Lead {
   @@index([openPoolReleaseAt])
   @@index([normalizedPhone])
   @@index([ghlContactId])
+  @@index([originalSource])
+  @@index([websiteStatus])
+  @@index([websiteOpportunityStatus])
+  @@index([campaignExternalId])
 }
 
 model LeadClaimEvent {
