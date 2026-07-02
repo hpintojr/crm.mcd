@@ -10,13 +10,14 @@ type PortalShellProps = {
   partnerName: string;
   email: string;
   leadAccessEnabled: boolean;
+  servicingAccessEnabled: boolean;
   isAdmin: boolean;
 };
 
 type NavItem = {
   label: string;
   href: string;
-  icon: "dashboard" | "tasks" | "inbox" | "leads" | "proposals" | "schedule" | "training" | "resources" | "settings";
+  icon: "dashboard" | "tasks" | "inbox" | "leads" | "servicing" | "proposals" | "schedule" | "training" | "resources" | "settings";
 };
 
 const mainNavigation: NavItem[] = [
@@ -24,6 +25,7 @@ const mainNavigation: NavItem[] = [
   { label: "Tasks", href: "/portal/tasks", icon: "tasks" },
   { label: "Inbox", href: "/portal/inbox", icon: "inbox" },
   { label: "Leads", href: "/portal/leads", icon: "leads" },
+  { label: "Clients", href: "/portal/servicing", icon: "servicing" },
   { label: "Proposals", href: "/portal/proposals", icon: "proposals" },
   { label: "Schedule", href: "/portal/schedule", icon: "schedule" },
 ];
@@ -33,7 +35,7 @@ const learningNavigation: NavItem[] = [
   { label: "Resources", href: "/portal/resources", icon: "resources" },
 ];
 
-export function PortalShell({ children, partnerName, email, leadAccessEnabled, isAdmin }: PortalShellProps) {
+export function PortalShell({ children, partnerName, email, leadAccessEnabled, servicingAccessEnabled, isAdmin }: PortalShellProps) {
   const pathname = usePathname();
   const [theme, setTheme] = useState<"dark" | "light">("dark");
 
@@ -52,6 +54,10 @@ export function PortalShell({ children, partnerName, email, leadAccessEnabled, i
     return href === "/portal" ? pathname === "/portal" : pathname.startsWith(href);
   }
 
+  function itemIsLocked(href: string) {
+    return (href === "/portal/leads" && !leadAccessEnabled) || (href === "/portal/servicing" && !servicingAccessEnabled);
+  }
+
   return (
     <div className="portal-theme min-h-screen" data-theme={theme}>
       <div className="portal-shell mx-auto flex min-h-screen max-w-[1600px]">
@@ -59,7 +65,7 @@ export function PortalShell({ children, partnerName, email, leadAccessEnabled, i
           <Brand />
           <nav aria-label="Partner portal" className="mt-8 space-y-1 px-3">
             {mainNavigation.map((item) => (
-              <PortalLink key={item.href} item={item} active={itemIsActive(item.href)} locked={item.href === "/portal/leads" && !leadAccessEnabled} />
+              <PortalLink key={item.href} item={item} active={itemIsActive(item.href)} locked={itemIsLocked(item.href)} />
             ))}
           </nav>
           <div className="portal-divider mx-5 my-6" />
@@ -90,7 +96,7 @@ export function PortalShell({ children, partnerName, email, leadAccessEnabled, i
             <button className="portal-theme-toggle" type="button" onClick={toggleTheme}>{theme === "dark" ? "Light" : "Dark"}</button>
           </header>
           <nav aria-label="Partner portal mobile" className="portal-mobile-nav flex gap-2 overflow-x-auto border-b px-4 py-3 lg:hidden">
-            {mainNavigation.map((item) => <PortalLink key={item.href} item={item} active={itemIsActive(item.href)} compact locked={item.href === "/portal/leads" && !leadAccessEnabled} />)}
+            {mainNavigation.map((item) => <PortalLink key={item.href} item={item} active={itemIsActive(item.href)} compact locked={itemIsLocked(item.href)} />)}
             {learningNavigation.map((item) => <PortalLink key={item.href} item={item} active={itemIsActive(item.href)} compact />)}
             <PortalLink item={{ label: "Settings", href: "/portal/settings", icon: "settings" }} active={itemIsActive("/portal/settings")} compact />
           </nav>
@@ -129,6 +135,7 @@ function Icon({ name }: { name: NavItem["icon"] | "signout" }) {
     tasks: <><path d="M9 11l2 2 4-4" /><path d="M5 4h14v16H5z" /></>,
     inbox: <><path d="M4 5h16v14H4z" /><path d="M4 15h5l2 2h2l2-2h5" /></>,
     leads: <><circle cx="12" cy="8" r="3" /><path d="M5 21c.7-4 3-6 7-6s6.3 2 7 6" /></>,
+    servicing: <><rect x="4" y="4" width="16" height="16" rx="2" /><path d="M8 12h8M12 8v8" /><path d="M7 3v3M17 3v3" /></>,
     proposals: <><path d="M6 3h9l3 3v15H6z" /><path d="M9 11h6M9 15h6" /></>,
     schedule: <><rect x="4" y="5" width="16" height="15" rx="2" /><path d="M8 3v4M16 3v4M4 10h16" /></>,
     training: <><path d="M3 6l9-3 9 3-9 3z" /><path d="M7 11v4c2.7 2 7.3 2 10 0v-4" /></>,
