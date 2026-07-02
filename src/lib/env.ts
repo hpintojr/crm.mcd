@@ -31,6 +31,7 @@ export const env = {
     salesHqLocationId: get("GHL_SALES_HQ_LOCATION_ID"),
     webhookSecret: get("GHL_WEBHOOK_SECRET"),
     allowedLocationIds: csv("GHL_ALLOWED_LOCATION_IDS"),
+    miniCrmLeadIdFieldId: get("GHL_MINI_CRM_LEAD_ID_FIELD_ID"),
   },
 
   emailAccessToken: get("EMAIL_ACCESS_TOKEN"),
@@ -47,6 +48,7 @@ export const env = {
 };
 
 export const ghlConfigured = Boolean(env.ghl.token && env.ghl.salesHqLocationId);
+export const ghlMiniCrmLeadIdFieldConfigured = Boolean(env.ghl.miniCrmLeadIdFieldId);
 export const smtpConfigured = Boolean(env.smtp.user && env.smtp.password);
 
 export function allowedGhlLocations(): Set<string> {
