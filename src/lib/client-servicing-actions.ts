@@ -9,6 +9,7 @@ import { requireFeature } from "@/lib/features";
 const safeId = z.string().trim().min(8).max(128);
 const triggerSchema = z.enum(["CLIENT_REQUEST", "SUPPORT_ISSUE", "PAYMENT_PROBLEM", "RENEWAL_EVENT", "ESCALATION", "MANUAL_REVIEW"]);
 const prioritySchema = z.enum(["LOW", "NORMAL", "HIGH", "URGENT"]);
+const launchSchema = z.object({ clientAccountId: safeId, paymentState: z.enum(["CURRENT", "PAYMENT_ISSUE"]), note: z.string().trim().min(3).max(2_000) });
 
 const createAccountSchema = z.object({
   clientName: z.string().trim().min(2).max(200),
@@ -93,6 +94,35 @@ export async function createClientAccount(input: z.input<typeof createAccountSch
   });
 
   return { accountId };
+}
+
+export async function confirmClientLaunch(input: z.input<typeof launchSchema>) {
+  requireFeature("servicing");
+  const actor = await requireRole(ADMIN_ROLES);
+  const parsed = launchSchema.parse(input);
+  const rows = await db.$queryRaw<Array<{ id: string; status: string }>>`
+    SELECT "id", "status"::text AS "status" FROM "ClientAccount" WHERE "id"=${parsed.clientAccountId}
+  `;
+  const account = rows[0];
+  if (!account) throw new Error("Client account not found.");
+  if (account.status !== "PENDING_LAUNCH") throw new Error("Only pending-launch client accounts can be confirmed from this queue.");
+  const now = new Date();
+
+  await db.$transaction(async (tx) => {
+    if (parsed.paymentState === "CURRENT") {
+      await tx.$executeRaw`
+        UPDATE "ClientAccount" SET "launchChecklistComplete"=true,"status"='ACTIVE'::"ClientAccountStatus","healthStatus"='HEALTHY'::"ClientHealthStatus","currentOnPayments"=true,"lastSuccessfulPaymentAt"=${now},"needsAttentionAt"=NULL,"updatedAt"=${now} WHERE "id"=${parsed.clientAccountId}
+      `;
+    } else {
+      await tx.$executeRaw`
+        UPDATE "ClientAccount" SET "launchChecklistComplete"=true,"status"='PAYMENT_FAILED'::"ClientAccountStatus","healthStatus"='PAYMENT_FAILED'::"ClientHealthStatus","currentOnPayments"=false,"lastPaymentIssueAt"=${now},"needsAttentionAt"=${now},"updatedAt"=${now} WHERE "id"=${parsed.clientAccountId}
+      `;
+    }
+    await tx.$executeRaw`
+      INSERT INTO "AuditLog" ("id","actorUserId","actorRole","actionType","entityType","entityId","reason","metadata","createdAt")
+      VALUES (${randomUUID()},${actor.id},${actor.role},'CLIENT_LAUNCH_CONFIRMED','ClientAccount',${parsed.clientAccountId},${parsed.note},${JSON.stringify({ paymentState: parsed.paymentState })}::jsonb,${now})
+    `;
+  });
 }
 
 export async function openClientServiceCase(input: OpenClientServiceCaseInput) {
