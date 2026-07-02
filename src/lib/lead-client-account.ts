@@ -23,14 +23,22 @@ export async function createClientAccountFromWonLead(input: z.input<typeof schem
   if (lead.lifecycle !== "CLOSED_WON") throw new Error("Only closed-won leads can become client accounts.");
   if (lead.dnc || lead.suppressed) throw new Error("Suppressed leads cannot become client accounts.");
 
-  const existing = await db.$queryRaw<ExistingAccount[]>`
-    SELECT "id" FROM "ClientAccount" WHERE "leadId" = ${lead.id} LIMIT 1
-  `;
-  if (existing[0]) return { clientAccountId: existing[0].id, alreadyCreated: true };
-
   const clientAccountId = randomUUID();
   const now = new Date();
+  let alreadyCreated = false;
+  let resolvedClientAccountId = clientAccountId;
+
   await db.$transaction(async (tx) => {
+    await tx.$executeRaw`SELECT pg_advisory_xact_lock(hashtext(${lead.id}))`;
+    const existing = await tx.$queryRaw<ExistingAccount[]>`
+      SELECT "id" FROM "ClientAccount" WHERE "leadId" = ${lead.id} LIMIT 1
+    `;
+    if (existing[0]) {
+      alreadyCreated = true;
+      resolvedClientAccountId = existing[0].id;
+      return;
+    }
+
     await tx.$executeRaw`
       INSERT INTO "ClientAccount" ("id", "leadId", "clientName", "ghlContactId", "packageCode", "accountOwnerAgentId", "originatingAgentId", "createdAt", "updatedAt")
       VALUES (${clientAccountId}, ${lead.id}, ${lead.company}, ${lead.ghlContactId}, ${parsed.packageCode}, ${lead.ownerAgentId}, ${lead.ownerAgentId}, ${now}, ${now})
@@ -45,5 +53,5 @@ export async function createClientAccountFromWonLead(input: z.input<typeof schem
     `;
   });
 
-  return { clientAccountId, alreadyCreated: false };
+  return { clientAccountId: resolvedClientAccountId, alreadyCreated };
 }
