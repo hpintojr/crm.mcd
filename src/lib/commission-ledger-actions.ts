@@ -31,6 +31,19 @@ const ledgerHoldSchema = z.object({
 
 const ledgerClearSchema = z.object({ ledgerEntryId: safeId, note: reviewNote });
 
+export type CommissionLedgerIntakeInput = {
+  clientAccountId: string;
+  paymentRef: string;
+  paymentOccurredAt: string | Date;
+  entryType: "RECURRING" | "SETUP_FEE" | "REFUND_OFFSET" | "CHARGEBACK_HOLD" | "MANUAL_ADJUSTMENT";
+  grossCollectedCents: string | number;
+  refundOffsetCents?: string | number;
+  commissionableCents?: string | number;
+  proposedAgentShareCents?: string | number;
+  calculationNote?: string;
+  earningAgentId?: string;
+};
+
 async function commissionAdmin() {
   requireFeature("commissions");
   return requireRole(ADMIN_ROLES);
@@ -40,7 +53,7 @@ type AccountRow = { id: string; packageCode: string; accountOwnerAgentId: string
 type DecisionRow = { id: string; status: string };
 type LedgerRow = { id: string; clientAccountId: string | null; earningAgentId: string | null; clearedAt: Date | null };
 
-export async function intakeCommissionLedgerEntry(input: z.input<typeof ledgerIntakeSchema>) {
+export async function intakeCommissionLedgerEntry(input: CommissionLedgerIntakeInput) {
   const actor = await commissionAdmin();
   const parsed = ledgerIntakeSchema.parse(input);
   if (parsed.refundOffsetCents > parsed.grossCollectedCents) throw new Error("Refund offset cannot exceed collected amount.");
