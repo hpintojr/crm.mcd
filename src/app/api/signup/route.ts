@@ -3,7 +3,7 @@ import { db } from "@/lib/db";
 import { signupSchema } from "@/lib/validation";
 import { upsertSalesHqContact } from "@/lib/ghl";
 
-// Public endpoint: create a DRAFT/SUBMITTED agent and port the data to GHL (Sales HQ).
+// Public endpoint: create a submitted agent and port non-sensitive contact data to GHL.
 // SSN and bank details are intentionally NOT accepted here.
 export async function POST(req: NextRequest) {
   let raw: unknown;
@@ -22,22 +22,18 @@ export async function POST(req: NextRequest) {
   }
   const data = parsed.data;
 
-  // Honeypot filled → silently accept (drop the bot).
   if (data.company_url) return NextResponse.json({ ok: true }, { status: 200 });
 
   const ip = req.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ?? null;
-
   const existing = await db.agent.findUnique({ where: { personalEmail: data.personalEmail } });
   if (existing) {
-    return NextResponse.json(
-      { error: "An application with this email already exists." },
-      { status: 409 },
-    );
+    return NextResponse.json({ error: "An application with this email already exists." }, { status: 409 });
   }
 
-  // Port to GHL Sales HQ (stub-safe until the token is configured).
+  const companyName = data.companyName.trim() || null;
   const ghl = await upsertSalesHqContact({
     legalName: data.legalName,
+    companyName,
     preferredName: data.preferredName || null,
     personalEmail: data.personalEmail,
     mobile: data.mobile,
@@ -48,6 +44,7 @@ export async function POST(req: NextRequest) {
   const agent = await db.agent.create({
     data: {
       legalName: data.legalName,
+      companyName,
       preferredName: data.preferredName || null,
       personalEmail: data.personalEmail,
       mobile: data.mobile,
@@ -73,6 +70,7 @@ export async function POST(req: NextRequest) {
       entityId: agent.id,
       ipAddress: ip,
       metadata: {
+        companyNameProvided: Boolean(companyName),
         ghl: ghl.ok ? (ghl.stub ? "stub" : "linked") : "error",
         ghlError: ghl.ok ? null : ghl.error,
       },
