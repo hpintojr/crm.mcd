@@ -83,3 +83,28 @@ CREATE TABLE "CommissionHold" (
   "updatedAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
   CONSTRAINT "CommissionHold_pkey" PRIMARY KEY ("id")
 );
+
+ALTER TABLE "AgentCommissionProfile" ADD CONSTRAINT "AgentCommissionProfile_agentId_fkey" FOREIGN KEY ("agentId") REFERENCES "Agent"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+ALTER TABLE "CommissionEligibilityDecision" ADD CONSTRAINT "CommissionEligibilityDecision_clientAccountId_fkey" FOREIGN KEY ("clientAccountId") REFERENCES "ClientAccount"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+ALTER TABLE "CommissionEligibilityDecision" ADD CONSTRAINT "CommissionEligibilityDecision_agentId_fkey" FOREIGN KEY ("agentId") REFERENCES "Agent"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+ALTER TABLE "CommissionEligibilityDecision" ADD CONSTRAINT "CommissionEligibilityDecision_recordedById_fkey" FOREIGN KEY ("recordedById") REFERENCES "User"("id") ON DELETE SET NULL ON UPDATE CASCADE;
+ALTER TABLE "CommissionLedgerEntry" ADD CONSTRAINT "CommissionLedgerEntry_clientAccountId_fkey" FOREIGN KEY ("clientAccountId") REFERENCES "ClientAccount"("id") ON DELETE SET NULL ON UPDATE CASCADE;
+ALTER TABLE "CommissionLedgerEntry" ADD CONSTRAINT "CommissionLedgerEntry_eligibilityDecisionId_fkey" FOREIGN KEY ("eligibilityDecisionId") REFERENCES "CommissionEligibilityDecision"("id") ON DELETE SET NULL ON UPDATE CASCADE;
+ALTER TABLE "CommissionLedgerEntry" ADD CONSTRAINT "CommissionLedgerEntry_earningAgentId_fkey" FOREIGN KEY ("earningAgentId") REFERENCES "Agent"("id") ON DELETE SET NULL ON UPDATE CASCADE;
+ALTER TABLE "CommissionLedgerEntry" ADD CONSTRAINT "CommissionLedgerEntry_originatingAgentId_fkey" FOREIGN KEY ("originatingAgentId") REFERENCES "Agent"("id") ON DELETE SET NULL ON UPDATE CASCADE;
+ALTER TABLE "CommissionLedgerEntry" ADD CONSTRAINT "CommissionLedgerEntry_createdById_fkey" FOREIGN KEY ("createdById") REFERENCES "User"("id") ON DELETE SET NULL ON UPDATE CASCADE;
+ALTER TABLE "CommissionHold" ADD CONSTRAINT "CommissionHold_ledgerEntryId_fkey" FOREIGN KEY ("ledgerEntryId") REFERENCES "CommissionLedgerEntry"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+ALTER TABLE "CommissionHold" ADD CONSTRAINT "CommissionHold_clientAccountId_fkey" FOREIGN KEY ("clientAccountId") REFERENCES "ClientAccount"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+ALTER TABLE "CommissionHold" ADD CONSTRAINT "CommissionHold_agentId_fkey" FOREIGN KEY ("agentId") REFERENCES "Agent"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+ALTER TABLE "CommissionHold" ADD CONSTRAINT "CommissionHold_appliedById_fkey" FOREIGN KEY ("appliedById") REFERENCES "User"("id") ON DELETE SET NULL ON UPDATE CASCADE;
+ALTER TABLE "CommissionHold" ADD CONSTRAINT "CommissionHold_releasedById_fkey" FOREIGN KEY ("releasedById") REFERENCES "User"("id") ON DELETE SET NULL ON UPDATE CASCADE;
+
+CREATE INDEX "AgentCommissionProfile_status_idx" ON "AgentCommissionProfile"("status");
+CREATE INDEX "CommissionEligibilityDecision_clientAccountId_effectiveAt_idx" ON "CommissionEligibilityDecision"("clientAccountId", "effectiveAt");
+CREATE INDEX "CommissionEligibilityDecision_agentId_status_idx" ON "CommissionEligibilityDecision"("agentId", "status");
+CREATE INDEX "CommissionLedgerEntry_clientAccountId_status_idx" ON "CommissionLedgerEntry"("clientAccountId", "status");
+CREATE INDEX "CommissionLedgerEntry_earningAgentId_status_idx" ON "CommissionLedgerEntry"("earningAgentId", "status");
+CREATE INDEX "CommissionLedgerEntry_eligibleAt_idx" ON "CommissionLedgerEntry"("eligibleAt");
+CREATE INDEX "CommissionHold_active_idx" ON "CommissionHold"("active");
+CREATE INDEX "CommissionHold_ledgerEntryId_active_idx" ON "CommissionHold"("ledgerEntryId", "active");
+CREATE INDEX "CommissionHold_clientAccountId_active_idx" ON "CommissionHold"("clientAccountId", "active");
