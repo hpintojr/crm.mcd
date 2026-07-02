@@ -8,8 +8,8 @@ Secure Agent and Admin portals for Mercury Call Desk. GoHighLevel (GHL) is a bac
 - Vercel deploys changes from `main` to `https://crm.mercurycalldesk.com`.
 - Production environment values live in Vercel only; never commit credentials.
 - Neon schema changes use a safety-branch review before an explicit production apply.
-- No local-machine workflow is required for normal development or operation.
-- Do not enable a database-backed feature until its migration, production build, and controlled live test are complete.
+- Do not enable a database-backed feature until its schema, production build, and controlled live test are complete.
+- Do not run a blanket `prisma migrate deploy` against production; use the documented database-release process and recorded production baseline.
 
 ## Stack
 
@@ -27,33 +27,32 @@ Secure Agent and Admin portals for Mercury Call Desk. GoHighLevel (GHL) is a bac
 - Admin operations: applicant review, confirmation call, approval/correction/rejection, certification workflow, command center, integration error review, audit history/export, user administration, account-security view, and module-readiness view.
 - GHL document-completion webhook with shared secret, location allowlist, idempotency, onboarding document updates, invited-user provisioning, activation-link generation, and audit events.
 - Security response headers plus branded error/not-found fallbacks.
+- **Lead MVP:** production schema, agent workspace, controlled imports, admin review, Open Pool protection, DNC/suppression, callbacks, and inbound GHL appointment attribution are deployed behind the Lead feature gate.
 
-## Staged modules
+## Current Lead MVP status
 
-The following source code and migration files exist but remain intentionally disabled until controlled Neon rollout and production tests are complete:
+- **Database:** Lead MVP schema is applied and validated in production.
+- **Application:** Latest Lead MVP production deployment is `READY`.
+- **Feature gate:** `LEADS_ENABLED=false`; agents cannot access Lead workflows until owner acceptance testing is complete.
+- **Activation handoff:** [Lead MVP Rollout Status](./docs/LEAD_MVP_ROLLOUT_STATUS.md)
+- **Test plan:** [Lead MVP Acceptance Test](./docs/LEAD_MVP_ACCEPTANCE_TEST.md)
 
-| Module | Feature gate | Status |
+## Module status
+
+| Module | Feature gate | Current status |
 |---|---:|---|
-| Lead pools, claim, activity, DNC, workspace | `LEADS_ENABLED` | Migration staged; disabled |
-| Booking attribution and appointment relay | uses lead module | Partial; outbound GHL booking still needs verified endpoint contract |
-| Commission calculations and funding validation | `COMMISSIONS_ENABLED` | Ledger migration staged; disabled |
-| Client servicing cadence and health | `SERVICING_ENABLED` | Client/service migration staged; disabled |
-| Finance/payout eligibility | `FINANCE_ENABLED` | Payout migration staged; disabled |
-
-Staged migrations:
-
-```txt
-prisma/migrations/20260701091000_add_lead_engine/migration.sql
-prisma/migrations/20260701091100_add_lead_integrity/migration.sql
-prisma/migrations/20260701092000_add_client_service_and_ledger/migration.sql
-```
-
-Apply them only through the controlled Neon safety-branch process and in that order.
+| Lead pools, claim, activity, DNC, workspace | `LEADS_ENABLED` | Schema and app deployed; held for owner acceptance testing |
+| Booking attribution and appointment relay | uses lead module | Inbound appointment attribution deployed behind Lead gate; outbound GHL booking endpoint contract remains pending |
+| Commission calculations and funding validation | `COMMISSIONS_ENABLED` | Staged; disabled |
+| Client servicing cadence and health | `SERVICING_ENABLED` | Staged; disabled |
+| Finance/payout eligibility | `FINANCE_ENABLED` | Staged; disabled |
 
 ## Core business rules encoded in source
 
 - Cold lead protection begins after documented two-way contact, not when an agent claims a record.
-- Documented referrals are protected on entry; demo-booked records do not return to OpenPool.
+- Documented referrals are protected on entry; new imports cannot be assigned directly to Open Pool.
+- Open Pool is reserved for eligible, audited returns from previously assigned non-referral records with documented two-way contact.
+- Demo-booked records are not returned to Open Pool through normal new-import review.
 - DNC suppresses calls, SMS, sales email, marketing email, and social outreach immediately.
 - Healthy, current-paying accounts are not reassigned solely because there is no routine activity.
 - Departing agents in good standing retain commission eligibility only while servicing assigned clients. Retirees retain eligibility; terminated agents lose future eligibility and accounts transfer to House.
@@ -70,10 +69,9 @@ Apply them only through the controlled Neon safety-branch process and in that or
 
 ## Immediate next sequence
 
-1. Verify the latest `main` deployment in Vercel.
-2. Verify owner activation and `/admin` access.
-3. Test the lead migration and integrity migration on a Neon safety branch.
-4. Apply lead migrations to production only with explicit approval.
-5. Run controlled tests for intake, claim race, callback, DNC, release, and inbound GHL appointment events.
-6. Enable `LEADS_ENABLED=true` only after those tests pass.
-7. Stabilize leads before applying the client/service/ledger migration.
+1. Review the [Lead MVP Rollout Status](./docs/LEAD_MVP_ROLLOUT_STATUS.md).
+2. Execute and sign off on the [Lead MVP Acceptance Test](./docs/LEAD_MVP_ACCEPTANCE_TEST.md).
+3. Enable `LEADS_ENABLED=true` only for the controlled acceptance test window.
+4. Run a small approved batch through import → review → claim → activity/callback → DNC → appointment attribution.
+5. Stabilize the Lead MVP and monitor audit and runtime logs.
+6. Start Client Servicing Health only after owner authorization.
