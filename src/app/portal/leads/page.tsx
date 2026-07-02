@@ -1,19 +1,28 @@
+import Link from "next/link";
 import { revalidatePath } from "next/cache";
 import { ADMIN_ROLES, requireRole } from "@/lib/authz";
 import { claimAvailableLead } from "@/lib/claims";
 import { db } from "@/lib/db";
 import { features } from "@/lib/features";
+import { logLeadInteraction, suppressLeadForDnc } from "@/lib/lead-workspace";
 import { PortalFeaturePage } from "@/components/portal-feature-page";
 import { getPortalContext } from "@/lib/portal-context";
 
 export const dynamic = "force-dynamic";
 
+type LeadsPageProps = { searchParams: Promise<{ selected?: string }> };
+
 function label(value: string) {
   return value.replaceAll("_", " ").toLowerCase().replace(/^./, (letter) => letter.toUpperCase());
 }
 
-export default async function LeadsPage() {
+function pacific(value: Date) {
+  return value.toLocaleString("en-US", { dateStyle: "medium", timeStyle: "short", timeZone: "America/Los_Angeles" });
+}
+
+export default async function LeadsPage({ searchParams }: LeadsPageProps) {
   const { agent } = await getPortalContext();
+  const params = await searchParams;
 
   if (!features.leads) {
     return (
@@ -37,6 +46,13 @@ export default async function LeadsPage() {
     agent ? db.lead.findMany({ where: { ownerAgentId: agent.id, dnc: false, suppressed: false }, orderBy: [{ nextActionAt: "asc" }, { lastActionAt: "desc" }], take: 100 }) : Promise.resolve([]),
   ]);
 
+  const selectedLead = agent && params.selected
+    ? await db.lead.findFirst({ where: { id: params.selected, ownerAgentId: agent.id, dnc: false, suppressed: false } })
+    : null;
+  const activities = selectedLead ? await db.leadActivity.findMany({ where: { leadId: selectedLead.id }, orderBy: { occurredAt: "desc" }, take: 12 }) : [];
+  const notes = selectedLead ? await db.leadNote.findMany({ where: { leadId: selectedLead.id }, orderBy: { createdAt: "desc" }, take: 12 }) : [];
+  const callbacks = selectedLead ? await db.leadCallback.findMany({ where: { leadId: selectedLead.id }, orderBy: { dueAt: "desc" }, take: 12 }) : [];
+
   async function claim(formData: FormData) {
     "use server";
     const actor = await requireRole(["AGENT", ...ADMIN_ROLES]);
@@ -46,12 +62,52 @@ export default async function LeadsPage() {
     revalidatePath("/portal/leads");
   }
 
+  async function recordInteraction(formData: FormData) {
+    "use server";
+    await logLeadInteraction({
+      leadId: String(formData.get("leadId") ?? ""),
+      disposition: String(formData.get("disposition") ?? ""),
+      note: String(formData.get("note") ?? "") || undefined,
+      callbackAtPacific: String(formData.get("callbackAtPacific") ?? "") || undefined,
+    });
+    revalidatePath("/portal/leads");
+  }
+
+  async function applyDnc(formData: FormData) {
+    "use server";
+    await suppressLeadForDnc({
+      leadId: String(formData.get("leadId") ?? ""),
+      reason: String(formData.get("reason") ?? "") || undefined,
+    });
+    revalidatePath("/portal/leads");
+  }
+
   return (
     <PortalFeaturePage eyebrow="Pipeline" title="Leads" description="Only work company-owned records. Log each meaningful interaction, next step, and opt-out immediately.">
       <section className="grid gap-6 xl:grid-cols-2">
-        <div className="portal-card p-0"><div className="border-b px-6 py-4 portal-border"><h2 className="portal-heading font-semibold">Open Pool</h2><p className="portal-copy mt-1 text-sm">Only released, eligible no-show or returned records may be claimed. Claiming is atomic.</p></div>{available.length === 0 ? <p className="portal-copy px-6 py-10 text-sm">No released Open Pool records.</p> : <div>{available.map((lead) => <article className="flex flex-wrap items-center justify-between gap-4 border-b px-6 py-5 portal-border" key={lead.id}><div><p className="portal-heading font-medium">{lead.company}</p><p className="portal-copy mt-1 text-sm">{lead.industry || "Industry pending"} · {lead.city || "Location pending"}</p><p className="portal-copy mt-1 text-xs">{label(lead.pool)} · Score {lead.score}</p></div>{agent?.canClaimLeads && <form action={claim}><input name="leadId" type="hidden" value={lead.id} /><button className="rounded-lg bg-brand-500 px-3 py-2 text-sm font-medium text-ink-950 hover:bg-brand-400" type="submit">Claim</button></form>}</article>)}</div>}</div>
-        <div className="portal-card p-0"><div className="border-b px-6 py-4 portal-border"><h2 className="portal-heading font-semibold">My active records</h2><p className="portal-copy mt-1 text-sm">Callbacks and next actions are shown first.</p></div>{mine.length === 0 ? <p className="portal-copy px-6 py-10 text-sm">No records are assigned to you.</p> : <div>{mine.map((lead) => <a className="block border-b px-6 py-5 transition hover:bg-black/5 portal-border" href={`/portal/leads?selected=${lead.id}`} key={lead.id}><p className="portal-heading font-medium">{lead.company}</p><p className="portal-copy mt-1 text-sm">{lead.businessPhone} · {label(lead.lifecycle)}</p><p className="portal-copy mt-1 text-xs">Next action: {lead.nextActionAt ? lead.nextActionAt.toLocaleString() : "Not scheduled"}</p></a>)}</div>}</div>
+        <section className="portal-card p-0">
+          <div className="border-b px-6 py-4 portal-border"><h2 className="portal-heading font-semibold">Open Pool</h2><p className="portal-copy mt-1 text-sm">Only released, eligible records may be claimed. Claiming is atomic.</p></div>
+          {available.length === 0 ? <p className="portal-copy px-6 py-10 text-sm">No released Open Pool records.</p> : <div>{available.map((lead) => <article className="flex flex-wrap items-center justify-between gap-4 border-b px-6 py-5 portal-border" key={lead.id}><div><p className="portal-heading font-medium">{lead.company}</p><p className="portal-copy mt-1 text-sm">{lead.industry || "Industry pending"} · {lead.city || "Location pending"}</p><p className="portal-copy mt-1 text-xs">{label(lead.pool)} · Score {lead.score}</p></div>{agent?.canClaimLeads && <form action={claim}><input name="leadId" type="hidden" value={lead.id} /><button className="rounded-lg bg-brand-500 px-3 py-2 text-sm font-medium text-ink-950 hover:bg-brand-400" type="submit">Claim</button></form>}</article>)}</div>}
+        </section>
+        <section className="portal-card p-0">
+          <div className="border-b px-6 py-4 portal-border"><h2 className="portal-heading font-semibold">My active records</h2><p className="portal-copy mt-1 text-sm">Callbacks and next actions are shown first.</p></div>
+          {mine.length === 0 ? <p className="portal-copy px-6 py-10 text-sm">No records are assigned to you.</p> : <div>{mine.map((lead) => <Link className={`block border-b px-6 py-5 transition hover:bg-black/5 portal-border ${selectedLead?.id === lead.id ? "bg-black/5" : ""}`} href={`/portal/leads?selected=${lead.id}`} key={lead.id}><p className="portal-heading font-medium">{lead.company}</p><p className="portal-copy mt-1 text-sm">{lead.businessPhone} · {label(lead.lifecycle)}</p><p className="portal-copy mt-1 text-xs">Next action: {lead.nextActionAt ? pacific(lead.nextActionAt) : "Not scheduled"}</p></Link>)}</div>}
+        </section>
       </section>
+
+      {selectedLead && <section className="mt-6 grid gap-6 xl:grid-cols-[1.15fr_0.85fr]">
+        <section className="portal-card">
+          <div className="flex flex-col justify-between gap-3 sm:flex-row sm:items-start"><div><p className="text-xs font-medium uppercase tracking-wide text-brand-400">Selected record</p><h2 className="portal-heading mt-1 text-2xl font-semibold">{selectedLead.company}</h2><p className="portal-copy mt-1 text-sm">{selectedLead.businessPhone}{selectedLead.email ? ` · ${selectedLead.email}` : ""}</p></div><span className="rounded-full border px-3 py-1 text-xs font-semibold portal-border">{label(selectedLead.lifecycle)}</span></div>
+          <div className="mt-5 grid gap-3 text-sm sm:grid-cols-2"><div><p className="portal-muted">Source</p><p className="portal-heading mt-1">{selectedLead.originalSource ? label(selectedLead.originalSource) : selectedLead.source || "Not recorded"}</p></div><div><p className="portal-muted">Location</p><p className="portal-heading mt-1">{[selectedLead.city, selectedLead.state].filter(Boolean).join(", ") || "Not recorded"}</p></div><div><p className="portal-muted">Website</p><p className="portal-heading mt-1 break-all">{selectedLead.website || "Not recorded"}</p></div><div><p className="portal-muted">Next action</p><p className="portal-heading mt-1">{selectedLead.nextActionAt ? pacific(selectedLead.nextActionAt) : "Not scheduled"}</p></div></div>
+          <form action={recordInteraction} className="mt-7 space-y-4 border-t pt-6 portal-border"><input name="leadId" type="hidden" value={selectedLead.id} /><div><label className="portal-heading text-sm font-medium" htmlFor="disposition">Outcome</label><select className="mt-1 w-full rounded-lg border bg-transparent px-3 py-2 text-sm portal-border" defaultValue="FOLLOW_UP" id="disposition" name="disposition"><option value="NO_ANSWER">No answer</option><option value="VOICEMAIL">Voicemail</option><option value="CALLBACK_REQUESTED">Callback requested</option><option value="QUALIFIED">Qualified</option><option value="NOT_INTERESTED">Not interested</option><option value="WRONG_NUMBER">Wrong number</option><option value="OUT_OF_BUSINESS">Out of business</option><option value="DEMO_BOOKED">Demo booked</option><option value="FOLLOW_UP">Follow up</option></select></div><div><label className="portal-heading text-sm font-medium" htmlFor="note">Interaction note</label><textarea className="mt-1 w-full rounded-lg border bg-transparent px-3 py-2 text-sm portal-border" id="note" name="note" placeholder="Document the meaningful result and agreed next step." rows={4} /></div><div><label className="portal-heading text-sm font-medium" htmlFor="callbackAtPacific">Follow-up time, Pacific</label><input className="mt-1 w-full rounded-lg border bg-transparent px-3 py-2 text-sm portal-border" id="callbackAtPacific" name="callbackAtPacific" type="datetime-local" /><p className="portal-copy mt-1 text-xs">Leave blank when no follow-up is needed. A new follow-up closes prior scheduled callbacks.</p></div><button className="rounded-lg bg-brand-500 px-4 py-2 text-sm font-medium text-ink-950 hover:bg-brand-400" type="submit">Save outcome</button></form>
+          <form action={applyDnc} className="mt-4 rounded-xl border border-red-800/70 bg-red-950/20 p-4"><input name="leadId" type="hidden" value={selectedLead.id} /><label className="text-sm font-medium text-red-100" htmlFor="reason">Do not contact</label><textarea className="mt-2 w-full rounded-lg border border-red-800/70 bg-transparent px-3 py-2 text-sm text-red-50" id="reason" name="reason" placeholder="Optional opt-out wording or context." rows={2} /><p className="mt-2 text-xs text-red-200">This immediately suppresses the record across lead workflows and cancels scheduled callbacks.</p><button className="mt-3 rounded-lg border border-red-500 px-4 py-2 text-sm font-medium text-red-100 hover:bg-red-950/70" type="submit">Apply DNC and suppress</button></form>
+        </section>
+        <aside className="space-y-6">
+          <section className="portal-card"><h2 className="portal-heading text-lg font-semibold">Recent activity</h2>{activities.length === 0 ? <p className="portal-copy mt-3 text-sm">No activity logged yet.</p> : <div className="mt-4 space-y-3">{activities.map((activity) => <div className="border-b pb-3 last:border-b-0 portal-border" key={activity.id}><p className="portal-heading text-sm font-medium">{label(activity.type)}{activity.disposition ? ` · ${label(activity.disposition)}` : ""}</p><p className="portal-copy mt-1 text-xs">{pacific(activity.occurredAt)}</p></div>)}</div>}</section>
+          <section className="portal-card"><h2 className="portal-heading text-lg font-semibold">Notes</h2>{notes.length === 0 ? <p className="portal-copy mt-3 text-sm">No notes logged yet.</p> : <div className="mt-4 space-y-3">{notes.map((note) => <div className="border-b pb-3 last:border-b-0 portal-border" key={note.id}><p className="portal-copy text-sm whitespace-pre-wrap">{note.body}</p><p className="portal-copy mt-1 text-xs">{pacific(note.createdAt)}</p></div>)}</div>}</section>
+          <section className="portal-card"><h2 className="portal-heading text-lg font-semibold">Follow-up history</h2>{callbacks.length === 0 ? <p className="portal-copy mt-3 text-sm">No callbacks recorded yet.</p> : <div className="mt-4 space-y-3">{callbacks.map((callback) => <div className="border-b pb-3 last:border-b-0 portal-border" key={callback.id}><p className="portal-heading text-sm font-medium">{label(callback.status)}</p><p className="portal-copy mt-1 text-xs">Due {pacific(callback.dueAt)}</p></div>)}</div>}</section>
+        </aside>
+      </section>}
     </PortalFeaturePage>
   );
 }
