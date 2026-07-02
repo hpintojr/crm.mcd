@@ -54,13 +54,14 @@ Open Pool is reserved for a documented return of an already assigned record. A r
 
 1. A non-suppressed, non-DNC Lead.
 2. A non-referral Lead.
-3. Prior agent ownership.
-4. Documented two-way contact.
-5. An eligible lifecycle state.
-6. An admin-entered return reason.
-7. Claim, activity, and audit records.
+3. A Lead that is not `DEMO_BOOKED`.
+4. Prior agent ownership.
+5. Documented two-way contact.
+6. An eligible lifecycle state: `CLAIMED`, `CONTACTED`, or `NURTURING`.
+7. An admin-entered return reason.
+8. Claim, activity, and audit records.
 
-This preserves referral protection and prevents untouched new records from being exposed as agent claim opportunities.
+This preserves referral protection, demo-booked protection, and prevents untouched new records from being exposed as agent claim opportunities.
 
 ### GHL appointment attribution
 
@@ -77,10 +78,10 @@ The existing verified GHL appointment webhook now also attempts Lead attribution
 ## Production deployment
 
 - Production branch: `main`
-- Latest verified production deployment: Vercel deployment `dpl_EFKVyDdwt8JjwMZr5r9f4jp66v7W`
+- Latest verified production deployment: Vercel deployment `dpl_3Eticvc9Fktj4QosV1nKxJPwca1n`
 - Deployment state: `READY`
-- Latest deployed commit: `97b2d090d84ceda3d72155e9212ea9da850d24ad`
-- Runtime error/fatal log check after deployment: no matching logs returned.
+- Latest deployed commit: `92f094041dce4aa1eb447f9fd9180b3ec2426844`
+- Runtime error/fatal log check after the prior Lead MVP deployment: no matching logs returned.
 
 ## Deliberately not enabled or started
 
