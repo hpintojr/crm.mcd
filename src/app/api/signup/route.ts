@@ -30,7 +30,7 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "An application with this email already exists." }, { status: 409 });
   }
 
-  const companyName = data.companyName.trim() || null;
+  const companyName = data.companyName?.trim() || null;
   const ghl = await upsertSalesHqContact({
     legalName: data.legalName,
     companyName,
