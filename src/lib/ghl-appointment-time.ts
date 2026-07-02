@@ -40,7 +40,7 @@ function parseWallClock(source: string) {
   const numeric = source.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})(?:,)?\s+(\d{1,2}):(\d{2})(?::(\d{2}))?\s*(AM|PM)$/i);
   if (numeric) return { year: Number(numeric[3]), month: Number(numeric[1]), day: Number(numeric[2]), hour: hourFromMeridiem(Number(numeric[4]), numeric[7]), minute: Number(numeric[5]), second: Number(numeric[6] ?? 0), millisecond: 0 };
 
-  const named = source.match(/^([A-Za-z]+)\s+(\d{1,2}),\s*(\d{4})(?:,)?\s+(\d{1,2}):(\d{2})(?::(\d{2}))?\s*(AM|PM)$/i);
+  const named = source.match(/^(?:[A-Za-z]+,\s+)?([A-Za-z]+)\s+(\d{1,2}),\s*(\d{4})(?:,)?\s+(\d{1,2}):(\d{2})(?::(\d{2}))?\s*(AM|PM)$/i);
   if (named) {
     const month = monthNames[named[1].toLowerCase()];
     return { year: Number(named[3]), month, day: Number(named[2]), hour: hourFromMeridiem(Number(named[4]), named[7]), minute: Number(named[5]), second: Number(named[6] ?? 0), millisecond: 0 };
