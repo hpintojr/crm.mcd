@@ -1,6 +1,8 @@
+import { revalidatePath } from "next/cache";
 import { ADMIN_ROLES, requireRole } from "@/lib/authz";
 import { features } from "@/lib/features";
 import { listCommissionLedgerSummary, listCommissionReviewCandidates } from "@/lib/commission-read-model";
+import { recordCommissionEligibilityReview } from "@/lib/commission-review-actions";
 
 export const dynamic = "force-dynamic";
 
@@ -46,6 +48,16 @@ export default async function CommissionReviewPage() {
   const pendingReviewCount = candidates.filter((candidate) => !candidate.latestDecisionStatus || candidate.latestDecisionStatus === "PENDING").length;
   const heldLedgerCount = ledger.filter((entry) => entry.status === "ON_HOLD" || entry.activeHoldCount > 0).length;
 
+  async function reviewOwner(formData: FormData) {
+    "use server";
+    await recordCommissionEligibilityReview({
+      clientAccountId: String(formData.get("clientAccountId") ?? ""),
+      agentId: String(formData.get("agentId") ?? ""),
+      note: String(formData.get("note") ?? "") || undefined,
+    });
+    revalidatePath("/admin/commissions");
+  }
+
   return (
     <main className="mx-auto min-h-screen max-w-7xl px-6 py-12">
       <p className="text-sm font-medium uppercase tracking-widest text-brand-400">Mercury Call Desk</p>
@@ -58,7 +70,7 @@ export default async function CommissionReviewPage() {
       </section>
       <section className="mt-6 overflow-hidden rounded-2xl border border-ink-700 bg-ink-900">
         <div className="border-b border-ink-700 px-6 py-4"><h2 className="font-semibold text-white">Eligibility review queue</h2><p className="mt-1 text-sm text-gray-400">The active service owner, retirement status, payment standing, and latest decision are shown together.</p></div>
-        {candidates.length === 0 ? <p className="px-6 py-10 text-sm text-gray-400">No client accounts are available for commission review.</p> : <div className="divide-y divide-ink-700">{candidates.map((candidate) => <article className="grid gap-3 px-6 py-5 lg:grid-cols-[1.2fr_1fr_1fr_auto] lg:items-center" key={candidate.clientAccountId}><div><p className="font-medium text-white">{candidate.clientName}</p><p className="mt-1 text-sm text-gray-400">{candidate.packageCode} · {candidate.currentOnPayments ? "Current" : "Payment issue"}</p></div><div><p className="text-sm text-gray-300">Service owner: {candidate.ownerName || "House / unassigned"}</p><p className="mt-1 text-xs text-gray-500">Account: {label(candidate.accountStatus)} · Profile: {label(candidate.profileStatus)}</p></div><div><p className="text-sm text-gray-300">Decision: {label(candidate.latestDecisionStatus)}</p><p className="mt-1 text-xs text-gray-500">{label(candidate.latestDecisionReason)} · {pacific(candidate.latestDecisionAt)}</p></div><span className="justify-self-start rounded-full border border-ink-700 px-3 py-1 text-xs text-gray-300">Review only</span></article>)}</div>}
+        {candidates.length === 0 ? <p className="px-6 py-10 text-sm text-gray-400">No client accounts are available for commission review.</p> : <div className="divide-y divide-ink-700">{candidates.map((candidate) => <article className="grid gap-3 px-6 py-5 lg:grid-cols-[1.2fr_1fr_1fr_auto] lg:items-center" key={candidate.clientAccountId}><div><p className="font-medium text-white">{candidate.clientName}</p><p className="mt-1 text-sm text-gray-400">{candidate.packageCode} · {candidate.currentOnPayments ? "Current" : "Payment issue"}</p></div><div><p className="text-sm text-gray-300">Service owner: {candidate.ownerName || "House / unassigned"}</p><p className="mt-1 text-xs text-gray-500">Account: {label(candidate.accountStatus)} · Profile: {label(candidate.profileStatus)}</p></div><div><p className="text-sm text-gray-300">Decision: {label(candidate.latestDecisionStatus)}</p><p className="mt-1 text-xs text-gray-500">{label(candidate.latestDecisionReason)} · {pacific(candidate.latestDecisionAt)}</p></div>{candidate.accountOwnerAgentId ? <form action={reviewOwner} className="grid gap-2"><input name="clientAccountId" type="hidden" value={candidate.clientAccountId} /><input name="agentId" type="hidden" value={candidate.accountOwnerAgentId} /><input className="w-full rounded-lg border border-ink-700 bg-ink-950 px-3 py-2 text-xs text-gray-100" name="note" placeholder="Review note (optional)" /><button className="rounded-lg border border-brand-500 px-3 py-2 text-sm text-brand-200" type="submit">Review owner</button></form> : <span className="justify-self-start rounded-full border border-ink-700 px-3 py-1 text-xs text-gray-500">No servicing owner</span>}</article>)}</div>}
       </section>
       <section className="mt-6 overflow-hidden rounded-2xl border border-ink-700 bg-ink-900">
         <div className="border-b border-ink-700 px-6 py-4"><h2 className="font-semibold text-white">Ledger review</h2><p className="mt-1 text-sm text-gray-400">Amounts are review records only. Finance approval and payout execution remain outside this workspace.</p></div>
