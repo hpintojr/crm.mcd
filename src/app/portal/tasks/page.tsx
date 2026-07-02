@@ -2,6 +2,7 @@ import Link from "next/link";
 import { PortalFeaturePage } from "@/components/portal-feature-page";
 import { ViewerTime } from "@/components/viewer-time";
 import { db } from "@/lib/db";
+import { features } from "@/lib/features";
 import { getPortalContext } from "@/lib/portal-context";
 
 export const dynamic = "force-dynamic";
@@ -11,6 +12,18 @@ export default async function TasksPage() {
 
   if (!agent) {
     return <PortalFeaturePage eyebrow="Daily work" title="Tasks" description="Your callbacks, follow-ups, and booking actions will be organized here."><section className="portal-card max-w-3xl"><h2 className="portal-heading text-lg font-semibold">No personal task list</h2><p className="portal-copy mt-3 text-sm">This account is not linked to an agent profile.</p></section></PortalFeaturePage>;
+  }
+
+  if (!features.leads) {
+    return (
+      <PortalFeaturePage eyebrow="Daily work" title="Tasks" description="Your callbacks, follow-ups, and booking actions will be organized here.">
+        <section className="portal-card max-w-3xl">
+          <h2 className="portal-heading text-lg font-semibold">Task workspace is staged</h2>
+          <p className="portal-copy mt-3 text-sm">The callback queue will activate only after Lead Management, source controls, suppression safeguards, and controlled production testing are complete.</p>
+          <div className="portal-callout mt-5 text-sm"><span className="font-medium portal-heading">Current access:</span><span className="portal-muted"> Lead workflows are not live yet.</span></div>
+        </section>
+      </PortalFeaturePage>
+    );
   }
 
   const callbacks = await db.leadCallback.findMany({
