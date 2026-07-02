@@ -9,6 +9,7 @@ const pages = {
 } as const;
 
 const MEETING_ACTIVE_STATUSES = new Set(["SCHEDULED", "CONFIRMED"]);
+const RECENT_OUTCOME_STATUSES = new Set(["COMPLETED", "CANCELLED", "NO_SHOW"]);
 
 type PageProps = { params: Promise<{ workspace: string }> };
 
@@ -16,29 +17,54 @@ function title(value: string) {
   return value.replaceAll("_", " ").toLowerCase().replace(/^./, (letter) => letter.toUpperCase());
 }
 
+function outcomeMessage(status: string) {
+  if (status === "COMPLETED") return "Completed appointment retained for recent activity.";
+  if (status === "NO_SHOW") return "No-show retained for follow-up and audit history.";
+  if (status === "CANCELLED") return "Cancelled appointment retained for recent activity.";
+  return "Recent appointment activity.";
+}
+
 export default async function WorkspacePage({ params }: PageProps) {
   const { workspace } = await params;
   const { user, agent, isAdmin } = await getPortalContext();
 
   if (workspace === "schedule") {
-    const appointments = await db.appointment.findMany({
-      where: isAdmin ? undefined : agent ? { agentId: agent.id } : { id: "__none__" },
-      orderBy: { startAt: "asc" },
-      take: 50,
-    });
+    const now = new Date();
+    const recentCutoff = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+    const viewerFilter = isAdmin ? {} : agent ? { agentId: agent.id } : { id: "__none__" };
+    const [upcomingAppointments, recentOutcomes] = await Promise.all([
+      db.appointment.findMany({
+        where: {
+          ...viewerFilter,
+          status: { in: [...MEETING_ACTIVE_STATUSES] },
+          OR: [{ endAt: { gte: now } }, { endAt: null, startAt: { gte: now } }],
+        },
+        orderBy: { startAt: "asc" },
+        take: 50,
+      }),
+      db.appointment.findMany({
+        where: {
+          ...viewerFilter,
+          status: { in: [...RECENT_OUTCOME_STATUSES] },
+          updatedAt: { gte: recentCutoff },
+        },
+        orderBy: { updatedAt: "desc" },
+        take: 20,
+      }),
+    ]);
 
     return (
-      <PortalFeaturePage eyebrow="Appointments" title="Schedule" description="Your booked demos and relevant appointments appear here after GHL relays them to your workspace.">
+      <PortalFeaturePage eyebrow="Appointments" title="Schedule" description="Your upcoming booked demos appear here after GHL relays them to your workspace.">
         <section className="portal-card max-w-4xl">
           <div className="flex flex-col justify-between gap-2 sm:flex-row sm:items-center">
-            <div><h2 className="portal-heading text-lg font-semibold">Upcoming and recent appointments</h2><p className="portal-copy mt-1 text-sm">Schedule is read-only during this phase. Booking, edits, cancellations, and guest invitations stay in GHL and the connected calendar.</p></div>
+            <div><h2 className="portal-heading text-lg font-semibold">Upcoming appointments</h2><p className="portal-copy mt-1 text-sm">Only active scheduled and confirmed appointments appear here. Booking, edits, cancellations, and guest invitations stay in GHL and the connected calendar.</p></div>
             {isAdmin && <span className="portal-status-good text-sm font-semibold">Company view</span>}
           </div>
-          {appointments.length === 0 ? (
-            <div className="portal-callout mt-5 text-sm"><span className="font-medium portal-heading">No synced appointments yet.</span><p className="portal-copy mt-1">The page will populate after the GHL appointment relay workflow is published and sends its first event.</p></div>
+          {upcomingAppointments.length === 0 ? (
+            <div className="portal-callout mt-5 text-sm"><span className="font-medium portal-heading">No upcoming appointments.</span><p className="portal-copy mt-1">Completed, cancelled, and no-show appointments move out of this view automatically while their history is retained.</p></div>
           ) : (
             <div className="mt-5 divide-y portal-border">
-              {appointments.map((appointment) => (
+              {upcomingAppointments.map((appointment) => (
                 <article className="flex flex-col gap-3 py-4 sm:flex-row sm:items-center sm:justify-between" key={appointment.id}>
                   <div><p className="portal-heading font-medium">{appointment.title}</p><ViewerTime startAt={appointment.startAt.toISOString()} endAt={appointment.endAt?.toISOString() ?? null} /><p className="portal-copy mt-1 text-xs">{appointment.calendarName || "Mercury Call Desk calendar"} · {title(appointment.status)}</p></div>
                   {appointment.meetingUrl && MEETING_ACTIVE_STATUSES.has(appointment.status) && <a className="portal-action-link" href={appointment.meetingUrl} target="_blank" rel="noreferrer">Join meeting</a>}
@@ -47,6 +73,7 @@ export default async function WorkspacePage({ params }: PageProps) {
             </div>
           )}
         </section>
+        {recentOutcomes.length > 0 && <section className="portal-card mt-6 max-w-4xl"><div><h2 className="portal-heading text-lg font-semibold">Recent appointment activity</h2><p className="portal-copy mt-1 text-sm">Completed, cancelled, and no-show appointments remain visible here for seven days. They are not deleted from Mercury Call Desk records.</p></div><div className="mt-5 divide-y portal-border">{recentOutcomes.map((appointment) => <article className="py-4" key={appointment.id}><div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between"><div><p className="portal-heading font-medium">{appointment.title}</p><ViewerTime startAt={appointment.startAt.toISOString()} endAt={appointment.endAt?.toISOString() ?? null} /><p className="portal-copy mt-1 text-xs">{appointment.calendarName || "Mercury Call Desk calendar"} · {title(appointment.status)}</p></div><span className={appointment.status === "NO_SHOW" ? "portal-status-pending text-sm font-semibold" : "portal-copy text-sm"}>{title(appointment.status)}</span></div><p className="portal-copy mt-2 text-sm">{outcomeMessage(appointment.status)}</p></article>)}</div></section>}
       </PortalFeaturePage>
     );
   }
