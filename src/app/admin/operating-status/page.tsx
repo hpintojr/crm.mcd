@@ -40,7 +40,7 @@ export default async function OperatingStatusPage() {
       name: "Commission Eligibility & Ledger",
       gate: features.commissions,
       status: state(features.commissions),
-      detail: "Gated dashboard, policy evaluator, policy checks, and an isolated commission-only schema migration are prepared. No payout action exists in this phase.",
+      detail: "Gated dashboard, ledger controls, policy checks, and an isolated commission-only schema migration are prepared. No payout action exists in this phase.",
       next: "Validate the isolated Neon branch, approve the separate commission schema migration, then run the controlled eligibility test.",
       href: "/admin/commissions",
     },
@@ -48,9 +48,9 @@ export default async function OperatingStatusPage() {
       name: "Finance & Payout Readiness",
       gate: features.finance,
       status: state(features.finance),
-      detail: "Not started. Finance will remain isolated from commission eligibility and must not auto-pay or move funds.",
-      next: "Begin only after Commission Eligibility & Ledger stabilizes and receives owner approval.",
-      href: "/admin/operating-status",
+      detail: "A gated readiness boundary is built. It blocks manual review until eligibility, clearance, no active holds, finance approval, and an externally verified destination are all present; it never moves funds.",
+      next: "Begin controlled review only after Commission Eligibility & Ledger stabilizes and receives owner approval.",
+      href: "/admin/finance",
     },
   ];
 
