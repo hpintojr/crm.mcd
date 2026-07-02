@@ -13,6 +13,12 @@ const reviewSchema = z.object({
   note: z.string().trim().min(3).max(2_000).optional(),
 });
 
+const profileSchema = z.object({
+  agentId: z.string().trim().min(8).max(128),
+  status: z.enum(["ACTIVE", "RETIRED", "TERMINATED", "ON_HOLD"]),
+  note: z.string().trim().min(3).max(2_000).optional(),
+});
+
 type AccountRow = {
   id: string;
   accountOwnerAgentId: string | null;
@@ -33,9 +39,13 @@ function profileState(row?: ProfileRow): CommissionProfileState {
   return "ACTIVE";
 }
 
-export async function recordCommissionEligibilityReview(input: z.input<typeof reviewSchema>) {
+async function commissionAdmin() {
   requireFeature("commissions");
-  const actor = await requireRole(ADMIN_ROLES);
+  return requireRole(ADMIN_ROLES);
+}
+
+export async function recordCommissionEligibilityReview(input: z.input<typeof reviewSchema>) {
+  const actor = await commissionAdmin();
   const parsed = reviewSchema.parse(input);
   const [accounts, profiles] = await Promise.all([
     db.$queryRaw<AccountRow[]>`
@@ -78,4 +88,32 @@ export async function recordCommissionEligibilityReview(input: z.input<typeof re
   });
 
   return { decisionId, ...result };
+}
+
+export async function setCommissionProfileStatus(input: z.input<typeof profileSchema>) {
+  const actor = await commissionAdmin();
+  const parsed = profileSchema.parse(input);
+  const agent = await db.agent.findUnique({ where: { id: parsed.agentId }, select: { id: true } });
+  if (!agent) throw new Error("Agent not found.");
+  const now = new Date();
+
+  await db.$transaction(async (tx) => {
+    await tx.$executeRaw`
+      INSERT INTO "AgentCommissionProfile" ("id", "agentId", "status", "effectiveAt", "retiredAt", "terminatedAt", "holdReason", "reviewNote", "lastReviewedAt", "createdAt", "updatedAt")
+      VALUES (${randomUUID()}, ${parsed.agentId}, ${parsed.status}::"CommissionProfileStatus", ${now}, ${parsed.status === "RETIRED" ? now : null}, ${parsed.status === "TERMINATED" ? now : null}, ${parsed.status === "ON_HOLD" ? parsed.note ?? "Profile review hold." : null}, ${parsed.note ?? null}, ${now}, ${now}, ${now})
+      ON CONFLICT ("agentId") DO UPDATE SET
+        "status" = EXCLUDED."status",
+        "effectiveAt" = EXCLUDED."effectiveAt",
+        "retiredAt" = CASE WHEN EXCLUDED."status" = 'RETIRED'::"CommissionProfileStatus" THEN EXCLUDED."effectiveAt" ELSE "AgentCommissionProfile"."retiredAt" END,
+        "terminatedAt" = CASE WHEN EXCLUDED."status" = 'TERMINATED'::"CommissionProfileStatus" THEN EXCLUDED."effectiveAt" ELSE "AgentCommissionProfile"."terminatedAt" END,
+        "holdReason" = EXCLUDED."holdReason",
+        "reviewNote" = EXCLUDED."reviewNote",
+        "lastReviewedAt" = EXCLUDED."lastReviewedAt",
+        "updatedAt" = EXCLUDED."updatedAt"
+    `;
+    await tx.$executeRaw`
+      INSERT INTO "AuditLog" ("id", "actorUserId", "actorRole", "actionType", "entityType", "entityId", "reason", "createdAt")
+      VALUES (${randomUUID()}, ${actor.id}, ${actor.role}, 'COMMISSION_PROFILE_UPDATED', 'Agent', ${parsed.agentId}, ${parsed.note ?? null}, ${now})
+    `;
+  });
 }
