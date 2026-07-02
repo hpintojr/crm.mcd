@@ -80,7 +80,7 @@ export const websiteOpportunityStatusLabels: Record<WebsiteOpportunityStatusValu
   NOT_ELIGIBLE: "Not eligible",
 };
 
-export const leadSourceInputSchema = z.object({
+const leadSourceFieldsSchema = z.object({
   originalSource: leadSourcesSchema,
   sourceDetail: z.string().trim().max(250).optional(),
   sourceRecordUrl: z.string().trim().url().max(2000).optional(),
@@ -95,14 +95,20 @@ export const leadSourceInputSchema = z.object({
   utmCampaign: z.string().trim().max(200).optional(),
   utmContent: z.string().trim().max(200).optional(),
   utmTerm: z.string().trim().max(200).optional(),
-}).superRefine((value, ctx) => {
+});
+
+type LeadSourceFields = z.infer<typeof leadSourceFieldsSchema>;
+
+function validateLeadSource(value: LeadSourceFields, ctx: z.RefinementCtx) {
   if (value.originalSource === "OTHER" && !value.sourceDetail) {
     ctx.addIssue({ code: z.ZodIssueCode.custom, path: ["sourceDetail"], message: "A source detail is required when original source is Other." });
   }
   if (value.originalSource === "REFERRAL" && !value.referrerName) {
     ctx.addIssue({ code: z.ZodIssueCode.custom, path: ["referrerName"], message: "A referrer name is required for referral leads." });
   }
-});
+}
+
+export const leadSourceInputSchema = leadSourceFieldsSchema.superRefine(validateLeadSource);
 
 export const leadWebsiteInputSchema = z.object({
   websiteStatus: websiteStatusSchema,
@@ -121,7 +127,7 @@ export const websiteOpportunityInputSchema = z.object({
   quoteExpiresAt: z.coerce.date().optional(),
   scopeNote: z.string().trim().max(4000).optional(),
 }).superRefine((value, ctx) => {
-  if (value.status === "WEBSITE_ONLY_QUOTE" && (!value.offerTrack || value.offerTrack !== "WEBSITE_ONLY")) {
+  if (value.status === "WEBSITE_ONLY_QUOTE" && value.offerTrack !== "WEBSITE_ONLY") {
     ctx.addIssue({ code: z.ZodIssueCode.custom, path: ["offerTrack"], message: "Website-only quotes must use the website-only offer track." });
   }
   if (value.status === "WEBSITE_ONLY_QUOTE" && !value.quotedAmountCents) {
@@ -129,19 +135,26 @@ export const websiteOpportunityInputSchema = z.object({
   }
 });
 
-export const leadImportRowSchema = z.object({
+const leadImportBaseSchema = z.object({
   company: z.string().trim().min(1).max(250),
   contactFirstName: z.string().trim().max(100).optional(),
   contactLastName: z.string().trim().max(100).optional(),
   email: z.string().trim().email().max(320).optional(),
-  businessPhone: z.string().trim().min(7).max(40),
+  businessPhone: z.string().trim().min(7).max(40).optional(),
   website: z.string().trim().url().max(2000).optional(),
   industry: z.string().trim().max(150).optional(),
   city: z.string().trim().max(150).optional(),
   state: z.string().trim().max(100).optional(),
   country: z.string().trim().max(100).optional(),
   timezone: z.string().trim().max(100).optional(),
-}).merge(leadSourceInputSchema);
+});
+
+export const leadImportRowSchema = leadImportBaseSchema.merge(leadSourceFieldsSchema).superRefine((value, ctx) => {
+  validateLeadSource(value, ctx);
+  if (!value.email && !value.businessPhone) {
+    ctx.addIssue({ code: z.ZodIssueCode.custom, path: ["businessPhone"], message: "At least one contact route, email or business phone, is required." });
+  }
+});
 
 export type LeadImportRow = z.infer<typeof leadImportRowSchema>;
 
