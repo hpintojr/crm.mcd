@@ -28,8 +28,8 @@ export async function releaseLeadToOpenPool(input: { leadId: string; reason: str
   const now = new Date();
   await db.$transaction([
     db.lead.update({ where: { id: lead.id }, data: { ownerAgentId: null, lifecycle: "AVAILABLE", pool: "OPEN", openPoolReleaseAt: now, nextActionAt: null, lastActionAt: now } }),
-    db.leadClaimEvent.create({ data: { leadId: lead.id, agentId: lead.ownerAgentId, action: "RETURNED_TO_POOL", reason: parsed.data.reason } }),
-    db.leadActivity.create({ data: { leadId: lead.id, agentId: lead.ownerAgentId, type: "LEAD_RELEASED", metadata: { pool: "OPEN", reason: parsed.data.reason } } }),
-    db.auditLog.create({ data: { actorUserId: actor.id, actorRole: actor.role, actionType: "LEAD_RETURNED_TO_OPEN_POOL", entityType: "Lead", entityId: lead.id, reason: parsed.data.reason } }),
+    db.leadClaimEvent.create({ data: { leadId: lead.id, agentId: lead.ownerAgentId, action: "RETURNED_TO_POOL", reason: parsed.reason } }),
+    db.leadActivity.create({ data: { leadId: lead.id, agentId: lead.ownerAgentId, type: "LEAD_RELEASED", metadata: { pool: "OPEN", reason: parsed.reason } } }),
+    db.auditLog.create({ data: { actorUserId: actor.id, actorRole: actor.role, actionType: "LEAD_RETURNED_TO_OPEN_POOL", entityType: "Lead", entityId: lead.id, reason: parsed.reason } }),
   ]);
 }
