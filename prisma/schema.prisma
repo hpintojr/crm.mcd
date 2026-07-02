@@ -194,11 +194,13 @@ model Agent {
   ghlUserId        String?
   onboardingDocs   OnboardingDocument[]
   certifications   Certification[]
+  appointments     Appointment[]
   createdAt        DateTime    @default(now())
   updatedAt        DateTime    @updatedAt
 
   @@index([status])
   @@index([ghlContactId])
+  @@index([ghlUserId])
 }
 
 model OnboardingDocument {
@@ -231,6 +233,29 @@ model Certification {
   decision        CertDecision @default(NOT_YET_APPROVED)
   signedAt        DateTime?
   createdAt       DateTime     @default(now())
+}
+
+model Appointment {
+  id               String   @id @default(cuid())
+  ghlAppointmentId String   @unique
+  ghlContactId     String?
+  agentId          String?
+  agent            Agent?   @relation(fields: [agentId], references: [id], onDelete: SetNull)
+  calendarId       String?
+  calendarName     String?
+  title            String
+  startAt          DateTime
+  endAt            DateTime?
+  timezone         String?
+  status           String   @default("SCHEDULED")
+  meetingUrl       String?
+  notes            String?
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
+  @@index([agentId, startAt])
+  @@index([status, startAt])
+  @@index([ghlContactId])
 }
 
 model Lead {
