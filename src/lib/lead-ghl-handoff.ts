@@ -1,10 +1,9 @@
 import "server-only";
 
-import { randomUUID } from "node:crypto";
 import { z } from "zod";
 import { ADMIN_ROLES, requireRole } from "@/lib/authz";
 import { db } from "@/lib/db";
-import { ghlConfigured } from "@/lib/env";
+import { env, ghlConfigured, ghlMiniCrmLeadIdFieldConfigured } from "@/lib/env";
 import { requireFeature } from "@/lib/features";
 import { upsertSalesHqContact } from "@/lib/ghl";
 
@@ -45,6 +44,9 @@ export async function handoffDemoBookedLeadToGhl(input: z.input<typeof handoffSc
     personalEmail: lead.email,
     mobile: lead.businessPhone,
     tags: ["mcd-demo-booked"],
+    customFields: ghlMiniCrmLeadIdFieldConfigured
+      ? { [env.ghl.miniCrmLeadIdFieldId]: lead.id }
+      : undefined,
   });
 
   if (!result.ok) {
@@ -56,11 +58,12 @@ export async function handoffDemoBookedLeadToGhl(input: z.input<typeof handoffSc
   }
 
   const now = new Date();
+  const miniCrmLeadIdWritten = ghlMiniCrmLeadIdFieldConfigured && !result.stub;
   await db.$transaction([
     db.lead.update({ where: { id: lead.id }, data: { ghlContactId: result.data.contactId, lastActionAt: now } }),
-    db.leadActivity.create({ data: { leadId: lead.id, type: "DEMO_BOOKED", metadata: { ghlHandoff: true, ghlContactId: result.data.contactId, stub: Boolean(result.stub), replacedStub: replacingStub } } }),
-    db.auditLog.create({ data: { actorUserId: actor.id, actorRole: actor.role, actionType: "LEAD_GHL_HANDOFF_COMPLETED", entityType: "Lead", entityId: lead.id, metadata: { ghlContactId: result.data.contactId, stub: Boolean(result.stub), replacedStub: replacingStub } } }),
+    db.leadActivity.create({ data: { leadId: lead.id, type: "DEMO_BOOKED", metadata: { ghlHandoff: true, ghlContactId: result.data.contactId, stub: Boolean(result.stub), replacedStub: replacingStub, miniCrmLeadIdWritten } } }),
+    db.auditLog.create({ data: { actorUserId: actor.id, actorRole: actor.role, actionType: "LEAD_GHL_HANDOFF_COMPLETED", entityType: "Lead", entityId: lead.id, metadata: { ghlContactId: result.data.contactId, stub: Boolean(result.stub), replacedStub: replacingStub, miniCrmLeadIdWritten } } }),
   ]);
 
-  return { ghlContactId: result.data.contactId, alreadyLinked: false, stub: Boolean(result.stub), replacedStub: replacingStub };
+  return { ghlContactId: result.data.contactId, alreadyLinked: false, stub: Boolean(result.stub), replacedStub: replacingStub, miniCrmLeadIdWritten };
 }
