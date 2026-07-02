@@ -99,17 +99,18 @@ On a fresh test Lead owned by an agent:
 
 ## 8. Open Pool return rules
 
-Prepare a Lead that has all of the following: current agent owner, documented two-way contact, no DNC/suppression status, and non-referral status.
+Prepare a Lead that has all of the following: current agent owner, documented two-way contact, no DNC/suppression status, non-referral status, and a lifecycle of `CLAIMED`, `CONTACTED`, or `NURTURING`.
 
 - [ ] Use `/admin/leads/release` to return it with a reason.
 - [ ] Confirm owner is cleared, pool becomes `OPEN`, lifecycle becomes `AVAILABLE`, and the release time is set.
 - [ ] Confirm a claim event, activity, and audit entry exist.
 - [ ] Attempt to return an untouched/new Lead; confirm it is blocked.
 - [ ] Attempt to return a referral Lead; confirm it is blocked.
+- [ ] Attempt to return a `DEMO_BOOKED` Lead; confirm it is blocked and absent from the eligible return list.
 - [ ] Attempt to return a DNC/suppressed Lead; confirm it is blocked.
 - [ ] Attempt to return a Lead without two-way contact; confirm it is blocked.
 
-**Pass condition:** Open Pool contains only documented returns that meet the protection rules.
+**Pass condition:** Open Pool contains only documented returns that meet the protection rules; referrals and demo-booked records never enter it.
 
 ## 9. GHL appointment attribution
 
