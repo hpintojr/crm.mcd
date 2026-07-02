@@ -1,6 +1,6 @@
 # Client Servicing Health Rollout Status
 
-**Status:** Application workspace built behind a feature gate; schema validated on isolated Neon branch  
+**Status:** Application workspace built and service-only schema applied to production; feature remains gated  
 **Last updated:** July 2, 2026  
 **Activation state:** `SERVICING_ENABLED=false`
 
@@ -52,32 +52,32 @@ Server-side ownership checks prevent an agent from operating another agent’s c
 - The originating agent reference is retained; this phase does not alter commission eligibility because commission logic is still disabled.
 - No automated time-based reassignment exists in this phase.
 
-## Schema safety validation
+## Schema validation and production rollout
 
-The service-only schema was created and tested on an isolated Neon branch.
+The service-only schema was created and tested on an isolated Neon branch, then applied to Neon production.
 
 - Migration ID: `c89654c3-b534-4308-b617-13b32f6c4b4a`
-- Temporary branch: `mcp-migration-2026-07-02T18-21-31`
-- Temporary branch ID: `br-hidden-recipe-ajkyias2`
-- Validation passed: 4 service tables, 12 relationships, 11 indexes.
-- A disposable account, service case, activity, and assignment lifecycle test passed and was deleted from the temporary branch.
+- Parent production branch ID: `br-flat-cloud-aj9r0d6b`
+- Safety validation passed: 4 service tables, 12 relationships, 11 indexes.
+- A disposable account, service case, activity, and assignment lifecycle test passed and was deleted from the safety branch.
+- Production validation confirmed the same 4 tables, 12 relationships, and 11 indexes.
+- The temporary branch `br-hidden-recipe-ajkyias2` was deleted after the successful production apply.
 
 The service-only migration intentionally excludes the existing staged commission, payout, and finance tables.
 
 ## Production state
 
-- `SERVICING_ENABLED` remains `false`.
-- The Client Servicing Health schema has **not** been applied to Neon production yet.
-- The production schema commit requires explicit approval using the prepared migration ID above.
+- Client Servicing Health schema is live in Neon production.
+- `SERVICING_ENABLED` remains `false` pending acceptance testing.
 - `LEADS_ENABLED`, `COMMISSIONS_ENABLED`, and `FINANCE_ENABLED` remain independently controlled.
+- No Commission or Finance feature was enabled or changed by this rollout.
 
 ## Required next gates
 
-1. Approve the prepared Client Servicing Health migration for Neon production.
-2. Confirm the latest application build is `READY`.
-3. Run the [Client Servicing Health Acceptance Test](./CLIENT_SERVICING_HEALTH_ACCEPTANCE_TEST.md).
-4. Set `SERVICING_ENABLED=true` only for the controlled acceptance-test window.
-5. Keep Commissions and Finance disabled during servicing acceptance.
+1. Confirm the latest application build is `READY`.
+2. Run the [Client Servicing Health Acceptance Test](./CLIENT_SERVICING_HEALTH_ACCEPTANCE_TEST.md).
+3. Set `SERVICING_ENABLED=true` only for the controlled acceptance-test window.
+4. Keep Commissions and Finance disabled during servicing acceptance.
 
 ## Following phase
 
