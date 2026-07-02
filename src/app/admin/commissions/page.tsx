@@ -1,8 +1,8 @@
 import { revalidatePath } from "next/cache";
 import { ADMIN_ROLES, requireRole } from "@/lib/authz";
 import { features } from "@/lib/features";
-import { listCommissionLedgerSummary, listCommissionReviewCandidates } from "@/lib/commission-read-model";
-import { recordCommissionEligibilityReview } from "@/lib/commission-review-actions";
+import { listCommissionLedgerSummary, listCommissionProfiles, listCommissionReviewCandidates } from "@/lib/commission-read-model";
+import { recordCommissionEligibilityReview, setCommissionProfileStatus } from "@/lib/commission-review-actions";
 
 export const dynamic = "force-dynamic";
 
@@ -44,7 +44,7 @@ export default async function CommissionReviewPage() {
     );
   }
 
-  const [candidates, ledger] = await Promise.all([listCommissionReviewCandidates(), listCommissionLedgerSummary()]);
+  const [candidates, ledger, profiles] = await Promise.all([listCommissionReviewCandidates(), listCommissionLedgerSummary(), listCommissionProfiles()]);
   const pendingReviewCount = candidates.filter((candidate) => !candidate.latestDecisionStatus || candidate.latestDecisionStatus === "PENDING").length;
   const heldLedgerCount = ledger.filter((entry) => entry.status === "ON_HOLD" || entry.activeHoldCount > 0).length;
 
@@ -58,6 +58,20 @@ export default async function CommissionReviewPage() {
     revalidatePath("/admin/commissions");
   }
 
+  async function updateProfile(formData: FormData) {
+    "use server";
+    const status = String(formData.get("status") ?? "ACTIVE");
+    if (!["ACTIVE", "RETIRED", "TERMINATED", "ON_HOLD"].includes(status)) throw new Error("Invalid commission profile status.");
+    const note = String(formData.get("note") ?? "").trim();
+    if (status !== "ACTIVE" && note.length < 3) throw new Error("Provide a note for retired, terminated, or hold status.");
+    await setCommissionProfileStatus({
+      agentId: String(formData.get("agentId") ?? ""),
+      status: status as "ACTIVE" | "RETIRED" | "TERMINATED" | "ON_HOLD",
+      note: note || undefined,
+    });
+    revalidatePath("/admin/commissions");
+  }
+
   return (
     <main className="mx-auto min-h-screen max-w-7xl px-6 py-12">
       <p className="text-sm font-medium uppercase tracking-widest text-brand-400">Mercury Call Desk</p>
@@ -67,6 +81,10 @@ export default async function CommissionReviewPage() {
         <div className="rounded-xl border border-ink-700 bg-ink-900 p-5"><p className="text-sm text-gray-400">Client accounts</p><p className="mt-2 text-3xl font-semibold text-white">{candidates.length}</p></div>
         <div className="rounded-xl border border-ink-700 bg-ink-900 p-5"><p className="text-sm text-gray-400">Pending review</p><p className="mt-2 text-3xl font-semibold text-amber-200">{pendingReviewCount}</p></div>
         <div className="rounded-xl border border-ink-700 bg-ink-900 p-5"><p className="text-sm text-gray-400">Held ledger items</p><p className="mt-2 text-3xl font-semibold text-red-200">{heldLedgerCount}</p></div>
+      </section>
+      <section className="mt-6 overflow-hidden rounded-2xl border border-ink-700 bg-ink-900">
+        <div className="border-b border-ink-700 px-6 py-4"><h2 className="font-semibold text-white">Agent commission profiles</h2><p className="mt-1 text-sm text-gray-400">Profile state defines whether an active agent, retired agent, or terminated agent can be considered during eligibility review.</p></div>
+        {profiles.length === 0 ? <p className="px-6 py-10 text-sm text-gray-400">No active, suspended, or offboarded agents are available.</p> : <div className="divide-y divide-ink-700">{profiles.map((profile) => <article className="grid gap-3 px-6 py-5 lg:grid-cols-[1fr_0.7fr_1.5fr] lg:items-center" key={profile.agentId}><div><p className="font-medium text-white">{profile.agentName}</p><p className="mt-1 text-sm text-gray-400">{profile.agentEmail} · Agent {label(profile.agentStatus)}</p><p className="mt-1 text-xs text-gray-500">Last reviewed {pacific(profile.lastReviewedAt)}</p></div><div><p className="text-sm text-gray-300">Profile: {label(profile.commissionProfileStatus)}</p><p className="mt-1 text-xs text-gray-500">{profile.reviewNote || "No profile note"}</p></div><form action={updateProfile} className="grid gap-2 sm:grid-cols-[auto_1fr_auto]"><input name="agentId" type="hidden" value={profile.agentId} /><select className="rounded-lg border border-ink-700 bg-ink-950 px-2 py-2 text-sm text-gray-100" name="status" defaultValue={profile.commissionProfileStatus || "ACTIVE"}><option value="ACTIVE">Active</option><option value="RETIRED">Retired</option><option value="ON_HOLD">On hold</option><option value="TERMINATED">Terminated</option></select><input className="min-w-0 rounded-lg border border-ink-700 bg-ink-950 px-3 py-2 text-sm text-gray-100" name="note" placeholder="Required for retired, hold, or terminated" /><button className="rounded-lg border border-brand-500 px-3 py-2 text-sm text-brand-200" type="submit">Save profile</button></form></article>)}</div>}
       </section>
       <section className="mt-6 overflow-hidden rounded-2xl border border-ink-700 bg-ink-900">
         <div className="border-b border-ink-700 px-6 py-4"><h2 className="font-semibold text-white">Eligibility review queue</h2><p className="mt-1 text-sm text-gray-400">The active service owner, retirement status, payment standing, and latest decision are shown together.</p></div>
