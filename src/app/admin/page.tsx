@@ -3,18 +3,34 @@ import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import { SignOutButton } from "@/components/sign-out-button";
 import { requireRole } from "@/lib/authz";
+import { createActivation } from "@/lib/activation";
 import { db } from "@/lib/db";
+import { activationEmail } from "@/lib/emails/activation-email";
+import { smtpConfigured } from "@/lib/env";
 import { addContactTag } from "@/lib/ghl";
+import { sendMail } from "@/lib/mail";
 
 const REVIEW_ROLES = ["OWNER", "SUPER_ADMIN", "SALES_MANAGER"] as const;
+const REQUIRED_DOCUMENT_TYPES = ["SALES_AGREEMENT", "NDA_IP", "W9_PAYOUT", "ACKNOWLEDGMENT"] as const;
+
 const actionSchema = z.object({
   agentId: z.string().cuid(),
-  action: z.enum(["confirm_call", "approve", "needs_correction", "reject"]),
+  action: z.enum(["confirm_call", "approve", "needs_correction", "reject", "resend_activation"]),
   note: z.string().trim().max(2_000).optional(),
 });
 
 function statusLabel(status: string) {
   return status.replaceAll("_", " ").toLowerCase().replace(/^./, (value) => value.toUpperCase());
+}
+
+function onboardingIsComplete(
+  documents: ReadonlyArray<{ docType: string; status: string; countersigned: boolean }>,
+) {
+  const byType = new Map(documents.map((document) => [document.docType, document]));
+  return (
+    REQUIRED_DOCUMENT_TYPES.every((docType) => byType.get(docType)?.status === "COMPLETED") &&
+    byType.get("SALES_AGREEMENT")?.countersigned === true
+  );
 }
 
 export default async function AdminPage() {
@@ -34,6 +50,8 @@ export default async function AdminPage() {
       approvedAt: true,
       reviewNote: true,
       ghlContactId: true,
+      user: { select: { id: true, status: true } },
+      onboardingDocs: { select: { docType: true, status: true, countersigned: true } },
     },
   });
 
@@ -57,7 +75,13 @@ export default async function AdminPage() {
     const actor = await requireRole([...REVIEW_ROLES]);
     const headerStore = await headers();
     const ipAddress = headerStore.get("x-forwarded-for")?.split(",")[0]?.trim() ?? null;
-    const agent = await db.agent.findUnique({ where: { id: parsed.data.agentId } });
+    const agent = await db.agent.findUnique({
+      where: { id: parsed.data.agentId },
+      include: {
+        user: { select: { id: true, email: true, status: true } },
+        onboardingDocs: { select: { docType: true, status: true, countersigned: true } },
+      },
+    });
     if (!agent) throw new Error("Applicant not found.");
 
     if (parsed.data.action === "confirm_call") {
@@ -117,6 +141,66 @@ export default async function AdminPage() {
       });
     }
 
+    if (parsed.data.action === "resend_activation") {
+      if (agent.status !== "APPROVED") throw new Error("Only approved applicants can receive an activation email.");
+      if (!agent.user) throw new Error("The account has not been provisioned yet. Complete all onboarding documents first.");
+      if (!onboardingIsComplete(agent.onboardingDocs)) {
+        throw new Error("All onboarding documents, including the countersigned Sales Agreement, must be complete first.");
+      }
+      if (!smtpConfigured) {
+        await db.integrationError.create({
+          data: {
+            source: "activation.email",
+            refId: agent.user.id,
+            message: "Activation email resend was requested, but SMTP is not configured.",
+            payload: { agentId: agent.id, requestedBy: actor.id },
+          },
+        });
+        throw new Error("Email delivery is not configured. Check SMTP settings before resending.");
+      }
+
+      const activation = await createActivation(agent.user.id);
+      const { subject, text, html } = activationEmail({
+        activationUrl: activation.url,
+        expiresAt: activation.expiresAt,
+      });
+      const delivery = await sendMail({ to: agent.user.email, subject, text, html });
+
+      await db.$transaction([
+        db.auditLog.create({
+          data: {
+            actorUserId: actor.id,
+            actorRole: actor.role,
+            actionType: "ACTIVATION_LINK_RESENT",
+            entityType: "User",
+            entityId: agent.user.id,
+            ipAddress,
+            metadata: {
+              agentId: agent.id,
+              delivery: delivery.ok ? (delivery.stub ? "smtp-not-configured" : "smtp-sent") : "smtp-failed",
+              expiresAt: activation.expiresAt.toISOString(),
+            },
+          },
+        }),
+        ...(delivery.ok
+          ? []
+          : [
+              db.integrationError.create({
+                data: {
+                  source: "activation.email",
+                  refId: agent.user.id,
+                  message: delivery.error,
+                  payload: { agentId: agent.id, requestedBy: actor.id },
+                },
+              }),
+            ]),
+      ]);
+
+      if (!delivery.ok) {
+        throw new Error("The activation email could not be sent. See Integration attention for details.");
+      }
+    }
+
     if (parsed.data.action === "needs_correction" || parsed.data.action === "reject") {
       const note = parsed.data.note?.trim();
       if (!note || note.length < 3) throw new Error("Provide a brief note for the applicant.");
@@ -160,49 +244,71 @@ export default async function AdminPage() {
           <p className="px-6 py-10 text-sm text-gray-400">No applicants need review right now.</p>
         ) : (
           <div className="divide-y divide-ink-700">
-            {applicants.map((applicant) => (
-              <article className="px-6 py-5" key={applicant.id}>
-                <div className="flex flex-col justify-between gap-4 lg:flex-row">
-                  <div>
-                    <div className="flex flex-wrap items-center gap-2">
-                      <h3 className="font-medium text-white">{applicant.preferredName || applicant.legalName}</h3>
-                      <span className="rounded-full border border-ink-700 px-2 py-0.5 text-xs text-gray-300">{statusLabel(applicant.status)}</span>
-                      <span className="text-xs text-gray-500">{applicant.ghlContactId ? "GHL linked" : "GHL not linked"}</span>
-                    </div>
-                    <p className="mt-1 text-sm text-gray-400">{applicant.personalEmail} · {applicant.mobile}</p>
-                    <p className="mt-1 text-xs text-gray-500">Submitted {applicant.createdAt.toLocaleDateString()}</p>
-                    {applicant.reviewNote && <p className="mt-3 rounded-lg bg-ink-950 px-3 py-2 text-sm text-gray-300">Review note: {applicant.reviewNote}</p>}
-                  </div>
+            {applicants.map((applicant) => {
+              const activationReady = applicant.status === "APPROVED" && Boolean(applicant.user) && onboardingIsComplete(applicant.onboardingDocs);
+              const activationLabel = !applicant.user
+                ? "Activation pending documents"
+                : activationReady
+                  ? "Resend activation email"
+                  : "Activation pending documents";
 
-                  <div className="min-w-[18rem] space-y-2">
-                    <form action={reviewApplicant}>
-                      <input name="agentId" type="hidden" value={applicant.id} />
-                      <input name="action" type="hidden" value="confirm_call" />
-                      <button className="w-full rounded-lg border border-ink-700 px-3 py-2 text-sm text-gray-200 transition hover:border-brand-500" type="submit">
-                        {applicant.confirmedCallAt ? "Call confirmed" : "Confirm by call"}
-                      </button>
-                    </form>
-                    <form action={reviewApplicant}>
-                      <input name="agentId" type="hidden" value={applicant.id} />
-                      <input name="action" type="hidden" value="approve" />
-                      <button className="w-full rounded-lg bg-brand-500 px-3 py-2 text-sm font-medium text-ink-950 transition hover:bg-brand-400 disabled:cursor-not-allowed disabled:opacity-50" type="submit" disabled={!applicant.confirmedCallAt}>
-                        Approve and trigger e-sign
-                      </button>
-                    </form>
-                    <form action={reviewApplicant} className="grid grid-cols-[1fr_auto] gap-2">
-                      <input name="agentId" type="hidden" value={applicant.id} />
-                      <input className="min-w-0 rounded-lg border border-ink-700 bg-ink-950 px-3 py-2 text-sm text-gray-100 outline-none focus:border-brand-500" name="note" placeholder="Correction note" required />
-                      <button className="rounded-lg border border-amber-700 px-3 py-2 text-sm text-amber-300" name="action" value="needs_correction" type="submit">Request correction</button>
-                    </form>
-                    <form action={reviewApplicant} className="grid grid-cols-[1fr_auto] gap-2">
-                      <input name="agentId" type="hidden" value={applicant.id} />
-                      <input className="min-w-0 rounded-lg border border-ink-700 bg-ink-950 px-3 py-2 text-sm text-gray-100 outline-none focus:border-brand-500" name="note" placeholder="Rejection reason" required />
-                      <button className="rounded-lg border border-red-800 px-3 py-2 text-sm text-red-300" name="action" value="reject" type="submit">Reject</button>
-                    </form>
+              return (
+                <article className="px-6 py-5" key={applicant.id}>
+                  <div className="flex flex-col justify-between gap-4 lg:flex-row">
+                    <div>
+                      <div className="flex flex-wrap items-center gap-2">
+                        <h3 className="font-medium text-white">{applicant.preferredName || applicant.legalName}</h3>
+                        <span className="rounded-full border border-ink-700 px-2 py-0.5 text-xs text-gray-300">{statusLabel(applicant.status)}</span>
+                        <span className="text-xs text-gray-500">{applicant.ghlContactId ? "GHL linked" : "GHL not linked"}</span>
+                      </div>
+                      <p className="mt-1 text-sm text-gray-400">{applicant.personalEmail} · {applicant.mobile}</p>
+                      <p className="mt-1 text-xs text-gray-500">Submitted {applicant.createdAt.toLocaleDateString()}</p>
+                      {applicant.reviewNote && <p className="mt-3 rounded-lg bg-ink-950 px-3 py-2 text-sm text-gray-300">Review note: {applicant.reviewNote}</p>}
+                    </div>
+
+                    <div className="min-w-[18rem] space-y-2">
+                      <form action={reviewApplicant}>
+                        <input name="agentId" type="hidden" value={applicant.id} />
+                        <input name="action" type="hidden" value="confirm_call" />
+                        <button className="w-full rounded-lg border border-ink-700 px-3 py-2 text-sm text-gray-200 transition hover:border-brand-500" type="submit">
+                          {applicant.confirmedCallAt ? "Call confirmed" : "Confirm by call"}
+                        </button>
+                      </form>
+                      <form action={reviewApplicant}>
+                        <input name="agentId" type="hidden" value={applicant.id} />
+                        <input name="action" type="hidden" value="approve" />
+                        <button className="w-full rounded-lg bg-brand-500 px-3 py-2 text-sm font-medium text-ink-950 transition hover:bg-brand-400 disabled:cursor-not-allowed disabled:opacity-50" type="submit" disabled={!applicant.confirmedCallAt}>
+                          Approve and trigger e-sign
+                        </button>
+                      </form>
+                      {applicant.status === "APPROVED" && (
+                        <form action={reviewApplicant}>
+                          <input name="agentId" type="hidden" value={applicant.id} />
+                          <input name="action" type="hidden" value="resend_activation" />
+                          <button
+                            className="w-full rounded-lg border border-brand-500 px-3 py-2 text-sm font-medium text-brand-300 transition hover:bg-brand-500/10 disabled:cursor-not-allowed disabled:opacity-50"
+                            type="submit"
+                            disabled={!activationReady}
+                          >
+                            {activationLabel}
+                          </button>
+                        </form>
+                      )}
+                      <form action={reviewApplicant} className="grid grid-cols-[1fr_auto] gap-2">
+                        <input name="agentId" type="hidden" value={applicant.id} />
+                        <input className="min-w-0 rounded-lg border border-ink-700 bg-ink-950 px-3 py-2 text-sm text-gray-100 outline-none focus:border-brand-500" name="note" placeholder="Correction note" required />
+                        <button className="rounded-lg border border-amber-700 px-3 py-2 text-sm text-amber-300" name="action" value="needs_correction" type="submit">Request correction</button>
+                      </form>
+                      <form action={reviewApplicant} className="grid grid-cols-[1fr_auto] gap-2">
+                        <input name="agentId" type="hidden" value={applicant.id} />
+                        <input className="min-w-0 rounded-lg border border-ink-700 bg-ink-950 px-3 py-2 text-sm text-gray-100 outline-none focus:border-brand-500" name="note" placeholder="Rejection reason" required />
+                        <button className="rounded-lg border border-red-800 px-3 py-2 text-sm text-red-300" name="action" value="reject" type="submit">Reject</button>
+                      </form>
+                    </div>
                   </div>
-                </div>
-              </article>
-            ))}
+                </article>
+              );
+            })}
           </div>
         )}
       </section>
