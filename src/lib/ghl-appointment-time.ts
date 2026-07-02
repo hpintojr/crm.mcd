@@ -6,6 +6,19 @@ const monthNames: Record<string, number> = {
   jan: 1, feb: 2, mar: 3, apr: 4, jun: 6, jul: 7, aug: 8, sep: 9, sept: 9, oct: 10, nov: 11, dec: 12,
 };
 
+const timeZoneAliases: Record<string, string> = {
+  pst: "America/Los_Angeles",
+  pdt: "America/Los_Angeles",
+  "pacific time": "America/Los_Angeles",
+  "pacific time (us & canada)": "America/Los_Angeles",
+  "america/los angeles": "America/Los_Angeles",
+};
+
+function normalizeTimeZone(value: string) {
+  const candidate = value.trim();
+  return timeZoneAliases[candidate.toLowerCase()] ?? candidate;
+}
+
 function isTimeZone(value: string) {
   try { new Intl.DateTimeFormat("en-US", { timeZone: value }).format(); return true; } catch { return false; }
 }
@@ -24,10 +37,11 @@ function hourFromMeridiem(hour: number, meridiem?: string) {
 }
 
 function wallTimeToDate(parts: { year: number; month: number; day: number; hour: number; minute: number; second?: number; millisecond?: number }, timeZone: string) {
-  if (!isTimeZone(timeZone)) throw new Error("Invalid appointment timezone.");
+  const normalizedTimeZone = normalizeTimeZone(timeZone);
+  if (!isTimeZone(normalizedTimeZone)) throw new Error("Invalid appointment timezone.");
   const wallTime = Date.UTC(parts.year, parts.month - 1, parts.day, parts.hour, parts.minute, parts.second ?? 0, parts.millisecond ?? 0);
   let instant = wallTime;
-  for (let index = 0; index < 2; index += 1) instant = wallTime - offsetAt(instant, timeZone);
+  for (let index = 0; index < 2; index += 1) instant = wallTime - offsetAt(instant, normalizedTimeZone);
   const date = new Date(instant);
   if (Number.isNaN(date.getTime())) throw new Error("Invalid appointment date.");
   return date;
