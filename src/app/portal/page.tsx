@@ -1,4 +1,6 @@
 import Link from "next/link";
+import { db } from "@/lib/db";
+import { features } from "@/lib/features";
 import { getPortalContext } from "@/lib/portal-context";
 
 const gates = ["SALES_AGREEMENT", "NDA_IP", "W9_PAYOUT", "ACKNOWLEDGMENT"] as const;
@@ -24,6 +26,12 @@ export default async function PortalPage() {
   const completeDocuments = gates.filter((gate) => agent.onboardingDocs.find((document) => document.docType === gate)?.status === "COMPLETED").length;
   const onboardingComplete = completeDocuments === gates.length && agent.onboardingDocs.find((document) => document.docType === "SALES_AGREEMENT")?.countersigned;
   const displayName = agent.preferredName || agent.legalName;
+  const now = new Date();
+  const [overdueCallbacks, upcomingCallbacks, upcomingAppointments] = await Promise.all([
+    features.leads ? db.leadCallback.count({ where: { agentId: agent.id, status: "SCHEDULED", dueAt: { lt: now } } }) : Promise.resolve(0),
+    features.leads ? db.leadCallback.count({ where: { agentId: agent.id, status: "SCHEDULED", dueAt: { gte: now } } }) : Promise.resolve(0),
+    db.appointment.count({ where: { agentId: agent.id, status: { in: ["SCHEDULED", "CONFIRMED"] }, OR: [{ endAt: { gte: now } }, { endAt: null, startAt: { gte: now } }] } }),
+  ]);
 
   return (
     <div className="space-y-7">
@@ -64,13 +72,13 @@ export default async function PortalPage() {
 
         <div className="space-y-6">
           <section className="portal-card">
-            <h2 className="portal-heading text-lg font-semibold">Tasks</h2>
-            <p className="portal-copy mt-3 text-sm">No tasks have been assigned yet. Callbacks, follow-ups, and booked-demo actions will appear here as those workflows are enabled.</p>
+            <div className="flex items-center justify-between gap-3"><h2 className="portal-heading text-lg font-semibold">Tasks</h2>{features.leads && <span className={overdueCallbacks ? "portal-status-pending text-sm font-semibold" : "portal-status-good text-sm font-semibold"}>{overdueCallbacks ? `${overdueCallbacks} overdue` : "On track"}</span>}</div>
+            <p className="portal-copy mt-3 text-sm">{features.leads ? `${upcomingCallbacks} upcoming follow-up${upcomingCallbacks === 1 ? "" : "s"}${overdueCallbacks ? ` and ${overdueCallbacks} overdue item${overdueCallbacks === 1 ? "" : "s"}` : ""}.` : "Callbacks and follow-ups will appear here after the Lead feature is enabled for your role."}</p>
             <Link href="/portal/tasks" className="portal-action-link mt-4 inline-block">Open tasks</Link>
           </section>
           <section className="portal-card">
-            <h2 className="portal-heading text-lg font-semibold">Schedule</h2>
-            <p className="portal-copy mt-3 text-sm">Your GHL calendar and Google Meet bookings will appear here after the appointment relay is activated.</p>
+            <div className="flex items-center justify-between gap-3"><h2 className="portal-heading text-lg font-semibold">Schedule</h2><span className={upcomingAppointments ? "portal-status-good text-sm font-semibold" : "portal-copy text-sm"}>{upcomingAppointments ? `${upcomingAppointments} upcoming` : "No upcoming"}</span></div>
+            <p className="portal-copy mt-3 text-sm">Your GHL calendar relay keeps scheduled and confirmed appointments here. Completed, cancelled, and no-show appointments move to recent history automatically.</p>
             <Link href="/portal/schedule" className="portal-action-link mt-4 inline-block">Open schedule</Link>
           </section>
         </div>
