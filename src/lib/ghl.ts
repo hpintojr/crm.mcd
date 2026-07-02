@@ -7,6 +7,7 @@ import { env, ghlConfigured } from "@/lib/env";
 
 type UpsertContactInput = {
   legalName: string;
+  companyName?: string | null;
   preferredName?: string | null;
   personalEmail: string;
   mobile: string;
@@ -52,7 +53,6 @@ export async function upsertSalesHqContact(
           : undefined,
       }),
     });
-
     if (!res.ok) {
       const text = await res.text();
       return { ok: false, error: `GHL upsert failed (${res.status}): ${text.slice(0, 300)}` };
