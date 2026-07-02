@@ -8,7 +8,7 @@ import { requireFeature } from "@/lib/features";
 
 const interactionSchema = z.object({
   leadId: z.string().cuid(),
-  disposition: z.nativeEnum(LeadDisposition).exclude([LeadDisposition.DO_NOT_CONTACT]),
+  disposition: z.nativeEnum(LeadDisposition),
   note: z.string().trim().max(2_000).optional(),
   callbackAtPacific: z.string().trim().optional(),
 });
@@ -54,6 +54,7 @@ async function activeAgent() {
 
 export async function logLeadInteraction(input: { leadId: string; disposition: string; note?: string; callbackAtPacific?: string }) {
   const parsed = interactionSchema.parse(input);
+  if (parsed.disposition === LeadDisposition.DO_NOT_CONTACT) throw new Error("Use the DNC action to suppress a contact.");
   const { user, agent } = await activeAgent();
   const lead = await db.lead.findFirst({ where: { id: parsed.leadId, ownerAgentId: agent.id, dnc: false, suppressed: false } });
   if (!lead) throw new Error("This record is no longer available in your workspace.");
