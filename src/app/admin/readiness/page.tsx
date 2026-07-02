@@ -15,10 +15,11 @@ async function rawCount(query: Prisma.Sql) {
 
 export default async function ReadinessBoardPage() {
   await requireRole(ADMIN_ROLES);
-  const [pendingLeads, demoBooked, closedWonUnonboarded, openCases, integrationErrors] = await Promise.all([
+  const [pendingLeads, demoBooked, closedWonUnonboarded, launchPending, openCases, integrationErrors] = await Promise.all([
     db.lead.count({ where: { lifecycle: { in: ["RAW", "PENDING_REVIEW"] }, suppressed: false } }),
     db.lead.count({ where: { lifecycle: "DEMO_BOOKED", dnc: false, suppressed: false, ghlContactId: null } }),
     rawCount(Prisma.sql`SELECT COUNT(*)::int AS "count" FROM "Lead" lead LEFT JOIN "ClientAccount" account ON account."leadId"=lead."id" WHERE lead."lifecycle"='CLOSED_WON'::"LeadLifecycle" AND lead."dnc"=false AND lead."suppressed"=false AND account."id" IS NULL`),
+    rawCount(Prisma.sql`SELECT COUNT(*)::int AS "count" FROM "ClientAccount" WHERE "launchChecklistComplete"=false AND "status"='PENDING_LAUNCH'::"ClientAccountStatus"`),
     rawCount(Prisma.sql`SELECT COUNT(*)::int AS "count" FROM "ClientServiceCase" WHERE "status" IN ('OPEN'::"ClientServiceCaseStatus",'IN_PROGRESS'::"ClientServiceCaseStatus",'WAITING_ON_CLIENT'::"ClientServiceCaseStatus")`),
     db.integrationError.count({ where: { resolved: false } }),
   ]);
@@ -27,6 +28,7 @@ export default async function ReadinessBoardPage() {
     { label: "Pending Lead review", value: pendingLeads, href: "/admin/leads", detail: "Review source, duplicates, and suppression before pool assignment." },
     { label: "Demo-booked handoffs", value: demoBooked, href: "/admin/leads/handoff", detail: "Send eligible demo-booked Leads to GHL through the controlled handoff queue." },
     { label: "Won Leads awaiting onboarding", value: closedWonUnonboarded, href: "/admin/servicing/onboarding", detail: "Create the Client Service account, then document client launch." },
+    { label: "Launch confirmations pending", value: launchPending, href: "/admin/servicing/launches", detail: "Activate newly created client accounts through documented launch confirmation." },
     { label: "Open service cases", value: openCases, href: "/admin/servicing/cases", detail: "Triggered client work requiring response, resolution, or escalation follow-up." },
     { label: "Unresolved integrations", value: integrationErrors, href: "/admin/integrations", detail: "Review webhook and backend integration failures before normal rollout." },
   ];
