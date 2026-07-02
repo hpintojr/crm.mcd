@@ -9,7 +9,7 @@ type UpsertContactInput = {
   legalName: string;
   companyName?: string | null;
   preferredName?: string | null;
-  personalEmail: string;
+  personalEmail?: string | null;
   mobile: string;
   mailingAddress?: string | null;
   customFields?: Record<string, string>;
@@ -44,7 +44,7 @@ export async function upsertSalesHqContact(
         firstName,
         lastName: rest.join(" ") || undefined,
         name: input.preferredName || input.legalName,
-        email: input.personalEmail,
+        email: input.personalEmail || undefined,
         phone: input.mobile,
         address1: input.mailingAddress || undefined,
         tags: input.tags,
