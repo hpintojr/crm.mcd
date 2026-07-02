@@ -44,6 +44,16 @@ export type CommissionProfileSummary = {
   reviewNote: string | null;
 };
 
+export type CommissionHoldSummary = {
+  holdId: string;
+  ledgerEntryId: string | null;
+  clientName: string | null;
+  paymentRef: string | null;
+  reason: string;
+  note: string;
+  appliedAt: Date;
+};
+
 export async function listCommissionReviewCandidates() {
   return db.$queryRaw<CommissionReviewCandidate[]>(Prisma.sql`
     SELECT
@@ -113,5 +123,24 @@ export async function listCommissionProfiles() {
     WHERE agent."status" IN ('ACTIVE'::"AgentStatus", 'OFFBOARDED'::"AgentStatus", 'SUSPENDED'::"AgentStatus")
        OR profile."id" IS NOT NULL
     ORDER BY agent."legalName" ASC
+  `);
+}
+
+export async function listActiveCommissionHolds() {
+  return db.$queryRaw<CommissionHoldSummary[]>(Prisma.sql`
+    SELECT
+      hold."id" AS "holdId",
+      hold."ledgerEntryId",
+      account."clientName",
+      entry."paymentRef",
+      hold."reason"::text AS "reason",
+      hold."note",
+      hold."appliedAt"
+    FROM "CommissionHold" hold
+    LEFT JOIN "CommissionLedgerEntry" entry ON entry."id" = hold."ledgerEntryId"
+    LEFT JOIN "ClientAccount" account ON account."id" = COALESCE(hold."clientAccountId", entry."clientAccountId")
+    WHERE hold."active" = true
+    ORDER BY hold."appliedAt" DESC
+    LIMIT 100
   `);
 }
