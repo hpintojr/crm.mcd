@@ -22,11 +22,15 @@ export async function commitLeadImport(rows: unknown[]): Promise<LeadImportCommi
   const preview = previewLeadImport(rows);
   const valid = preview.filter((item) => item.status === "VALID" && item.row && item.normalized);
   const dedupeKeys = valid.map((item) => item.normalized!.dedupeKey);
-  const existingLeads = dedupeKeys.length
-    ? await db.lead.findMany({ where: { dedupeKey: { in: dedupeKeys } }, select: { dedupeKey: true } })
-    : [];
+  const identifiers = valid.flatMap((item) => [item.normalized!.phone, item.normalized!.email].filter((value): value is string => Boolean(value)));
+  const [existingLeads, activeSuppressions] = await Promise.all([
+    dedupeKeys.length ? db.lead.findMany({ where: { dedupeKey: { in: dedupeKeys } }, select: { dedupeKey: true } }) : [],
+    identifiers.length ? db.leadSuppression.findMany({ where: { active: true, identifier: { in: identifiers } }, select: { identifier: true } }) : [],
+  ]);
   const existingKeys = new Set(existingLeads.map((lead) => lead.dedupeKey).filter(Boolean));
+  const suppressedIdentifiers = new Set(activeSuppressions.map((item) => item.identifier));
   let duplicateInDatabase = 0;
+  let suppressed = 0;
   let rejected = preview.filter((item) => item.status !== "VALID").length;
 
   for (const item of valid) {
@@ -44,8 +48,14 @@ export async function commitLeadImport(rows: unknown[]): Promise<LeadImportCommi
       duplicateInDatabase += 1;
       continue;
     }
+    if ([normalized.phone, normalized.email].some((identifier) => identifier && suppressedIdentifiers.has(identifier))) {
+      item.status = "REJECTED";
+      item.issues.push("The contact matches an active suppression record and cannot be imported.");
+      suppressed += 1;
+      continue;
+    }
     existingKeys.add(normalized.dedupeKey);
   }
 
-  return { inserted: 0, duplicateInDatabase, suppressed: 0, rejected, rows: preview };
+  return { inserted: 0, duplicateInDatabase, suppressed, rejected, rows: preview };
 }
