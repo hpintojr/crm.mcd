@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { notFound } from "next/navigation";
 import { PortalFeaturePage } from "@/components/portal-feature-page";
 import { ViewerTime } from "@/components/viewer-time";
@@ -31,8 +32,9 @@ export default async function WorkspacePage({ params }: PageProps) {
   if (workspace === "schedule") {
     const now = new Date();
     const recentCutoff = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+    const alertCutoff = new Date(now.getTime() - 24 * 60 * 60 * 1000);
     const viewerFilter = isAdmin ? {} : agent ? { agentId: agent.id } : { id: "__none__" };
-    const [upcomingAppointments, awaitingOutcome, recentOutcomes] = await Promise.all([
+    const [upcomingAppointments, awaitingOutcome, recentOutcomes, recentActiveChanges] = await Promise.all([
       db.appointment.findMany({
         where: {
           ...viewerFilter,
@@ -61,10 +63,21 @@ export default async function WorkspacePage({ params }: PageProps) {
         orderBy: { updatedAt: "desc" },
         take: 20,
       }),
+      db.appointment.findMany({
+        where: {
+          ...viewerFilter,
+          status: { in: [...MEETING_ACTIVE_STATUSES] },
+          updatedAt: { gte: alertCutoff },
+        },
+        orderBy: { updatedAt: "desc" },
+        take: 20,
+      }),
     ]);
+    const missedOrCancelled = recentOutcomes.filter((appointment) => appointment.status === "NO_SHOW" || appointment.status === "CANCELLED").length;
 
     return (
       <PortalFeaturePage eyebrow="Appointments" title="Schedule" description="Your upcoming booked demos appear here after GHL relays them to your workspace.">
+        {(recentActiveChanges.length > 0 || awaitingOutcome.length > 0 || missedOrCancelled > 0) && <section className="portal-card mb-6 max-w-4xl"><div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between"><div><h2 className="portal-heading text-lg font-semibold">Schedule alerts</h2><p className="portal-copy mt-1 text-sm">Live changes relayed from GHL. Booking and attendance updates remain managed in GHL; this workspace tells you what needs attention.</p></div>{missedOrCancelled > 0 && <Link className="portal-action-link shrink-0" href="/portal/tasks">Open follow-ups</Link>}</div><div className="mt-5 grid gap-3 sm:grid-cols-3"><div className="portal-callout text-sm"><p className="portal-heading font-medium">{recentActiveChanges.length} recent booking update{recentActiveChanges.length === 1 ? "" : "s"}</p><p className="portal-copy mt-1">Scheduled, confirmed, or rescheduled in the last 24 hours.</p></div><div className={awaitingOutcome.length ? "rounded-xl border border-amber-700/70 px-4 py-3 text-sm" : "portal-callout text-sm"}><p className="portal-heading font-medium">{awaitingOutcome.length} awaiting outcome</p><p className="portal-copy mt-1">Past appointment times still need a final GHL status.</p></div><div className={missedOrCancelled ? "rounded-xl border border-amber-700/70 px-4 py-3 text-sm" : "portal-callout text-sm"}><p className="portal-heading font-medium">{missedOrCancelled} follow-up check{missedOrCancelled === 1 ? "" : "s"}</p><p className="portal-copy mt-1">Recent no-show or cancelled appointment events.</p></div></div></section>}
         <section className="portal-card max-w-4xl">
           <div className="flex flex-col justify-between gap-2 sm:flex-row sm:items-center">
             <div><h2 className="portal-heading text-lg font-semibold">Upcoming appointments</h2><p className="portal-copy mt-1 text-sm">Only active scheduled and confirmed appointments appear here. Booking, edits, cancellations, and guest invitations stay in GHL and the connected calendar.</p></div>
