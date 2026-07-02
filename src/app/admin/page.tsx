@@ -1,6 +1,8 @@
 import { headers } from "next/headers";
 import { revalidatePath } from "next/cache";
+import { redirect } from "next/navigation";
 import { z } from "zod";
+import { ResendActivationButton } from "@/components/resend-activation-button";
 import { SignOutButton } from "@/components/sign-out-button";
 import { requireRole } from "@/lib/authz";
 import { createActivation } from "@/lib/activation";
@@ -12,6 +14,10 @@ import { sendMail } from "@/lib/mail";
 
 const REVIEW_ROLES = ["OWNER", "SUPER_ADMIN", "SALES_MANAGER"] as const;
 const REQUIRED_DOCUMENT_TYPES = ["SALES_AGREEMENT", "NDA_IP", "W9_PAYOUT", "ACKNOWLEDGMENT"] as const;
+
+type AdminPageProps = {
+  searchParams: Promise<{ notice?: string; recipient?: string }>;
+};
 
 const actionSchema = z.object({
   agentId: z.string().cuid(),
@@ -33,8 +39,43 @@ function onboardingIsComplete(
   );
 }
 
-export default async function AdminPage() {
+function activationNotice(notice?: string, recipient?: string) {
+  if (notice === "activation-sent" && recipient) {
+    return {
+      tone: "success",
+      message: `Activation email sent to ${recipient}. The previous unused link was invalidated.`,
+    };
+  }
+
+  if (notice === "activation-failed") {
+    return {
+      tone: "error",
+      message: "Activation email was not sent. Review Integration attention below for the delivery error.",
+    };
+  }
+
+  if (notice === "activation-unavailable") {
+    return {
+      tone: "error",
+      message: "Activation email is not available for this applicant until the account and all onboarding requirements are complete.",
+    };
+  }
+
+  if (notice === "smtp-not-configured") {
+    return {
+      tone: "error",
+      message: "SMTP is not configured, so the activation email could not be sent. Review Integration attention below.",
+    };
+  }
+
+  return null;
+}
+
+export default async function AdminPage({ searchParams }: AdminPageProps) {
   const user = await requireRole([...REVIEW_ROLES]);
+  const { notice, recipient } = await searchParams;
+  const noticeState = activationNotice(notice, recipient);
+
   const applicants = await db.agent.findMany({
     where: { status: { in: ["SUBMITTED", "PENDING_REVIEW", "NEEDS_CORRECTION", "APPROVED"] } },
     orderBy: { createdAt: "asc" },
@@ -142,11 +183,11 @@ export default async function AdminPage() {
     }
 
     if (parsed.data.action === "resend_activation") {
-      if (agent.status !== "APPROVED") throw new Error("Only approved applicants can receive an activation email.");
-      if (!agent.user) throw new Error("The account has not been provisioned yet. Complete all onboarding documents first.");
-      if (!onboardingIsComplete(agent.onboardingDocs)) {
-        throw new Error("All onboarding documents, including the countersigned Sales Agreement, must be complete first.");
+      if (agent.status !== "APPROVED" || !agent.user || !onboardingIsComplete(agent.onboardingDocs)) {
+        revalidatePath("/admin");
+        redirect("/admin?notice=activation-unavailable");
       }
+
       if (!smtpConfigured) {
         await db.integrationError.create({
           data: {
@@ -156,7 +197,8 @@ export default async function AdminPage() {
             payload: { agentId: agent.id, requestedBy: actor.id },
           },
         });
-        throw new Error("Email delivery is not configured. Check SMTP settings before resending.");
+        revalidatePath("/admin");
+        redirect("/admin?notice=smtp-not-configured");
       }
 
       const activation = await createActivation(agent.user.id);
@@ -165,6 +207,33 @@ export default async function AdminPage() {
         expiresAt: activation.expiresAt,
       });
       const delivery = await sendMail({ to: agent.user.email, subject, text, html });
+
+      if (!delivery.ok || delivery.stub) {
+        const message = delivery.ok ? "SMTP transport was unavailable." : delivery.error;
+        await db.$transaction([
+          db.auditLog.create({
+            data: {
+              actorUserId: actor.id,
+              actorRole: actor.role,
+              actionType: "ACTIVATION_LINK_RESEND_FAILED",
+              entityType: "User",
+              entityId: agent.user.id,
+              ipAddress,
+              metadata: { agentId: agent.id, delivery: "smtp-failed" },
+            },
+          }),
+          db.integrationError.create({
+            data: {
+              source: "activation.email",
+              refId: agent.user.id,
+              message,
+              payload: { agentId: agent.id, requestedBy: actor.id },
+            },
+          }),
+        ]);
+        revalidatePath("/admin");
+        redirect("/admin?notice=activation-failed");
+      }
 
       await db.$transaction([
         db.auditLog.create({
@@ -177,28 +246,27 @@ export default async function AdminPage() {
             ipAddress,
             metadata: {
               agentId: agent.id,
-              delivery: delivery.ok ? (delivery.stub ? "smtp-not-configured" : "smtp-sent") : "smtp-failed",
+              delivery: "smtp-sent",
               expiresAt: activation.expiresAt.toISOString(),
             },
           },
         }),
-        ...(delivery.ok
-          ? []
-          : [
-              db.integrationError.create({
-                data: {
-                  source: "activation.email",
-                  refId: agent.user.id,
-                  message: delivery.error,
-                  payload: { agentId: agent.id, requestedBy: actor.id },
-                },
-              }),
-            ]),
+        db.integrationError.updateMany({
+          where: {
+            source: "activation.email",
+            refId: agent.user.id,
+            resolved: false,
+          },
+          data: {
+            resolved: true,
+            resolvedAt: new Date(),
+            resolvedById: actor.id,
+          },
+        }),
       ]);
 
-      if (!delivery.ok) {
-        throw new Error("The activation email could not be sent. See Integration attention for details.");
-      }
+      revalidatePath("/admin");
+      redirect(`/admin?notice=activation-sent&recipient=${encodeURIComponent(agent.user.email)}`);
     }
 
     if (parsed.data.action === "needs_correction" || parsed.data.action === "reject") {
@@ -234,6 +302,19 @@ export default async function AdminPage() {
         </div>
         <SignOutButton />
       </div>
+
+      {noticeState && (
+        <div
+          className={`mt-6 rounded-xl border px-4 py-3 text-sm ${
+            noticeState.tone === "success"
+              ? "border-emerald-700/70 bg-emerald-950/30 text-emerald-200"
+              : "border-red-800/70 bg-red-950/30 text-red-200"
+          }`}
+          role={noticeState.tone === "success" ? "status" : "alert"}
+        >
+          {noticeState.message}
+        </div>
+      )}
 
       <section className="mt-10 overflow-hidden rounded-2xl border border-ink-700 bg-ink-900">
         <div className="border-b border-ink-700 px-6 py-4">
@@ -285,13 +366,7 @@ export default async function AdminPage() {
                         <form action={reviewApplicant}>
                           <input name="agentId" type="hidden" value={applicant.id} />
                           <input name="action" type="hidden" value="resend_activation" />
-                          <button
-                            className="w-full rounded-lg border border-brand-500 px-3 py-2 text-sm font-medium text-brand-300 transition hover:bg-brand-500/10 disabled:cursor-not-allowed disabled:opacity-50"
-                            type="submit"
-                            disabled={!activationReady}
-                          >
-                            {activationLabel}
-                          </button>
+                          <ResendActivationButton disabled={!activationReady} label={activationLabel} />
                         </form>
                       )}
                       <form action={reviewApplicant} className="grid grid-cols-[1fr_auto] gap-2">
