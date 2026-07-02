@@ -34,6 +34,16 @@ export type CommissionLedgerSummary = {
   activeHoldCount: number;
 };
 
+export type CommissionProfileSummary = {
+  agentId: string;
+  agentName: string;
+  agentEmail: string;
+  agentStatus: string;
+  commissionProfileStatus: string | null;
+  lastReviewedAt: Date | null;
+  reviewNote: string | null;
+};
+
 export async function listCommissionReviewCandidates() {
   return db.$queryRaw<CommissionReviewCandidate[]>(Prisma.sql`
     SELECT
@@ -85,5 +95,23 @@ export async function listCommissionLedgerSummary() {
     LEFT JOIN "ClientAccount" account ON account."id" = entry."clientAccountId"
     ORDER BY entry."paymentOccurredAt" DESC, entry."createdAt" DESC
     LIMIT 100
+  `);
+}
+
+export async function listCommissionProfiles() {
+  return db.$queryRaw<CommissionProfileSummary[]>(Prisma.sql`
+    SELECT
+      agent."id" AS "agentId",
+      COALESCE(agent."preferredName", agent."legalName", agent."personalEmail") AS "agentName",
+      agent."personalEmail" AS "agentEmail",
+      agent."status"::text AS "agentStatus",
+      profile."status"::text AS "commissionProfileStatus",
+      profile."lastReviewedAt",
+      profile."reviewNote"
+    FROM "Agent" agent
+    LEFT JOIN "AgentCommissionProfile" profile ON profile."agentId" = agent."id"
+    WHERE agent."status" IN ('ACTIVE'::"AgentStatus", 'OFFBOARDED'::"AgentStatus", 'SUSPENDED'::"AgentStatus")
+       OR profile."id" IS NOT NULL
+    ORDER BY agent."legalName" ASC
   `);
 }
