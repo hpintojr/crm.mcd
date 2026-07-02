@@ -26,7 +26,7 @@ export async function createClientAccountFromWonLead(input: z.input<typeof schem
   const clientAccountId = randomUUID();
   const now = new Date();
   let alreadyCreated = false;
-  let resolvedClientAccountId = clientAccountId;
+  let resolvedClientAccountId: string = clientAccountId;
 
   await db.$transaction(async (tx) => {
     await tx.$executeRaw`SELECT pg_advisory_xact_lock(hashtext(${lead.id}))`;
