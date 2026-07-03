@@ -1,15 +1,7 @@
 "use client";
 
 import { FormEvent, useState } from "react";
-import { getSession, signIn } from "next-auth/react";
-
-const ADMIN_ROLES = new Set([
-  "OWNER",
-  "SUPER_ADMIN",
-  "SALES_MANAGER",
-  "COMPLIANCE_MANAGER",
-  "FINANCE_MANAGER",
-]);
+import { signIn } from "next-auth/react";
 
 function readErrorCode(result: unknown): string {
   if (!result || typeof result !== "object") return "";
@@ -58,13 +50,8 @@ export function LoginForm() {
         return;
       }
 
-      const session = await getSession().catch(() => null);
-      const role = session?.user?.role;
-      const destination = role && ADMIN_ROLES.has(role) ? "/admin" : "/portal";
-
-      // Use a full navigation after auth. This avoids a stalled client-router transition
-      // when a fresh Auth.js session cookie has just been written.
-      window.location.assign(destination);
+      // Let the server read the new session and choose the correct role-based destination.
+      window.location.assign("/auth/continue");
     } catch {
       setError("We could not complete sign-in. Refresh the page and try again.");
       setSubmitting(false);
