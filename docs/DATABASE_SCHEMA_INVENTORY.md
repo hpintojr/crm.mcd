@@ -38,11 +38,11 @@
 - `WebhookEvent`
 - `_mcd_schema_migrations`
 
-## Source-Schema Alignment
+## Migration-to-ORM Alignment
 
 The active `prisma/schema.prisma` represents authentication, agent onboarding, appointments, leads, webhook events, integration errors, and audit logs.
 
-The following Preview tables are **not** represented in that Prisma schema:
+The following Preview tables are not represented in that Prisma schema:
 
 | Database table | Role in the operating model |
 |---|---|
@@ -51,7 +51,9 @@ The following Preview tables are **not** represented in that Prisma schema:
 | `ClientServiceAssignmentEvent` | Auditable servicing-assignment changes |
 | `ClientServiceCase` | Client requests, payment issues, renewals, escalations, and resolution work |
 
-This is schema drift. The database includes the servicing model required by policy, but the active source schema cannot safely query or evolve it through Prisma.
+The tables are not unexplained. They are defined in the checked-in migration `database/migrations/20260702_002_client_servicing_health.sql`, and prior rollout documentation records that the service-only schema was applied while the feature gate remained disabled.
+
+The active problem is **migration-to-ORM drift**: raw SQL and the database agree on the client-servicing model, while Prisma does not. Application work using Prisma cannot safely query or evolve these tables until the schema is reconciled.
 
 ## Historical Migration Record
 
@@ -62,18 +64,17 @@ The database migration ledger records:
 | `20260702_000_production_baseline` | Production baseline before Lead MVP rollout | 2026-07-02 |
 | `20260702_001_lead_mvp` | Lead MVP schema rollout | 2026-07-02 |
 
-The migration record does not by itself establish source-of-truth ownership for the client-servicing tables.
+The client-servicing migration is preserved as checked-in source and its historical rollout status is documented separately. The runtime ledger does not contain a matching client-servicing row, so future migration tracking must record every production schema release consistently.
 
 ## Required Reconciliation Gate
 
-Before any new migration or client-servicing implementation:
+Before any new migration or ORM-based client-servicing implementation:
 
-1. Treat the inspected Preview branch as the factual database inventory.
-2. Identify the approved source schema for the four client-servicing tables and their related enum types, indexes, and constraints.
-3. Reconcile source code and Prisma schema in a no-migration branch first.
-4. Verify the reconciled schema against the Preview database.
-5. Record the approved baseline and migration policy in `docs/DAILY_LOG.md`.
-6. Only then create a dedicated migration branch if a real database change is required.
+1. Treat the inspected Preview branch and the checked-in servicing migration as the factual baseline.
+2. Add the four models, related enum types, relations, indexes, and constraints to Prisma without applying a database change.
+3. Verify the reconciled Prisma schema against Preview.
+4. Record the approved baseline and migration policy in `docs/DAILY_LOG.md`.
+5. Only then create a dedicated migration branch if a real database change is required.
 
 ## Guardrails
 
