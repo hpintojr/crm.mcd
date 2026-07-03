@@ -1,3 +1,4 @@
+import { headers } from "next/headers";
 import { LoginForm } from "./login-form";
 
 type LoginSearchParams = Promise<{ error?: string; code?: string }>;
@@ -19,7 +20,17 @@ function loginState(searchParams: { error?: string; code?: string }) {
 }
 
 export default async function LoginPage({ searchParams }: { searchParams: LoginSearchParams }) {
-  const state = loginState(await searchParams);
+  const requestHeaders = await headers();
+  const resolvedSearchParams = await searchParams;
+  const state = loginState(resolvedSearchParams);
+
+  // Temporary Preview-only diagnostic: no secrets, user identifiers, or form
+  // values are logged.
+  console.info("[route-trace] login-page", {
+    host: requestHeaders.get("host"),
+    hasError: Boolean(resolvedSearchParams.error),
+    code: resolvedSearchParams.code ?? null,
+  });
 
   return (
     <main className="mx-auto flex min-h-screen max-w-md items-center px-6 py-16">
