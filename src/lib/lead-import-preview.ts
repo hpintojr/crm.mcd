@@ -1,7 +1,7 @@
 import "server-only";
 
 import { ZodError } from "zod";
-import { assertLeadImportAllowed, defaultPoolForSource, leadImportRowSchema, type LeadImportRow, websiteStatusFromRecordedUrl } from "@/lib/lead-taxonomy";
+import { defaultPoolForSource, leadImportRowSchema, type LeadImportRow, websiteStatusFromRecordedUrl } from "@/lib/lead-taxonomy";
 import { buildLeadDedupeKey, normalizeEmail, normalizePhone, normalizeWebsiteDomain } from "@/lib/lead-normalization";
 
 export type LeadImportPreviewStatus = "VALID" | "DUPLICATE_IN_BATCH" | "REJECTED";
@@ -35,8 +35,6 @@ export function previewLeadImport(rows: unknown[]): LeadImportPreviewRow[] {
 
     try {
       const row = leadImportRowSchema.parse(input);
-      assertLeadImportAllowed(row);
-
       const dedupeKey = buildLeadDedupeKey({
         company: row.company,
         email: row.email,
