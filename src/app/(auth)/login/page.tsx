@@ -1,6 +1,26 @@
 import { LoginForm } from "./login-form";
 
-export default function LoginPage() {
+type LoginSearchParams = Promise<{ error?: string; code?: string }>;
+
+function loginState(searchParams: { error?: string; code?: string }) {
+  if (searchParams.code === "MFA_REQUIRED") {
+    return { initialError: "Enter the six-digit code from your authenticator app.", requiresMfa: true };
+  }
+  if (searchParams.code === "MFA_INVALID") {
+    return { initialError: "That authentication code is not valid. Try again.", requiresMfa: true };
+  }
+  if (searchParams.code === "ACCOUNT_LOCKED") {
+    return { initialError: "This account is temporarily locked after too many sign-in attempts.", requiresMfa: false };
+  }
+  if (searchParams.error) {
+    return { initialError: "We could not sign you in with those credentials.", requiresMfa: false };
+  }
+  return { initialError: null, requiresMfa: false };
+}
+
+export default async function LoginPage({ searchParams }: { searchParams: LoginSearchParams }) {
+  const state = loginState(await searchParams);
+
   return (
     <main className="mx-auto flex min-h-screen max-w-md items-center px-6 py-16">
       <div className="w-full rounded-2xl border border-ink-700 bg-ink-900 p-7 shadow-xl">
@@ -9,7 +29,7 @@ export default function LoginPage() {
         <p className="mt-2 text-sm text-gray-400">
           Use your Mercury Call Desk credentials to access the secure partner portal.
         </p>
-        <LoginForm />
+        <LoginForm initialError={state.initialError} requiresMfa={state.requiresMfa} />
       </div>
     </main>
   );
