@@ -63,13 +63,17 @@ export default async function WarmReplyQueuePage() {
     if (lead.ownerAgentId) throw new Error("This Lead already has an owner.");
     if (!["AVAILABLE", "CLAIMED", "CONTACTED", "NURTURING", "DEMO_BOOKED"].includes(lead.lifecycle)) throw new Error("This Lead is not eligible for warm-reply assignment.");
     const now = new Date();
-    await db.$transaction([
-      db.lead.update({ where: { id: lead.id }, data: { ownerAgentId: agent.id, claimedAt: lead.claimedAt ?? now, lastActionAt: now, nextActionAt: now } }),
-      db.leadClaimEvent.create({ data: { leadId: lead.id, agentId: agent.id, action: "REASSIGNED", reason: `Warm reply triage: ${parsed.note}` } }),
-      db.leadActivity.create({ data: { leadId: lead.id, agentId: agent.id, type: "REASSIGNED", metadata: { source: "WARM_REPLY_TRIAGE", note: parsed.note } } }),
-      db.leadCallback.create({ data: { leadId: lead.id, agentId: agent.id, dueAt: now } }),
-      db.auditLog.create({ data: { actorUserId: actor.id, actorRole: actor.role, actionType: "LEAD_WARM_REPLY_ASSIGNED", entityType: "Lead", entityId: lead.id, reason: parsed.note, metadata: { assignedAgentId: agent.id } } }),
-    ]);
+    await db.$transaction(async (tx) => {
+      const assigned = await tx.lead.updateMany({
+        where: { id: lead.id, ownerAgentId: null, dnc: false, suppressed: false, lifecycle: { in: ["AVAILABLE", "CLAIMED", "CONTACTED", "NURTURING", "DEMO_BOOKED"] } },
+        data: { ownerAgentId: agent.id, claimedAt: lead.claimedAt ?? now, lastActionAt: now, nextActionAt: now },
+      });
+      if (assigned.count !== 1) throw new Error("This Lead changed before assignment. Refresh the queue and try again.");
+      await tx.leadClaimEvent.create({ data: { leadId: lead.id, agentId: agent.id, action: "REASSIGNED", reason: `Warm reply triage: ${parsed.note}` } });
+      await tx.leadActivity.create({ data: { leadId: lead.id, agentId: agent.id, type: "REASSIGNED", metadata: { source: "WARM_REPLY_TRIAGE", note: parsed.note } } });
+      await tx.leadCallback.create({ data: { leadId: lead.id, agentId: agent.id, dueAt: now } });
+      await tx.auditLog.create({ data: { actorUserId: actor.id, actorRole: actor.role, actionType: "LEAD_WARM_REPLY_ASSIGNED", entityType: "Lead", entityId: lead.id, reason: parsed.note, metadata: { assignedAgentId: agent.id } } });
+    });
     revalidatePath("/admin/leads/replies");
     revalidatePath("/admin/leads");
     revalidatePath("/portal/inbox");
