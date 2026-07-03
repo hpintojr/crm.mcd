@@ -1,0 +1,5 @@
+Safe cache test marker.
+
+This file exists only to trigger a fresh Vercel Preview deployment for the
+recovery/preview-1e484570 branch so a no-cache redeploy can be tested.
+It contains no code and no configuration.
