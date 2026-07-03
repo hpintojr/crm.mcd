@@ -1,11 +1,16 @@
-export type LeadImportIntakePolicyInput = { originalSource: string; intakeMethod: string };
+export type LeadImportIntakePolicyInput = {
+  originalSource: string;
+  intakeMethod: string;
+};
 
 const blockedIntakeMethods = new Set(["SCRAPE_IMPORT"]);
 
-export function getLeadImportIntakePolicyViolation(input: LeadImportIntakePolicyInput): string | null {
-  if (blockedIntakeMethods.has(input.intakeMethod)) {
+/** Applies the MiniCRM intake boundary before a record can be imported. */
+export function getLeadImportIntakePolicyViolation({ intakeMethod }: LeadImportIntakePolicyInput): string | null {
+  if (blockedIntakeMethods.has(intakeMethod)) {
     return "This acquisition mode is not permitted for MiniCRM import. Use an approved intake method with documented permitted use.";
   }
+
   return null;
 }
 
