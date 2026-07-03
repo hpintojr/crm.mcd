@@ -1,108 +1,104 @@
 # Lead MVP Rollout Status
 
-**Status:** Built, deployed, and held behind the Lead feature gate  
-**Last updated:** July 2, 2026  
-**Activation state:** `LEADS_ENABLED=false` — agents cannot access Lead workflows yet.
+**Status:** Built for controlled acceptance testing. Do not treat the Lead module or any relay as normally active until the deployed gate state and owner-recorded acceptance evidence are verified.  
+**Last updated:** July 2, 2026
 
 ## What is complete
 
-### Production database
+### Lead workflow
 
-The Lead MVP schema has been applied and validated in Neon production.
+- Production Lead schema supports ownership, claim events, activities, notes, callbacks, suppression, source tracking, campaigns/UTMs, appointment references, GHL contact/opportunity references, and two-way contact.
+- Controlled import supports JSON and CSV conversion into the existing preview-before-commit pipeline.
+- Valid imported rows begin in `PENDING_REVIEW`; new imports never enter Open Pool directly.
+- Admin review supports managed-pool approval, documented disqualification, and compliance suppression.
+- Admin suppression cancels scheduled callbacks, clears future-action state, writes suppression/activity/audit history, and removes active-work access.
+- Agent workspace supports atomic claim, owner-only work, notes, dispositions, callbacks, DNC, wrong number, and out-of-business outcomes.
+- Open Pool returns are restricted to documented, previously assigned, non-referral, non-suppressed Leads with two-way contact and an eligible lifecycle.
+- Admin Lead detail supports an auditable Verified Closed Won decision.
 
-- Lead, LeadClaimEvent, LeadActivity, LeadNote, LeadCallback, and LeadSuppression tables are present.
-- Lead ownership, activity, callback, suppression, and claim relationships are in place.
-- Required indexes for active-work queues, callbacks, dedupe, suppression, source tracking, website review, and appointment references are present.
-- Lead source taxonomy, referral, UTM, campaign, website-opportunity, and dedupe fields are present.
-- Production schema-release records document the baseline and Lead MVP rollout.
-- No production test leads were intentionally inserted during the schema rollout.
+### Agent readiness
 
-> Do not run a blanket `prisma migrate deploy` against production. The production baseline is governed through the documented Neon safety-branch and explicit-production-apply process.
+- Document tracking exists for Sales Agreement, NDA/IP, W-9/entity acknowledgment, and New Hire Acknowledgment.
+- The Agent profile supports a Company / Entity Name for entity W-9 test coverage. The MiniCRM stores only profile/status/reference metadata—not forms or tax identifiers.
+- Certification records manager decision, scores, and audit evidence. Lead eligibility requires active status, all four document completions, and approved certification.
 
-### Agent workflow
+### GHL appointment relay
 
-The deployed Lead workspace includes:
+- `POST /api/ghl/appointments` is verified, location-validated, idempotent, and monitored.
+- Time parsing was hardened for GHL machine values and human-readable formats encountered during testing.
+- Booked, Confirmed, and Rescheduled maintain `DEMO_BOOKED` and preserve ownership.
+- Cancelled and No-show create or expedite same-owner follow-up work.
+- Schedule and Inbox surfaces show appointment outcome checks rather than silently dropping historic events.
+- Controlled appointment testing has been performed for Rescheduled, No-show, and Completed. Continue the full state test during acceptance.
 
-- Atomic Open Pool claims.
-- Agent-owned active-record list and selected-record detail view.
-- Activity and outcome logging.
-- Note history and callback history.
-- Pacific-time callback scheduling; newer callbacks close prior scheduled callbacks for that agent and record.
-- Immediate DNC handling that suppresses the Lead, cancels scheduled callbacks, creates a suppression record, and writes activity/audit history.
-- Invalid-number and out-of-business suppression.
-- Server-side ownership validation: agents can only act on records assigned to them.
-- Certification control: an agent must be approved to claim Lead records.
+### GHL opportunity relay
 
-### Admin import and review workflow
+- `POST /api/ghl/opportunities` is implemented with verification, idempotency, and audit logging.
+- `OPPORTUNITY_WON` moves a matched active Lead to `CLOSED_WON`.
+- `OPPORTUNITY_LOST` moves an open matched Lead to `CLOSED_LOST`.
+- Matching prefers MiniCRM Lead ID, then stored GHL opportunity/contact data.
+- Suppressed/DNC Leads remain unchanged.
+- A late Lost event cannot reverse an already Closed Won Lead.
+- **Pending:** external GHL workflow configuration and controlled acceptance test.
 
-The deployed control path includes:
+### GHL inbound reply relay
 
-- `POST /api/admin/leads/import` for admin-authenticated JSON batch imports.
-- Maximum batch size of 500 rows.
-- Source and intake validation before a row can be accepted.
-- Google Maps batch scrape/import protection is enforced by source policy.
-- Duplicate-in-batch and existing-CRM dedupe checks.
-- Active suppression/DNC screening before database insertion.
-- New imports are created as `PENDING_REVIEW`; they do **not** enter an agent workspace automatically.
-- Admin review actions: approve to managed pool, disqualify with reason, or suppress for compliance with reason.
+- `POST /api/ghl/replies` is implemented with verification, idempotency, matching, activity/note history, and audit logging.
+- Matching prefers MiniCRM Lead ID, then GHL contact ID, email, and phone.
+- A matched owned Lead receives immediate callback work or an existing future callback is expedited.
+- An unowned active reply appears in Warm Reply Triage for an authorized manager assignment.
+- DNC/suppressed Leads remain unchanged.
+- **Pending:** external GHL workflow configuration and controlled acceptance test.
 
-### Open Pool protection
+### Closed Won to Client Servicing boundary
 
-New imports cannot be approved directly into Open Pool.
+- Client onboarding begins in `/admin/servicing/onboarding`, not from a generic servicing form.
+- A linked Client Account can only be created from a live verified `CLOSED_WON` Lead that is not DNC/suppressed and has no existing Client Account.
+- The creation service locks and rechecks the source Lead inside its transaction and sources GHL/originating-agent context from the actual Lead record.
+- This is intentionally separate from automatic GHL Opportunity Won → Client Account creation.
 
-Open Pool is reserved for a documented return of an already assigned record. A return requires:
+## Current rollout state
 
-1. A non-suppressed, non-DNC Lead.
-2. A non-referral Lead.
-3. A Lead that is not `DEMO_BOOKED`.
-4. Prior agent ownership.
-5. Documented two-way contact.
-6. An eligible lifecycle state: `CLAIMED`, `CONTACTED`, or `NURTURING`.
-7. An admin-entered return reason.
-8. Claim, activity, and audit records.
-
-This preserves referral protection, demo-booked protection, and prevents untouched new records from being exposed as agent claim opportunities.
-
-### GHL appointment attribution
-
-The existing verified GHL appointment webhook now also attempts Lead attribution when Leads are enabled.
-
-- First match: `mini_crm_lead_id` supplied in the event payload.
-- Fallback match: existing Lead with matching `ghl_contact_id`.
-- Booked, confirmed, and rescheduled events update the matching Lead to `DEMO_BOOKED`.
-- Cancelled and no-show events return the matching Lead to a follow-up state and create a callback for its existing owner.
-- Attribution does not transfer ownership to a different agent.
-- Every attributed event writes Lead activity and audit history.
-- Unmatched appointment events remain recorded in the existing appointment/webhook workflow without creating a new Lead.
-
-## Production deployment
-
-- Production branch: `main`
-- Latest verified production deployment: Vercel deployment `dpl_3Eticvc9Fktj4QosV1nKxJPwca1n`
-- Deployment state: `READY`
-- Latest deployed commit: `92f094041dce4aa1eb447f9fd9180b3ec2426844`
-- Runtime error/fatal log check after the prior Lead MVP deployment: no matching logs returned.
+| Area | State |
+|---|---|
+| Lead application workflow | Built for controlled test |
+| Lead production database schema | Applied and used by deployed workflow |
+| Lead activation | Requires explicit verification of `LEADS_ENABLED` and owner-controlled test window |
+| Appointment relay | Built and partially exercised; complete full acceptance sequence before sign-off |
+| Opportunity relay | Built; external GHL setup/test pending |
+| Inbound reply relay | Built; external GHL setup/test pending |
+| Client Servicing workflow | Built behind separate gate; do not activate from Lead test alone |
+| Commission and Finance | Separate gated phases; no payout execution |
 
 ## Deliberately not enabled or started
 
-- `LEADS_ENABLED` remains `false` pending owner acceptance testing.
-- No marketing or sales outreach has been started from this module.
-- No automatic outbound GHL booking creation has been enabled. The incoming appointment relay is implemented; the outbound endpoint contract still requires a controlled GHL implementation decision.
-- `SERVICING_ENABLED`, `COMMISSIONS_ENABLED`, and `FINANCE_ENABLED` remain disabled.
-- Client servicing health, commission ledger, and payout automation have not been activated.
+- Do not assume any feature gate is enabled without verifying the deployed Vercel environment.
+- No automatic GHL Opportunity Won → Client Account creation.
+- No external email/SMS campaign sending from the inbound reply relay.
+- No Commission Hold management until the exact deployed schema is inspected through an approved path.
+- No Finance execution, payment collection, provider instruction, or payout automation.
+- No storage of tax forms, tax IDs, banking information, or provider credentials.
 
-## Required acceptance-test gate
+## Required acceptance gate
 
-Read and execute [Lead MVP Acceptance Test](./LEAD_MVP_ACCEPTANCE_TEST.md) before changing `LEADS_ENABLED` to `true`.
+Execute [Lead MVP Acceptance Test](./LEAD_MVP_ACCEPTANCE_TEST.md) using internal test records only.
 
-Activation is approved only when every blocking test passes and the owner confirms that the first live batch may be used.
+The current test-agent plan is:
 
-## Next phase after acceptance
+1. **Individual test agent:** active, four documents complete, certified, eligible to test valid claims.
+2. **Company/entity test agent:** active, Company / Entity Name tracked in Documents, W-9/entity acknowledgment tracked without storing a document, initially not certified to test claim denial.
 
-**Client Servicing Health** begins only after the Lead MVP is stable. Its scope is:
+Record Pass, Fail, or Deferred evidence in `/admin/leads/testing`. A recorded pass does not enable a feature gate automatically.
 
-- Client account records and health signals.
-- Triggered servicing activity instead of mandatory routine quarterly check-ins for healthy, current-paying clients.
-- Service response, payment issue, renewal, escalation, and resolution tracking.
-- Account reassignment controls that preserve commissions for good-standing agents who continue servicing their clients.
-- House-account transfer controls where service responsibility is declined or an agent loses future commission eligibility.
+## Next phase after Lead acceptance
+
+Run the Client Servicing acceptance path:
+
+1. Verified Closed Won Lead → Client Onboarding Queue.
+2. Create Client Account with package/owner selection.
+3. Document launch state.
+4. Create triggered Service Case, record response, resolve case.
+5. Confirm a healthy, current-paying quiet account is not reassigned.
+6. Confirm retained servicing and authorized House transfer behavior.
+
+Keep Commission and Finance independently gated after Servicing acceptance until their schema and policy work is separately approved.
