@@ -16,13 +16,9 @@ export const leadSources = [
 ] as const;
 
 export const leadPools = ["COLD", "NURTURE", "HOT", "OPEN", "SHARK_TANK", "REFERRAL", "HOUSE"] as const;
-
-export const leadIntakeMethods = ["SCRAPE_IMPORT", "WEB_FORM_SUBMISSION", "DIRECT_MESSAGE", "MANUAL_ENTRY", "API_IMPORT", "REFERRAL_ENTRY"] as const;
-
+export const leadIntakeMethods = ["WEB_FORM_SUBMISSION", "DIRECT_MESSAGE", "MANUAL_ENTRY", "API_IMPORT", "REFERRAL_ENTRY"] as const;
 export const websiteStatuses = ["UNKNOWN", "LISTED", "NO_WEBSITE_LISTED", "VERIFIED_NO_WEBSITE", "NEEDS_REVIEW"] as const;
-
 export const websiteOpportunityStatuses = ["NOT_EVALUATED", "ELIGIBLE_REVIEW", "BUNDLE_OFFERED", "WEBSITE_ONLY_QUOTE", "WEBSITE_ONLY_WON", "DECLINED", "NOT_ELIGIBLE"] as const;
-
 export const websiteOfferTracks = ["BUNDLE_INCENTIVE", "WEBSITE_ONLY"] as const;
 
 export const leadSourcesSchema = z.enum(leadSources);
@@ -158,15 +154,8 @@ export const leadImportRowSchema = leadImportBaseSchema.merge(leadSourceFieldsSc
 
 export type LeadImportRow = z.infer<typeof leadImportRowSchema>;
 
-export function assertLeadImportAllowed(row: LeadImportRow) {
-  if (row.originalSource === "GOOGLE_MAPS" && row.intakeMethod === "SCRAPE_IMPORT") {
-    throw new Error("Google Maps batch scraping/import is blocked. Use an approved data provider or independently sourced business data before importing leads.");
-  }
-}
-
 export function defaultPoolForSource(source: LeadSourceValue): LeadPoolValue {
-  if (source === "REFERRAL") return "REFERRAL";
-  return "COLD";
+  return source === "REFERRAL" ? "REFERRAL" : "COLD";
 }
 
 export function websiteStatusFromRecordedUrl(website?: string | null): WebsiteStatusValue {
