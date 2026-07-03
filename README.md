@@ -1,6 +1,14 @@
 # Mercury Call Desk — Mini CRM (`crm.mcd`)
 
-Secure Agent and Admin portals for Mercury Call Desk. GoHighLevel (GHL) is a backend integration only; agents never receive GHL credentials. Neon PostgreSQL is the system of record, and GitHub `main` deploys to Vercel production.
+Secure Admin and Agent portals for Mercury Call Desk. GoHighLevel (GHL) is a backend integration only; agents never receive GHL credentials. Neon PostgreSQL is the system of record, and GitHub `main` deploys to Vercel production.
+
+## Start here
+
+- [Workspace](./docs/WORKSPACE.md) — current implementation inventory, gates, operational paths, and test plan.
+- [Lead MVP Rollout Status](./docs/LEAD_MVP_ROLLOUT_STATUS.md) — Lead, GHL relay, and servicing handoff status.
+- [Lead MVP Acceptance Test](./docs/LEAD_MVP_ACCEPTANCE_TEST.md) — owner-controlled test sequence.
+- [Documentation Index](./docs/INDEX.md)
+- [Working Instructions](./CLAUDE.md)
 
 ## Production workflow
 
@@ -9,7 +17,8 @@ Secure Agent and Admin portals for Mercury Call Desk. GoHighLevel (GHL) is a bac
 - Production environment values live in Vercel only; never commit credentials.
 - Neon schema changes use a safety-branch review before an explicit production apply.
 - Do not enable a database-backed feature until its schema, production build, and controlled live test are complete.
-- Do not run a blanket `prisma migrate deploy` against production; use the documented database-release process and recorded production baseline.
+- Do not run a blanket `prisma migrate deploy` against production.
+- Do not assume a feature-gate value from documentation; verify the deployed environment before activating or describing a module as live.
 
 ## Stack
 
@@ -20,48 +29,78 @@ Secure Agent and Admin portals for Mercury Call Desk. GoHighLevel (GHL) is a bac
 - Vercel production deployment
 - GHL backend integration
 
-## Implemented foundation
+## What is implemented
 
-- Public partner signup at `/signup` with validation, honeypot, GHL stub-safe contact upsert, submitted-agent creation, four document gates, and audit history.
-- Auth foundation: credentials login, role-gated routes, Argon2 password hashing, one-time activation tokens stored as hashes, account lockout, JWT sessions, and TOTP MFA enrollment.
-- Admin operations: applicant review, confirmation call, approval/correction/rejection, certification workflow, command center, integration error review, audit history/export, user administration, account-security view, and module-readiness view.
-- GHL document-completion webhook with shared secret, location allowlist, idempotency, onboarding document updates, invited-user provisioning, activation-link generation, and audit events.
-- Security response headers plus branded error/not-found fallbacks.
-- **Lead MVP:** production schema, agent workspace, controlled imports, admin review, Open Pool protection, DNC/suppression, callbacks, and inbound GHL appointment attribution are deployed behind the Lead feature gate.
+### Agent onboarding and access controls
 
-## Current Lead MVP status
+- Partner signup, credentials authentication, activation, MFA, role-gated pages, lockout protections, and audit history.
+- Admin document tracking for Sales Agreement, NDA/IP, W-9/entity acknowledgment, and New Hire Acknowledgment.
+- Company/entity name support on the Agent profile for W-9/entity test coverage; no tax forms, tax identifiers, banking information, signatures, or raw document contents are stored in the MiniCRM.
+- Manager-recorded certification with scores, decision history, audit evidence, and Lead eligibility control.
+- Agent Training workspace readiness summary: document count, certification decision, and Lead eligibility state.
 
-- **Database:** Lead MVP schema is applied and validated in production.
-- **Application:** Latest Lead MVP production deployment is `READY`.
-- **Feature gate:** `LEADS_ENABLED=false`; agents cannot access Lead workflows until owner acceptance testing is complete.
-- **Activation handoff:** [Lead MVP Rollout Status](./docs/LEAD_MVP_ROLLOUT_STATUS.md)
-- **Test plan:** [Lead MVP Acceptance Test](./docs/LEAD_MVP_ACCEPTANCE_TEST.md)
+### Lead operations
+
+- Controlled JSON/CSV import conversion with server-side preview-before-commit.
+- Admin review, duplicate/suppression screening, source/intake validation, and no direct new-import path into Open Pool.
+- Atomic claim controls, agent ownership boundaries, notes, dispositions, callbacks, two-way contact, and audit history.
+- Immediate DNC and admin suppression protections that cancel scheduled callbacks and remove active-work access.
+- Wrong-number and out-of-business invalid-contact suppression.
+- Open Pool return protections requiring documented prior ownership, two-way contact, non-referral status, eligible lifecycle, and admin reason.
+- Lead detail view with an admin-only verified Closed Won decision.
+- Warm Reply Triage for unassigned verified inbound replies, with atomic manager assignment and immediate callback creation.
+
+### GHL relays
+
+- Appointment lifecycle relay at `/api/ghl/appointments`.
+- Opportunity result relay at `/api/ghl/opportunities`.
+- Inbound SMS/email reply relay at `/api/ghl/replies`.
+- All relay paths use verified webhook handling, location allowlisting, event-ID idempotency, audit events, and Integration Monitor errors.
+- Appointment time parsing has been hardened for GHL date formats and timezone handling.
+- Opportunity and reply relay code is deployed, but each still requires external GHL workflow configuration and controlled acceptance evidence before normal use.
+
+### Client Servicing
+
+- Closed Won onboarding queue, client account creation guard, launch confirmations, account detail, service-case queue, response/resolution controls, and owner/House transfer controls.
+- Linked Client Accounts can only be created from active, verified, non-suppressed `CLOSED_WON` Leads; duplicate links are rejected under a transaction lock.
+- Healthy, current-paying accounts are not reassigned merely because they are quiet.
+- Service cases are trigger-based: client request, support issue, payment problem, renewal event, escalation, or documented review.
+
+### Acceptance, readiness, and audit
+
+- Lead, Servicing, and Commission acceptance boards record Pass, Fail, or Deferred evidence with admin identity, note, and timestamp.
+- Readiness Board summarizes current acceptance evidence and operational queues.
+- Audit History surfaces rollout evidence separately from the general event stream.
+- Integration Monitor includes active errors, resolution notes, setup references, and a short-term resolved-history view.
 
 ## Module status
 
-| Module | Feature gate | Current status |
+| Module | Feature gate | Current state |
 |---|---:|---|
-| Lead pools, claim, activity, DNC, workspace | `LEADS_ENABLED` | Schema and app deployed; held for owner acceptance testing |
-| Booking attribution and appointment relay | uses lead module | Inbound appointment attribution deployed behind Lead gate; outbound GHL booking endpoint contract remains pending |
-| Commission calculations and funding validation | `COMMISSIONS_ENABLED` | Staged; disabled |
-| Client servicing cadence and health | `SERVICING_ENABLED` | Staged; disabled |
-| Finance/payout eligibility | `FINANCE_ENABLED` | Staged; disabled |
+| Leads | `LEADS_ENABLED` | Built for controlled testing; activation requires owner-approved test window and evidence |
+| GHL appointment relay | uses Lead workflow | Built and previously exercised in controlled testing; continue monitoring through Integration Monitor |
+| GHL opportunity relay | uses Lead workflow | Code deployed; GHL workflow configuration and controlled test remain pending |
+| GHL inbound reply relay | uses Lead workflow | Code deployed; GHL workflow configuration and controlled test remain pending |
+| Client Servicing | `SERVICING_ENABLED` | Workflow built; validate after Lead lifecycle acceptance |
+| Commissions | `COMMISSIONS_ENABLED` | Eligibility/readiness workflow staged; Hold management paused pending schema confirmation |
+| Finance | `FINANCE_ENABLED` | Readiness-only boundary; no payout execution or money movement |
 
-## Core business rules encoded in source
+## Core business rules
 
-- Cold lead protection begins after documented two-way contact, not when an agent claims a record.
-- Documented referrals are protected on entry; new imports cannot be assigned directly to Open Pool.
-- Open Pool is reserved for eligible, audited returns from previously assigned non-referral records with documented two-way contact.
-- Demo-booked records are not returned to Open Pool through normal new-import review.
-- DNC suppresses calls, SMS, sales email, marketing email, and social outreach immediately.
-- Healthy, current-paying accounts are not reassigned solely because there is no routine activity.
-- Departing agents in good standing retain commission eligibility only while servicing assigned clients. Retirees retain eligibility; terminated agents lose future eligibility and accounts transfer to House.
-- Finance approval, cleared funds, eligibility timing, no hold, and payout-provider readiness are required before a payout. The CRM never auto-pays.
+- New imports do not enter Open Pool directly.
+- Referral protection begins at entry; Open Pool requires a documented eligible return.
+- DNC and suppression immediately block future sales/marketing workflow and cancel scheduled callbacks.
+- Lead ownership is retained through appointment, opportunity, and reply attribution unless an authorized reassignment occurs.
+- A late GHL Opportunity Lost event cannot reverse a Lead already marked Closed Won.
+- GHL replies create or expedite owner work; unassigned replies require manager triage.
+- Healthy, current-paying client accounts do not lose servicing ownership for inactivity alone.
+- Good-standing agents may retain service responsibility; House transfer requires an authorized reason. Retired/terminated commission policy is handled through the separately gated Commission phase.
+- Finance approval, payment clearance, eligibility timing, no hold, and provider readiness are required before any future payout. The CRM never auto-pays.
 
 ## Security and compliance guardrails
 
-- Never store SSNs, tax IDs, raw bank/routing details, payment card data, or provider credentials in the CRM.
-- Store only provider references for signed documents and payouts.
+- Never store SSNs, tax IDs, raw bank/routing details, payment card data, provider credentials, raw signed documents, or tax forms.
+- Store only approved external references and status metadata where needed.
 - Secrets are server-only environment values.
 - Sensitive actions write to `AuditLog`.
 - All protected actions authorize server-side; client input is not trusted.
@@ -69,9 +108,10 @@ Secure Agent and Admin portals for Mercury Call Desk. GoHighLevel (GHL) is a bac
 
 ## Immediate next sequence
 
-1. Review the [Lead MVP Rollout Status](./docs/LEAD_MVP_ROLLOUT_STATUS.md).
-2. Execute and sign off on the [Lead MVP Acceptance Test](./docs/LEAD_MVP_ACCEPTANCE_TEST.md).
-3. Enable `LEADS_ENABLED=true` only for the controlled acceptance test window.
-4. Run a small approved batch through import → review → claim → activity/callback → DNC → appointment attribution.
-5. Stabilize the Lead MVP and monitor audit and runtime logs.
-6. Start Client Servicing Health only after owner authorization.
+1. Use the existing individual test agent as the active, document-complete, certified agent.
+2. Create a second active company/entity test agent; record the Company / Entity Name in its Documents page and leave it uncertified initially for the denial test.
+3. Review the actual CSV headers and map them to the controlled import model.
+4. Run a small internal-only Lead acceptance batch through import, review, claim, callback, DNC, Open Pool, appointment, opportunity, and reply-relay checks.
+5. Record Pass/Fail/Deferred evidence at `/admin/leads/testing`.
+6. Run the Servicing acceptance board only after Lead lifecycle acceptance is signed off.
+7. Keep Commission and Finance gated until their separate schema/policy readiness work is approved.
