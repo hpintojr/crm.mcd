@@ -1,11 +1,11 @@
 import "server-only";
 
 import { ZodError } from "zod";
+import { assertLeadImportIntakeAllowed } from "@/lib/lead-import-intake-policy";
 import { assertLeadImportAllowed, defaultPoolForSource, leadImportRowSchema, type LeadImportRow, websiteStatusFromRecordedUrl } from "@/lib/lead-taxonomy";
 import { buildLeadDedupeKey, normalizeEmail, normalizePhone, normalizeWebsiteDomain } from "@/lib/lead-normalization";
 
 export type LeadImportPreviewStatus = "VALID" | "DUPLICATE_IN_BATCH" | "REJECTED";
-
 export type LeadImportPreviewRow = {
   rowNumber: number;
   status: LeadImportPreviewStatus;
@@ -29,23 +29,15 @@ function issuesFrom(error: unknown) {
 
 export function previewLeadImport(rows: unknown[]): LeadImportPreviewRow[] {
   const seen = new Set<string>();
-
   return rows.map((input, index) => {
     const rowNumber = index + 1;
-
     try {
       const row = leadImportRowSchema.parse(input);
+      assertLeadImportIntakeAllowed(row.intakeMethod);
       assertLeadImportAllowed(row);
-
-      const dedupeKey = buildLeadDedupeKey({
-        company: row.company,
-        email: row.email,
-        businessPhone: row.businessPhone,
-        website: row.website,
-      });
+      const dedupeKey = buildLeadDedupeKey({ company: row.company, email: row.email, businessPhone: row.businessPhone, website: row.website });
       const duplicateInBatch = seen.has(dedupeKey);
       seen.add(dedupeKey);
-
       return {
         rowNumber,
         status: duplicateInBatch ? "DUPLICATE_IN_BATCH" : "VALID",
