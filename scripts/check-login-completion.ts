@@ -3,12 +3,13 @@ import { readFileSync } from "node:fs";
 
 const loginForm = readFileSync(new URL("../src/app/(auth)/login/login-form.tsx", import.meta.url), "utf8");
 
-assert.equal(loginForm.includes('import { useRouter } from "next/navigation";'), true);
-assert.equal(loginForm.includes("const router = useRouter();"), true);
-assert.equal(loginForm.includes("const session = await getSession();"), true);
-assert.equal(loginForm.includes('router.replace(role && ADMIN_ROLES.has(role) ? "/admin" : "/portal");'), true);
-assert.equal(loginForm.includes("router.refresh();"), true);
-assert.equal(loginForm.includes("recoverCompletedSession"), false);
-assert.equal(loginForm.includes('window.location.replace("/login/complete")'), false);
+assert.equal(loginForm.includes('action="/api/auth/callback/credentials"'), true);
+assert.equal(loginForm.includes('method="post"'), true);
+assert.equal(loginForm.includes('name="csrfToken"'), true);
+assert.equal(loginForm.includes('name="callbackUrl"'), true);
+assert.equal(loginForm.includes('value="/admin"'), true);
+assert.equal(loginForm.includes('fetch("/api/auth/csrf"'), true);
+assert.equal(loginForm.includes('signIn("credentials"'), false);
+assert.equal(loginForm.includes("useRouter"), false);
 
-console.log("Proven login flow checks passed.");
+console.log("Native credentials-post login checks passed.");
