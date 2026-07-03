@@ -1,158 +1,170 @@
 # Lead MVP Acceptance Test
 
-**Purpose:** Verify the Lead MVP before `LEADS_ENABLED` is changed to `true` for normal agent access.
+**Purpose:** Verify Lead operations and GHL handoffs before normal Lead access is enabled.  
+**Rule:** Use internal test records only. Label every test company `TEST —`. Do not assume feature-gate values; verify the deployed environment before the test window.
 
-**Rule:** Keep `LEADS_ENABLED=false` until the owner signs off on this checklist. Use only internal test contact details and clearly label every test company `TEST —`.
+Record each step as **Pass**, **Fail**, or **Deferred** with evidence in `/admin/leads/testing`. Recording evidence never activates a feature gate automatically.
 
-## 1. Pre-activation review
+## 1. Controlled test setup
 
-- [ ] Confirm the current Vercel production deployment is `READY`.
-- [ ] Confirm `LEADS_ENABLED=false` before the test window starts.
-- [ ] Confirm `SERVICING_ENABLED=false`, `COMMISSIONS_ENABLED=false`, and `FINANCE_ENABLED=false`.
-- [ ] Confirm the GHL webhook secret and location allowlist are configured in Vercel; do not expose either value in the CRM or test notes.
-- [ ] Confirm one admin test account and two certified agent test accounts are available.
-- [ ] Confirm the test phone numbers and emails are internal/non-customer test data.
+- [ ] Confirm the current Vercel deployment is `READY`.
+- [ ] Confirm the current deployed state of `LEADS_ENABLED`; keep it closed until the supervised test window begins.
+- [ ] Confirm Servicing, Commissions, and Finance are not being opened as part of this Lead test.
+- [ ] Confirm GHL webhook authentication and location allowlist are configured without exposing values in the CRM or test notes.
+- [ ] Confirm all test contact details are internal/non-customer data.
 
-## 2. Controlled test activation
+### Required test agents
 
-1. In Vercel production environment variables, set `LEADS_ENABLED=true`.
-2. Redeploy or promote the deployment that reads the updated environment value.
-3. Confirm `/admin/leads` is available to an admin.
-4. Confirm `/portal/leads` is available only to an authenticated, certified agent.
-5. Confirm an uncertified agent cannot claim Leads.
+| Agent | Initial state | Test purpose |
+|---|---|---|
+| Agent A — individual | Active, all four documents complete, certified | Allowed claim and normal agent-work path |
+| Agent B — company/entity | Active, Company / Entity Name recorded, W-9/entity acknowledgment tracked, initially not certified | Prove blocked claim path and company/entity onboarding display |
 
-**Pass condition:** Only intended test users can reach the Lead workflows.
+- [ ] Confirm Agent B cannot claim a Lead while uncertified.
+- [ ] After that denial is recorded, complete/certify Agent B temporarily only if needed for the simultaneous claim-race test; record the certification decision and later return the test state as desired.
 
-## 3. Import and review queue
+**Pass condition:** Agent eligibility is controlled by documented onboarding and certification, not by a browser-only setting.
 
-Send a small JSON batch to `POST /api/admin/leads/import` using the admin session. Begin with no more than five records.
+## 2. CSV header review and controlled import
 
-### Required test records
+Before importing, review the actual CSV headers and map them to the MiniCRM import model.
 
-| Record | Expected result |
-|---|---|
-| Valid business with internal test phone, source `WEB_FORM`, intake `MANUAL_ENTRY` | Created as `PENDING_REVIEW` |
-| Duplicate of the valid business in the same batch | Rejected as batch duplicate |
-| Second import of the same valid business | Rejected as existing Mini CRM duplicate |
-| Business using an identifier already on an active suppression record | Rejected; no Lead created |
-| Google Maps + `SCRAPE_IMPORT` record | Rejected by source policy |
-| Referral record with referrer name | Created as `PENDING_REVIEW`, with referral attributes retained |
+Minimum expected values per valid row:
 
-**Pass conditions:**
+```text
+company
+businessPhone
+originalSource
+intakeMethod
+```
 
-- [ ] Only valid, non-suppressed, non-duplicate rows are created.
-- [ ] All created rows begin in `PENDING_REVIEW`.
-- [ ] No created row appears in an agent workspace before admin review.
-- [ ] Review queue displays source, contact information, and lifecycle correctly.
+Useful optional values: contact first/last name, email, website, industry, city, state, country, timezone, campaign, referral fields, and UTM fields.
 
-## 4. Admin review and pool protection
+- [ ] Upload the CSV through Admin → Lead Review.
+- [ ] Confirm the CSV converts to the existing JSON batch preview.
+- [ ] Confirm Preview is required before Commit.
+- [ ] Confirm the initial batch is small and internal-only.
+- [ ] Confirm valid rows are created as `PENDING_REVIEW` only.
+- [ ] Confirm the batch includes or separately tests: valid row, in-batch duplicate, existing duplicate, suppression match, rejected Maps scrape policy row, and referral row.
 
-For a valid pending record:
+**Pass condition:** Only valid, non-suppressed, non-duplicate rows are created, and no record reaches an agent workspace before admin review.
 
-- [ ] Approve it to `COLD`, `HOT`, `NURTURE`, `HOUSE`, or `REFERRAL`.
-- [ ] Confirm the review page does not offer Open Pool for a new import.
-- [ ] Disqualify a second test record with a required reason.
-- [ ] Suppress a third test record with a required compliance reason.
-- [ ] Confirm suppressed records do not appear in agent work or future import eligibility.
+## 3. Admin review and pool protection
 
-**Pass condition:** New imports cannot be moved directly into Open Pool.
+- [ ] Approve a valid pending record to an allowed managed pool such as Cold, Hot, Nurture, House, or Referral.
+- [ ] Confirm a new import cannot be placed directly into Open Pool.
+- [ ] Disqualify a separate test record with a documented reason.
+- [ ] Suppress a separate test record with a documented compliance reason.
+- [ ] Confirm admin suppression cancels scheduled callbacks, clears next action, writes audit evidence, and removes active-work access.
 
-## 5. Claim race and agent ownership
+**Pass condition:** New imports cannot bypass review or Open Pool protection.
 
-Create or return one eligible test Lead to Open Pool using the documented admin return process. Use two separate certified-agent browser sessions.
+## 4. Claim boundary and ownership test
 
-- [ ] Both agents can see the eligible record before a claim attempt.
-- [ ] Have both agents attempt to claim the same record at the same time.
-- [ ] Confirm only one claim succeeds.
-- [ ] Confirm the winner can see and act on the record in My Active Records.
-- [ ] Confirm the other agent cannot view or alter the assigned record.
-- [ ] Confirm claim history and audit history record the event.
+- [ ] With Agent A, claim one eligible test Lead.
+- [ ] With Agent B still uncertified, attempt the same claim and confirm it is denied.
+- [ ] Confirm Agent A can see and work the claimed Lead.
+- [ ] Confirm Agent B cannot view or alter Agent A’s assigned Lead.
+- [ ] Confirm claim/activity/audit evidence exists.
+- [ ] After the denial test, optionally certify Agent B temporarily and use two sessions to attempt a simultaneous claim on one eligible Open Pool return.
+- [ ] Confirm only one atomic claim succeeds.
 
-**Pass condition:** Claiming is atomic and ownership is enforced server-side.
+**Pass condition:** Certification and server-side owner checks are enforced; only one agent can win a claim.
 
-## 6. Agent activity and callback workflow
+## 5. Agent activity, callbacks, and contact safety
 
 Using the owning agent:
 
-- [ ] Log `No answer`; confirm lifecycle remains active and a note/activity entry is recorded.
-- [ ] Log `Callback requested` with a future Pacific time; confirm the callback appears in history and becomes the next action.
-- [ ] Create a newer callback; confirm the prior scheduled callback is closed and the new callback is active.
-- [ ] Log `Qualified` with a note; confirm two-way-contact status is established.
-- [ ] Log `Wrong number`; confirm the Lead is suppressed, invalid-contact suppression exists, and the record leaves the agent’s active list.
+- [ ] Log No Answer and confirm activity history.
+- [ ] Schedule a future callback and confirm it appears in Tasks.
+- [ ] Create a newer callback and confirm the prior scheduled callback closes.
+- [ ] Log Qualified with a note and confirm two-way contact is recorded.
+- [ ] Log Wrong Number and confirm invalid-contact suppression removes the Lead from active work.
+- [ ] On a fresh owned Lead, schedule a callback, apply DNC, and confirm all scheduled callbacks are cancelled.
+- [ ] Confirm a DNC/suppressed Lead cannot be reclaimed or re-imported by the same identifier.
 
-**Pass condition:** Activities, notes, lifecycle updates, follow-ups, and invalid-contact suppression are recorded consistently.
+**Pass condition:** Callbacks, activity, notes, DNC, invalid-contact suppression, and ownership behave consistently.
 
-## 7. Immediate DNC test
+## 6. Open Pool return protection
 
-On a fresh test Lead owned by an agent:
+Prepare a non-referral Lead that has prior ownership, documented two-way contact, no DNC/suppression status, and lifecycle `CLAIMED`, `CONTACTED`, or `NURTURING`.
 
-- [ ] Schedule a callback.
-- [ ] Apply DNC with a reason.
-- [ ] Confirm lifecycle becomes `SUPPRESSED`.
-- [ ] Confirm `dnc=true` and `suppressed=true` behavior in the interface.
-- [ ] Confirm scheduled callbacks are cancelled.
-- [ ] Confirm a DNC suppression record, Lead activity, and AuditLog entry are created.
-- [ ] Confirm the Lead disappears from agent work and cannot be reclaimed.
-- [ ] Attempt to import the same phone/email again; confirm it is rejected.
+- [ ] Return it from `/admin/leads/release` with a reason.
+- [ ] Confirm owner clears, pool becomes `OPEN`, lifecycle becomes `AVAILABLE`, and audit/claim/activity records exist.
+- [ ] Confirm a new untouched Lead cannot be returned.
+- [ ] Confirm a referral, `DEMO_BOOKED`, DNC/suppressed, or no-two-way-contact Lead is blocked.
 
-**Pass condition:** DNC is immediate and blocks current and future workflow access.
+**Pass condition:** Open Pool contains only documented eligible returns.
 
-## 8. Open Pool return rules
+## 7. GHL appointment lifecycle
 
-Prepare a Lead that has all of the following: current agent owner, documented two-way contact, no DNC/suppression status, non-referral status, and a lifecycle of `CLAIMED`, `CONTACTED`, or `NURTURING`.
+Use test data through `/api/ghl/appointments`. Include `mini_crm_lead_id` whenever available; otherwise use the known GHL contact ID.
 
-- [ ] Use `/admin/leads/release` to return it with a reason.
-- [ ] Confirm owner is cleared, pool becomes `OPEN`, lifecycle becomes `AVAILABLE`, and the release time is set.
-- [ ] Confirm a claim event, activity, and audit entry exist.
-- [ ] Attempt to return an untouched/new Lead; confirm it is blocked.
-- [ ] Attempt to return a referral Lead; confirm it is blocked.
-- [ ] Attempt to return a `DEMO_BOOKED` Lead; confirm it is blocked and absent from the eligible return list.
-- [ ] Attempt to return a DNC/suppressed Lead; confirm it is blocked.
-- [ ] Attempt to return a Lead without two-way contact; confirm it is blocked.
+- [ ] `APPOINTMENT_BOOKED` → matching Lead becomes `DEMO_BOOKED`.
+- [ ] `APPOINTMENT_CONFIRMED` → Lead remains `DEMO_BOOKED`.
+- [ ] `APPOINTMENT_RESCHEDULED` → Lead remains `DEMO_BOOKED`; appointment updates.
+- [ ] `APPOINTMENT_CANCELLED` → same-owner follow-up is created/expedited.
+- [ ] `APPOINTMENT_NO_SHOW` → same-owner follow-up is created/expedited.
+- [ ] `APPOINTMENT_COMPLETED` → retained in recent schedule history.
+- [ ] Confirm ownership is unchanged for all matched events.
+- [ ] Retry one exact GHL event ID and confirm no duplicate MiniCRM work is created.
+- [ ] Confirm valid machine-readable time/timezone values are used; no display-text timestamp token is relied on.
 
-**Pass condition:** Open Pool contains only documented returns that meet the protection rules; referrals and demo-booked records never enter it.
+**Pass condition:** Only the intended Lead and appointment are updated, with no ownership transfer or duplicate work.
 
-## 9. GHL appointment attribution
+## 8. GHL opportunity-result relay
 
-Use the verified GHL appointment webhook with internal test data. Include `mini_crm_lead_id` whenever available; otherwise use a known matching `ghl_contact_id`.
+Configure and test `/api/ghl/opportunities` using unique event IDs.
 
-| Event | Expected Lead result |
-|---|---|
-| `APPOINTMENT_BOOKED` | Lifecycle becomes `DEMO_BOOKED` |
-| `APPOINTMENT_CONFIRMED` | Lifecycle remains `DEMO_BOOKED` |
-| `APPOINTMENT_RESCHEDULED` | Lifecycle remains `DEMO_BOOKED` and appointment reference updates |
-| `APPOINTMENT_CANCELLED` | Lifecycle becomes `CONTACTED`; callback is created for existing owner |
-| `APPOINTMENT_NO_SHOW` | Lifecycle becomes `CONTACTED`; callback is created for existing owner |
-| Unmatched contact/Lead | Appointment webhook remains recorded; no new Lead is created |
+- [ ] `OPPORTUNITY_WON` on a matched active Lead → `CLOSED_WON`.
+- [ ] `OPPORTUNITY_LOST` on a separate matched open Lead → `CLOSED_LOST`.
+- [ ] A later `OPPORTUNITY_LOST` event against the Closed Won test Lead does not reverse the win.
+- [ ] Retry one event ID and confirm no duplicate work is created.
+- [ ] Send an event for a suppressed test Lead and confirm its lifecycle is unchanged.
+- [ ] Confirm Integration Monitor records the event and audit trail records attribution.
 
-For each matched event:
+**Pass condition:** GHL opportunity results are matched safely, preserve ownership, and cannot overwrite protected lifecycle states.
 
-- [ ] Confirm the appointment record is created or updated.
-- [ ] Confirm the same Lead retains the same owner.
-- [ ] Confirm Lead activity and audit history are recorded.
-- [ ] Replay the exact webhook event ID; confirm the idempotency control prevents double processing.
+## 9. GHL inbound-reply relay
 
-**Pass condition:** GHL appointment events update only the intended Lead and never reassign ownership.
+Configure and test `/api/ghl/replies` using unique event IDs.
 
-## 10. Sign-off and first live batch
+- [ ] Send an Email or SMS reply for an owned active test Lead; confirm the reply is logged, two-way contact is present, and exactly one immediate callback appears in Tasks and Inbox.
+- [ ] Create an existing future callback before the reply; confirm the reply expedites it rather than creating a duplicate.
+- [ ] Send a reply for an unassigned active Lead; confirm it appears in `/admin/leads/replies`.
+- [ ] Assign the warm reply to an active agent; confirm atomic assignment, audit evidence, and immediate callback.
+- [ ] Retry the same event ID; confirm no duplicate note, callback, or assignment work is created.
+- [ ] Send a reply for a suppressed test Lead; confirm the Lead state is unchanged.
 
-Before normal use:
+**Pass condition:** Replies route only to permitted work queues and never bypass DNC/suppression protection.
 
-- [ ] Every blocking test above passes.
-- [ ] No unexpected application errors appear in Vercel runtime logs.
-- [ ] Test records are disqualified or suppressed and are excluded from outreach.
-- [ ] Owner approves the first live import batch and the responsible admin.
-- [ ] First live batch is limited to a small approved group and is reviewed before assignment.
+## 10. Verified Closed Won → Client Service boundary
+
+This is a boundary check, not Servicing activation.
+
+- [ ] From an active `DEMO_BOOKED` test Lead, record a documented Verified Closed Won decision.
+- [ ] Confirm the Lead becomes `CLOSED_WON` and appears in Client Onboarding Queue when Servicing is intentionally available for controlled test.
+- [ ] Confirm a non-won, DNC, suppressed, or already-linked Lead is rejected for Client Account creation.
+- [ ] Confirm the standard servicing workspace does not provide a generic normal account-creation bypass.
+
+**Pass condition:** Client onboarding begins only from a verified Closed Won Lead with preserved ownership/GHL context.
+
+## 11. Sign-off and cleanup
+
+- [ ] Every blocking step has Pass evidence, or any Fail/Deferred item has an owner-approved remediation plan.
+- [ ] Check Integration Monitor and Resolved History; do not mark historical failures resolved until a successful new event has been confirmed.
+- [ ] Confirm no unexpected runtime or integration errors are unresolved.
+- [ ] Disqualify or suppress test Leads so they are excluded from outreach.
+- [ ] Record the owner decision and first live-batch limit.
 
 ### Owner approval
 
 - Test date: ____________________
 - Approved by: ____________________
+- Controlled test feature-gate window: ____________________
 - First live batch size: ____________________
 - Notes / exceptions: ____________________
 
 ## After approval
 
-Keep `LEADS_ENABLED=true` only for the controlled rollout. Continue to monitor activity, suppression, claim, and webhook audit records before expanding volume.
-
-Do not enable Client Servicing, Commissions, or Finance until the Lead MVP has completed its stabilization period and the owner authorizes the next phase.
+Keep Leads in a controlled rollout, review audit and Integration Monitor records, and expand volume only after the first approved batch behaves as expected. Do not enable Servicing, Commissions, or Finance merely because the Lead test passes.
