@@ -2,9 +2,15 @@
 
 import { FormEvent, useState } from "react";
 import { getSession, signIn } from "next-auth/react";
+import { useRouter } from "next/navigation";
 
-const SESSION_RECOVERY_ATTEMPTS = 12;
-const SESSION_RECOVERY_INTERVAL_MS = 500;
+const ADMIN_ROLES = new Set([
+  "OWNER",
+  "SUPER_ADMIN",
+  "SALES_MANAGER",
+  "COMPLIANCE_MANAGER",
+  "FINANCE_MANAGER",
+]);
 
 function readErrorCode(result: unknown): string {
   if (!result || typeof result !== "object") return "";
@@ -13,11 +19,8 @@ function readErrorCode(result: unknown): string {
   return typeof record.error === "string" ? record.error : "";
 }
 
-function wait(milliseconds: number) {
-  return new Promise<void>((resolve) => window.setTimeout(resolve, milliseconds));
-}
-
 export function LoginForm() {
+  const router = useRouter();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [totp, setTotp] = useState("");
@@ -27,74 +30,38 @@ export function LoginForm() {
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    if (submitting) return;
     setSubmitting(true);
     setError(null);
 
-    let settled = false;
+    const result = await signIn("credentials", {
+      email,
+      password,
+      totp,
+      redirect: false,
+    });
 
-    const recoverCompletedSession = async () => {
-      for (let attempt = 0; attempt < SESSION_RECOVERY_ATTEMPTS && !settled; attempt += 1) {
-        await wait(SESSION_RECOVERY_INTERVAL_MS);
-        if (settled) return;
-
-        const session = await getSession().catch(() => null);
-        if (session?.user?.id) {
-          settled = true;
-          window.location.replace("/login/complete");
-          return;
-        }
+    const errorCode = readErrorCode(result);
+    if (!result || result.error) {
+      if (errorCode.includes("MFA")) {
+        setShowTotp(true);
+        setError(
+          errorCode.includes("INVALID")
+            ? "That authentication code is not valid. Try again."
+            : "Enter the six-digit code from your authenticator app.",
+        );
+      } else if (errorCode.includes("LOCKED")) {
+        setError("This account is temporarily locked after too many sign-in attempts.");
+      } else {
+        setError("We could not sign you in with those credentials.");
       }
-
-      if (!settled) {
-        settled = true;
-        setError("We could not confirm your sign-in session. Refresh the page and try again.");
-        setSubmitting(false);
-      }
-    };
-
-    // Auth.js normally resolves signIn after the credentials callback. This
-    // parallel session check recovers when the callback succeeds but the client
-    // promise stalls before the browser receives the completion result.
-    void recoverCompletedSession();
-
-    try {
-      const result = await signIn("credentials", {
-        email,
-        password,
-        totp,
-        redirect: false,
-      });
-
-      if (settled) return;
-
-      const errorCode = readErrorCode(result);
-      if (!result || result.error) {
-        settled = true;
-        if (errorCode.includes("MFA")) {
-          setShowTotp(true);
-          setError(
-            errorCode.includes("INVALID")
-              ? "That authentication code is not valid. Try again."
-              : "Enter the six-digit code from your authenticator app.",
-          );
-        } else if (errorCode.includes("LOCKED")) {
-          setError("This account is temporarily locked after too many sign-in attempts.");
-        } else {
-          setError("We could not sign you in with those credentials.");
-        }
-        setSubmitting(false);
-        return;
-      }
-
-      settled = true;
-      window.location.replace("/login/complete");
-    } catch {
-      if (settled) return;
-      settled = true;
-      setError("We could not complete sign-in. Refresh the page and try again.");
       setSubmitting(false);
+      return;
     }
+
+    const session = await getSession();
+    const role = session?.user?.role;
+    router.replace(role && ADMIN_ROLES.has(role) ? "/admin" : "/portal");
+    router.refresh();
   }
 
   return (
