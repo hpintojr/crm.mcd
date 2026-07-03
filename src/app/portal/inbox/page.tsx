@@ -20,7 +20,7 @@ export default async function InboxPage() {
   const [callbacks, appointmentsNeedingOutcome, serviceCases] = await Promise.all([
     features.leads ? db.leadCallback.findMany({ where: callbackWhere, orderBy: { dueAt: "asc" }, take: 20 }) : Promise.resolve([]),
     db.appointment.findMany({ where: { ...appointmentFilter, status: { in: ["SCHEDULED", "CONFIRMED"] }, startAt: { lte: now }, OR: [{ endAt: { lt: now } }, { endAt: null, startAt: { lt: now } }] }, orderBy: { startAt: "desc" }, take: 10 }),
-    features.servicing ? listOpenServiceCases(isAdmin ? undefined : agent?.id) : Promise.resolve([]),
+    features.servicing ? listOpenServiceCases(isAdmin ? undefined : agent ? agent.id : "__none__") : Promise.resolve([]),
   ]);
   const leadIds = callbacks.map((callback) => callback.leadId);
   const leads = leadIds.length ? await db.lead.findMany({ where: { id: { in: leadIds } }, select: { id: true, company: true, lifecycle: true } }) : [];
