@@ -54,15 +54,16 @@ export async function attributeInboundReplyToLead(input: InboundReplyEvent) {
       data: {
         lifecycle: terminal ? lead.lifecycle : lead.lifecycle === "DEMO_BOOKED" ? "DEMO_BOOKED" : "CONTACTED",
         ghlContactId: input.ghlContactId ?? lead.ghlContactId,
+        twoWayContactAt: lead.twoWayContactAt ?? now,
         lastActionAt: now,
-        nextActionAt: lead.ownerAgentId ? now : lead.nextActionAt,
+        nextActionAt: terminal ? lead.nextActionAt : now,
       },
     });
     await tx.leadNote.create({ data: { leadId: lead.id, agentId: lead.ownerAgentId, body: `Inbound ${input.channel} reply: ${input.message}` } });
     await tx.leadActivity.create({ data: { leadId: lead.id, agentId: lead.ownerAgentId, type: "NOTE_ADDED", metadata: { source: "GHL_INBOUND_REPLY", ghlEventId: input.ghlEventId, channel: input.channel, receivedAt: input.receivedAt ?? null, terminalLifecyclePreserved: terminal } } });
     if (callbackCreated && lead.ownerAgentId) await tx.leadCallback.create({ data: { leadId: lead.id, agentId: lead.ownerAgentId, dueAt: now } });
     if (callbackExpedited && existingCallback) await tx.leadCallback.update({ where: { id: existingCallback.id }, data: { dueAt: now } });
-    await tx.auditLog.create({ data: { actionType: "GHL_INBOUND_REPLY_ATTRIBUTED", entityType: "Lead", entityId: lead.id, metadata: { ghlEventId: input.ghlEventId, channel: input.channel, callbackCreated, callbackExpedited, terminalLifecyclePreserved: terminal, matchedBy: input.miniCrmLeadId ? "mini_crm_lead_id" : input.ghlContactId ? "ghl_contact_id" : input.fromEmail ? "email" : "phone" } } });
+    await tx.auditLog.create({ data: { actionType: "GHL_INBOUND_REPLY_ATTRIBUTED", entityType: "Lead", entityId: lead.id, metadata: { ghlEventId: input.ghlEventId, channel: input.channel, callbackCreated, callbackExpedited, terminalLifecyclePreserved: terminal, twoWayContactRecorded: !lead.twoWayContactAt, matchedBy: input.miniCrmLeadId ? "mini_crm_lead_id" : input.ghlContactId ? "ghl_contact_id" : input.fromEmail ? "email" : "phone" } } });
   });
 
   return { matched: true, gated: false, ignored: false, callbackCreated, callbackExpedited, leadId: lead.id };
