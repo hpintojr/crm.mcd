@@ -50,8 +50,8 @@ export function LoginForm() {
         return;
       }
 
-      // Let the server read the new session and choose the correct role-based destination.
-      window.location.assign("/auth/continue");
+      // Preview-only diagnostic: test the corrected protected admin route immediately.
+      window.location.assign("/admin");
     } catch {
       setError("We could not complete sign-in. Refresh the page and try again.");
       setSubmitting(false);
@@ -65,50 +65,19 @@ export function LoginForm() {
           {error}
         </div>
       )}
-
       <Field label="Email" name="email" type="email" value={email} onChange={setEmail} autoComplete="email" />
-      <Field
-        label="Password"
-        name="password"
-        type="password"
-        value={password}
-        onChange={setPassword}
-        autoComplete="current-password"
-      />
-
+      <Field label="Password" name="password" type="password" value={password} onChange={setPassword} autoComplete="current-password" />
       {showTotp && (
-        <Field
-          label="Authentication code"
-          name="totp"
-          inputMode="numeric"
-          maxLength={6}
-          value={totp}
-          onChange={setTotp}
-          autoComplete="one-time-code"
-        />
+        <Field label="Authentication code" name="totp" inputMode="numeric" maxLength={6} value={totp} onChange={setTotp} autoComplete="one-time-code" />
       )}
-
-      <button
-        type="submit"
-        disabled={submitting}
-        className="w-full rounded-lg bg-brand-500 px-6 py-3 font-medium text-ink-950 transition hover:bg-brand-400 disabled:cursor-not-allowed disabled:opacity-60"
-      >
+      <button type="submit" disabled={submitting} className="w-full rounded-lg bg-brand-500 px-6 py-3 font-medium text-ink-950 transition hover:bg-brand-400 disabled:cursor-not-allowed disabled:opacity-60">
         {submitting ? "Signing in…" : "Sign in"}
       </button>
     </form>
   );
 }
 
-function Field({
-  label,
-  name,
-  type = "text",
-  value,
-  onChange,
-  autoComplete,
-  inputMode,
-  maxLength,
-}: {
+function Field({ label, name, type = "text", value, onChange, autoComplete, inputMode, maxLength }: {
   label: string;
   name: string;
   type?: string;
@@ -120,21 +89,8 @@ function Field({
 }) {
   return (
     <div>
-      <label className="mb-1 block text-sm font-medium text-gray-300" htmlFor={name}>
-        {label}
-      </label>
-      <input
-        id={name}
-        name={name}
-        type={type}
-        value={value}
-        onChange={(event) => onChange(event.target.value)}
-        required
-        autoComplete={autoComplete}
-        inputMode={inputMode}
-        maxLength={maxLength}
-        className="w-full rounded-lg border border-ink-700 bg-ink-800 px-3 py-2 text-gray-100 outline-none focus:border-brand-500"
-      />
+      <label className="mb-1 block text-sm font-medium text-gray-300" htmlFor={name}>{label}</label>
+      <input id={name} name={name} type={type} value={value} onChange={(event) => onChange(event.target.value)} required autoComplete={autoComplete} inputMode={inputMode} maxLength={maxLength} className="w-full rounded-lg border border-ink-700 bg-ink-800 px-3 py-2 text-gray-100 outline-none focus:border-brand-500" />
     </div>
   );
 }
