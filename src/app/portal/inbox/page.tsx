@@ -1,12 +1,37 @@
+import Link from "next/link";
 import { PortalFeaturePage } from "@/components/portal-feature-page";
+import { listOpenServiceCases } from "@/lib/client-servicing";
+import { db } from "@/lib/db";
+import { features } from "@/lib/features";
+import { getPortalContext } from "@/lib/portal-context";
 
-export default function InboxPage() {
-  return (
-    <PortalFeaturePage eyebrow="Communication" title="Inbox" description="Assigned work communications will appear here.">
-      <section className="portal-card max-w-3xl">
-        <h2 className="portal-heading text-lg font-semibold">Inbox setup is next</h2>
-        <p className="portal-copy mt-3 text-sm">This space will hold assigned conversations, follow-ups, internal announcements, and relevant activity without exposing unrelated company records.</p>
-      </section>
-    </PortalFeaturePage>
-  );
+export const dynamic = "force-dynamic";
+
+function pacific(value: Date) {
+  return value.toLocaleString("en-US", { dateStyle: "medium", timeStyle: "short", timeZone: "America/Los_Angeles" });
+}
+
+export default async function InboxPage() {
+  const { agent, isAdmin } = await getPortalContext();
+  const now = new Date();
+  const horizon = new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000);
+  const callbackWhere = isAdmin ? { status: "SCHEDULED" as const, dueAt: { lte: horizon } } : agent ? { agentId: agent.id, status: "SCHEDULED" as const, dueAt: { lte: horizon } } : { id: "__none__" };
+  const appointmentFilter = isAdmin ? {} : agent ? { agentId: agent.id } : { id: "__none__" };
+  const [callbacks, appointmentsNeedingOutcome, serviceCases] = await Promise.all([
+    features.leads ? db.leadCallback.findMany({ where: callbackWhere, orderBy: { dueAt: "asc" }, take: 20 }) : Promise.resolve([]),
+    db.appointment.findMany({ where: { ...appointmentFilter, status: { in: ["SCHEDULED", "CONFIRMED"] }, startAt: { lte: now }, OR: [{ endAt: { lt: now } }, { endAt: null, startAt: { lt: now } }] }, orderBy: { startAt: "desc" }, take: 10 }),
+    features.servicing ? listOpenServiceCases(isAdmin ? undefined : agent?.id) : Promise.resolve([]),
+  ]);
+  const leadIds = callbacks.map((callback) => callback.leadId);
+  const leads = leadIds.length ? await db.lead.findMany({ where: { id: { in: leadIds } }, select: { id: true, company: true, lifecycle: true } }) : [];
+  const leadById = new Map(leads.map((lead) => [lead.id, lead]));
+  const overdueCallbacks = callbacks.filter((callback) => callback.dueAt <= now).length;
+  const visibleCases = serviceCases.slice(0, 10);
+  const totalWork = callbacks.length + appointmentsNeedingOutcome.length + visibleCases.length;
+
+  if (!agent && !isAdmin) {
+    return <PortalFeaturePage eyebrow="Communication" title="Inbox" description="Assigned work communications will appear here."><section className="portal-card max-w-3xl"><h2 className="portal-heading text-lg font-semibold">Workspace connection pending</h2><p className="portal-copy mt-3 text-sm">Your account is not linked to an active agent profile yet, so there is no assigned work to display.</p></section></PortalFeaturePage>;
+  }
+
+  return <PortalFeaturePage eyebrow="Communication" title="Inbox" description="Your assigned follow-ups and operational items in one place."><section className="portal-card max-w-4xl"><div className="flex flex-col justify-between gap-3 sm:flex-row sm:items-start"><div><h2 className="portal-heading text-lg font-semibold">Work inbox</h2><p className="portal-copy mt-1 text-sm">This view surfaces MiniCRM work already assigned to you. External email and SMS reply ingestion will be added through a separately approved marketing-reply integration.</p></div>{isAdmin && <span className="portal-status-good text-sm font-semibold">Company view</span>}</div><div className="mt-5 grid gap-3 sm:grid-cols-3"><div className={overdueCallbacks ? "rounded-xl border border-amber-700/70 px-4 py-3" : "portal-callout"}><p className="portal-heading text-xl font-semibold">{overdueCallbacks}</p><p className="portal-copy mt-1 text-sm">Overdue callbacks</p></div><div className={appointmentsNeedingOutcome.length ? "rounded-xl border border-amber-700/70 px-4 py-3" : "portal-callout"}><p className="portal-heading text-xl font-semibold">{appointmentsNeedingOutcome.length}</p><p className="portal-copy mt-1 text-sm">Appointment outcomes to confirm</p></div><div className={visibleCases.length ? "rounded-xl border border-ink-700 px-4 py-3" : "portal-callout"}><p className="portal-heading text-xl font-semibold">{visibleCases.length}</p><p className="portal-copy mt-1 text-sm">Open service cases</p></div></div></section>{totalWork === 0 ? <section className="portal-card mt-6 max-w-4xl"><h2 className="portal-heading text-lg font-semibold">No assigned work right now</h2><p className="portal-copy mt-2 text-sm">New callbacks, service needs, and appointment-status checks will appear here when assigned or relayed to your workspace.</p></section> : <section className="mt-6 grid gap-6 xl:grid-cols-2"><article className="portal-card p-0"><div className="flex items-center justify-between border-b px-6 py-4 portal-border"><div><h2 className="portal-heading font-semibold">Lead callbacks</h2><p className="portal-copy mt-1 text-sm">Due within the next seven days.</p></div><Link className="portal-action-link" href="/portal/tasks">Open Tasks</Link></div>{callbacks.length === 0 ? <p className="portal-copy px-6 py-6 text-sm">No scheduled callbacks in this window.</p> : <div>{callbacks.map((callback) => { const lead = leadById.get(callback.leadId); return <article className="border-b px-6 py-4 last:border-b-0 portal-border" key={callback.id}><div className="flex flex-wrap items-start justify-between gap-3"><div><p className="portal-heading font-medium">{lead?.company || "Lead record"}</p><p className="portal-copy mt-1 text-sm">Due {pacific(callback.dueAt)} · {lead?.lifecycle?.replaceAll("_", " ") || "Active"}</p></div><span className={callback.dueAt <= now ? "portal-status-pending text-xs font-semibold" : "portal-copy text-xs"}>{callback.dueAt <= now ? "Overdue" : "Scheduled"}</span></div></article>; })}</div>}</article><article className="portal-card p-0"><div className="flex items-center justify-between border-b px-6 py-4 portal-border"><div><h2 className="portal-heading font-semibold">Appointment outcome checks</h2><p className="portal-copy mt-1 text-sm">Past events without a final GHL status.</p></div><Link className="portal-action-link" href="/portal/schedule">Open Schedule</Link></div>{appointmentsNeedingOutcome.length === 0 ? <p className="portal-copy px-6 py-6 text-sm">No appointment outcomes need confirmation.</p> : <div>{appointmentsNeedingOutcome.map((appointment) => <article className="border-b px-6 py-4 last:border-b-0 portal-border" key={appointment.id}><p className="portal-heading font-medium">{appointment.title}</p><p className="portal-copy mt-1 text-sm">Started {pacific(appointment.startAt)} · Awaiting final GHL outcome</p></article>)}</div>}</article><article className="portal-card p-0 xl:col-span-2"><div className="flex items-center justify-between border-b px-6 py-4 portal-border"><div><h2 className="portal-heading font-semibold">Open service cases</h2><p className="portal-copy mt-1 text-sm">Real service triggers assigned to your workspace.</p></div><Link className="portal-action-link" href="/portal/servicing">Open Client Servicing</Link></div>{visibleCases.length === 0 ? <p className="portal-copy px-6 py-6 text-sm">No open service cases are assigned.</p> : <div className="divide-y portal-border">{visibleCases.map((serviceCase) => <article className="px-6 py-4" key={serviceCase.id}><div className="flex flex-wrap items-start justify-between gap-3"><div><p className="portal-heading font-medium">{serviceCase.clientName}</p><p className="portal-copy mt-1 text-sm">{serviceCase.summary}</p><p className="portal-copy mt-1 text-xs">{serviceCase.trigger.replaceAll("_", " ")} · {serviceCase.priority.replaceAll("_", " ")} · {serviceCase.status.replaceAll("_", " ")}</p></div><span className="portal-copy text-xs">Due {serviceCase.dueAt ? pacific(serviceCase.dueAt) : "—"}</span></div></article>)}</div>}</article></section>}</PortalFeaturePage>;
 }
