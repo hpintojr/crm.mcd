@@ -489,3 +489,85 @@ model AuditLog {
 
   @@index([entityType, entityId])
 }
+
+// Lead-import batch API (mcd_lead_ops integration, Phase D — added 2026-07-03)
+// Batches are created by a signed machine client (see lead-import-auth.ts),
+// staged for admin review, and only committed to Lead/LeadActivity/AuditLog
+// rows on explicit submit+approval. No local process writes Lead rows directly.
+enum LeadImportBatchStatus {
+  DRAFT
+  ROWS_RECEIVED
+  PREVIEWED
+  REVIEW_REQUIRED
+  APPROVED_FOR_SUBMISSION
+  SUBMITTED
+  PARTIALLY_ACCEPTED
+  COMPLETED
+  FAILED
+  RECONCILIATION_REQUIRED
+}
+
+enum LeadImportRowStatus {
+  RECEIVED
+  VALID
+  DUPLICATE_IN_BATCH
+  POSSIBLE_EXISTING_DUPLICATE
+  SUPPRESSED
+  REVIEW_REQUIRED
+  REJECTED
+  PENDING_ADMIN_REVIEW
+  APPROVED
+  IMPORTED
+  IMPORT_ERROR
+}
+
+model LeadImportBatch {
+  id                   String                @id @default(cuid())
+  localRunId           String                @unique
+  operatorName         String
+  sourceAdapter        String
+  sourceAdapterVersion String
+  manifestHash         String
+  clientVersion        String
+  keyId                String?
+  status               LeadImportBatchStatus @default(DRAFT)
+  rowCount             Int                   @default(0)
+  insertedCount        Int?
+  duplicateCount       Int?
+  suppressedCount      Int?
+  rejectedCount        Int?
+  approvalRecordedAt   DateTime?
+  approvalReference    String?
+  approvedByUserId     String?
+  submittedAt          DateTime?
+  completedAt          DateTime?
+  failureReason        String?
+  rows                 LeadImportRow[]
+  createdAt            DateTime              @default(now())
+  updatedAt            DateTime              @updatedAt
+
+  @@index([status])
+  @@index([createdAt])
+}
+
+model LeadImportRow {
+  id             String              @id @default(cuid())
+  batchId        String
+  batch          LeadImportBatch     @relation(fields: [batchId], references: [id], onDelete: Cascade)
+  rowNumber      Int
+  rowHash        String
+  idempotencyKey String
+  payload        Json
+  status         LeadImportRowStatus @default(RECEIVED)
+  issues         Json?
+  dedupeKey      String?
+  existingLeadId String?
+  createdLeadId  String?
+  createdAt      DateTime            @default(now())
+  updatedAt      DateTime            @updatedAt
+
+  @@unique([batchId, rowNumber])
+  @@unique([batchId, idempotencyKey])
+  @@index([batchId, status])
+  @@index([dedupeKey])
+}
