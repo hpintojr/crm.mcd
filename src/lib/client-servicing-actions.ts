@@ -39,6 +39,15 @@ export type OpenClientServiceCaseInput = {
   assignedAgentId?: string;
 };
 
+type SourceLeadRow = {
+  id: string;
+  lifecycle: string;
+  dnc: boolean;
+  suppressed: boolean;
+  ownerAgentId: string | null;
+  ghlContactId: string | null;
+};
+
 function nullable(value?: string) {
   const trimmed = value?.trim();
   return trimmed ? trimmed : null;
@@ -79,17 +88,35 @@ export async function createClientAccount(input: z.input<typeof createAccountSch
   const now = new Date();
 
   await db.$transaction(async (tx) => {
+    let sourceLead: SourceLeadRow | null = null;
+    if (parsed.leadId) {
+      const sourceLeads = await tx.$queryRaw<SourceLeadRow[]>`
+        SELECT "id", "lifecycle"::text AS "lifecycle", "dnc", "suppressed", "ownerAgentId", "ghlContactId"
+        FROM "Lead" WHERE "id"=${parsed.leadId} FOR UPDATE
+      `;
+      sourceLead = sourceLeads[0] ?? null;
+      if (!sourceLead) throw new Error("Source Lead not found.");
+      if (sourceLead.dnc || sourceLead.suppressed) throw new Error("Suppressed Leads cannot create Client Accounts.");
+      if (sourceLead.lifecycle !== "CLOSED_WON") throw new Error("A linked Client Account can be created only from a verified Closed Won Lead.");
+      const existingAccounts = await tx.$queryRaw<Array<{ id: string }>>`
+        SELECT "id" FROM "ClientAccount" WHERE "leadId"=${parsed.leadId} LIMIT 1
+      `;
+      if (existingAccounts[0]) throw new Error("This Lead already has a Client Account.");
+    }
+
+    const ghlContactId = sourceLead?.ghlContactId ?? nullable(parsed.ghlContactId);
+    const originatingAgentId = sourceLead?.ownerAgentId ?? parsed.originatingAgentId ?? null;
     await tx.$executeRaw`
       INSERT INTO "ClientAccount" ("id","leadId","clientName","ghlLocationId","ghlContactId","packageCode","accountOwnerAgentId","originatingAgentId","createdAt","updatedAt")
-      VALUES (${accountId},${parsed.leadId ?? null},${parsed.clientName},${nullable(parsed.ghlLocationId)},${nullable(parsed.ghlContactId)},${parsed.packageCode},${parsed.accountOwnerAgentId ?? null},${parsed.originatingAgentId ?? null},${now},${now})
+      VALUES (${accountId},${parsed.leadId ?? null},${parsed.clientName},${nullable(parsed.ghlLocationId)},${ghlContactId},${parsed.packageCode},${parsed.accountOwnerAgentId ?? null},${originatingAgentId},${now},${now})
     `;
     await tx.$executeRaw`
       INSERT INTO "ClientServiceActivity" ("id","clientAccountId","type","notes","occurredAt","createdAt")
       VALUES (${randomUUID()},${accountId},'ACCOUNT_CREATED'::"ClientServiceActivityType",'Client account created in the Mini CRM.',${now},${now})
     `;
     await tx.$executeRaw`
-      INSERT INTO "AuditLog" ("id","actorUserId","actorRole","actionType","entityType","entityId","createdAt")
-      VALUES (${randomUUID()},${actor.id},${actor.role},'CLIENT_ACCOUNT_CREATED','ClientAccount',${accountId},${now})
+      INSERT INTO "AuditLog" ("id","actorUserId","actorRole","actionType","entityType","entityId","metadata","createdAt")
+      VALUES (${randomUUID()},${actor.id},${actor.role},'CLIENT_ACCOUNT_CREATED','ClientAccount',${accountId},${JSON.stringify({ leadId: parsed.leadId ?? null, sourceLeadVerified: Boolean(sourceLead), originatingAgentId })}::jsonb,${now})
     `;
   });
 
