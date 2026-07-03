@@ -6,7 +6,9 @@ const completionPage = readFileSync(new URL("../src/app/(auth)/login/complete/pa
 const authConfig = readFileSync(new URL("../src/auth.config.ts", import.meta.url), "utf8");
 
 assert.equal(loginForm.includes('window.location.replace("/login/complete")'), true);
-assert.equal(loginForm.includes("getSession"), false);
+assert.equal(loginForm.includes("recoverCompletedSession"), true);
+assert.equal(loginForm.includes("getSession().catch(() => null)"), true);
+assert.equal(loginForm.includes("SESSION_RECOVERY_ATTEMPTS"), true);
 assert.equal(completionPage.includes('redirect(role && ADMIN_ROLES.has(role) ? "/admin" : "/portal")'), true);
 assert.equal(authConfig.includes('pathname === "/login/complete"'), true);
 

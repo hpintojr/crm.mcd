@@ -1,13 +1,20 @@
 "use client";
 
 import { FormEvent, useState } from "react";
-import { signIn } from "next-auth/react";
+import { getSession, signIn } from "next-auth/react";
+
+const SESSION_RECOVERY_ATTEMPTS = 12;
+const SESSION_RECOVERY_INTERVAL_MS = 500;
 
 function readErrorCode(result: unknown): string {
   if (!result || typeof result !== "object") return "";
   const record = result as Record<string, unknown>;
   if (typeof record.code === "string") return record.code;
   return typeof record.error === "string" ? record.error : "";
+}
+
+function wait(milliseconds: number) {
+  return new Promise<void>((resolve) => window.setTimeout(resolve, milliseconds));
 }
 
 export function LoginForm() {
@@ -24,6 +31,33 @@ export function LoginForm() {
     setSubmitting(true);
     setError(null);
 
+    let settled = false;
+
+    const recoverCompletedSession = async () => {
+      for (let attempt = 0; attempt < SESSION_RECOVERY_ATTEMPTS && !settled; attempt += 1) {
+        await wait(SESSION_RECOVERY_INTERVAL_MS);
+        if (settled) return;
+
+        const session = await getSession().catch(() => null);
+        if (session?.user?.id) {
+          settled = true;
+          window.location.replace("/login/complete");
+          return;
+        }
+      }
+
+      if (!settled) {
+        settled = true;
+        setError("We could not confirm your sign-in session. Refresh the page and try again.");
+        setSubmitting(false);
+      }
+    };
+
+    // Auth.js normally resolves signIn after the credentials callback. This
+    // parallel session check recovers when the callback succeeds but the client
+    // promise stalls before the browser receives the completion result.
+    void recoverCompletedSession();
+
     try {
       const result = await signIn("credentials", {
         email,
@@ -32,8 +66,11 @@ export function LoginForm() {
         redirect: false,
       });
 
+      if (settled) return;
+
       const errorCode = readErrorCode(result);
       if (!result || result.error) {
+        settled = true;
         if (errorCode.includes("MFA")) {
           setShowTotp(true);
           setError(
@@ -50,10 +87,11 @@ export function LoginForm() {
         return;
       }
 
-      // Auth.js has written the cookie. Let the server read that fresh session
-      // and choose the protected destination by role.
+      settled = true;
       window.location.replace("/login/complete");
     } catch {
+      if (settled) return;
+      settled = true;
       setError("We could not complete sign-in. Refresh the page and try again.");
       setSubmitting(false);
     }
