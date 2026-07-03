@@ -4,15 +4,15 @@ import { useEffect, useState } from "react";
 
 type LoginFormProps = {
   initialError?: string | null;
+  requiresMfa?: boolean;
 };
 
 /**
  * Uses a native browser POST to Auth.js instead of the client signIn helper.
- * This lets the browser receive the callback response, persist the session
- * cookie, and follow the role-protected callback URL without waiting on a
- * client-side credentials promise.
+ * Auth.js returns to /login with its existing MFA-required code after the first
+ * password check; the second native POST includes the current TOTP code.
  */
-export function LoginForm({ initialError = null }: LoginFormProps) {
+export function LoginForm({ initialError = null, requiresMfa = false }: LoginFormProps) {
   const [csrfToken, setCsrfToken] = useState<string | null>(null);
   const [loadingToken, setLoadingToken] = useState(true);
   const [error, setError] = useState<string | null>(initialError);
@@ -57,14 +57,16 @@ export function LoginForm({ initialError = null }: LoginFormProps) {
 
       <Field label="Email" name="email" type="email" autoComplete="email" />
       <Field label="Password" name="password" type="password" autoComplete="current-password" />
-      <Field
-        label="Authentication code"
-        name="totp"
-        inputMode="numeric"
-        maxLength={6}
-        autoComplete="one-time-code"
-        hint="Enter your current six-digit code."
-      />
+      {requiresMfa && (
+        <Field
+          label="Authentication code"
+          name="totp"
+          inputMode="numeric"
+          maxLength={6}
+          autoComplete="one-time-code"
+          hint="Enter your current six-digit code."
+        />
+      )}
 
       <button
         type="submit"
