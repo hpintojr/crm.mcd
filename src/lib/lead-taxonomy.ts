@@ -1,6 +1,7 @@
 import "server-only";
 
 import { z } from "zod";
+import { assertLeadImportIntakeAllowed } from "@/lib/lead-import-intake-policy";
 
 export const leadSources = [
   "GOOGLE_MAPS",
@@ -159,9 +160,7 @@ export const leadImportRowSchema = leadImportBaseSchema.merge(leadSourceFieldsSc
 export type LeadImportRow = z.infer<typeof leadImportRowSchema>;
 
 export function assertLeadImportAllowed(row: LeadImportRow) {
-  if (row.originalSource === "GOOGLE_MAPS" && row.intakeMethod === "SCRAPE_IMPORT") {
-    throw new Error("Google Maps batch scraping/import is blocked. Use an approved data provider or independently sourced business data before importing leads.");
-  }
+  assertLeadImportIntakeAllowed(row);
 }
 
 export function defaultPoolForSource(source: LeadSourceValue): LeadPoolValue {
