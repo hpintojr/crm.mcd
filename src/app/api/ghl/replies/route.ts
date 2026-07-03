@@ -15,11 +15,11 @@ const schema = z.object({
   from_email: optionalText(320),
   from_phone: optionalText(100),
   received_at: optionalText(200),
-}).superRefine((value, context) => {
+}).passthrough().superRefine((value, context) => {
   if (!value.mini_crm_lead_id && !value.ghl_contact_id && !value.from_email && !value.from_phone) {
     context.addIssue({ code: z.ZodIssueCode.custom, message: "Provide a MiniCRM Lead ID, GHL contact ID, email, or phone for matching." });
   }
-}).passthrough();
+});
 
 export async function POST(request: NextRequest) {
   const raw: unknown = await request.json().catch(() => null);
