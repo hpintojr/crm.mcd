@@ -9,12 +9,15 @@ Before changing code, read:
 3. `docs/DAILY_LOG.md`
 4. `docs/REBUILD_V1_SPEC.md`
 5. `docs/REBUILD_V1_PREVIEW_ENVIRONMENT.md`
+6. `docs/CODEBASE_AUDIT.md`
+7. `docs/DATABASE_SCHEMA_INVENTORY.md`
 
 ## Current Rebuild State — 2026-07-03
 
 - **Known-good recovery baseline:** `recovery/e59-route-fix` at `92c052a99c3d0375ca178abc589ee90d38d033bf`
 - **Rebuild foundation branch:** `rebuild/v1-foundation`
 - **Active Milestone 1 branch:** `rebuild/m1-role-shell`
+- **Audit documentation branch:** `docs/rebuild-audit-2026-07-03`
 - **Current Milestone 1 Preview:** `https://crm-mcd-git-rebuild-m1-role-shell-hamiltons-projects-f65eeb81.vercel.app`
 - **Preview database only:** Neon branch `preview-rebuild-v1` (`br-twilight-snow-aj4widc4`)
 - **Production:** frozen; do not modify `main`, production Vercel variables, production Neon schema, or production data without explicit owner approval.
@@ -46,6 +49,15 @@ Before changing code, read:
 - `DATABASE_URL` and `DIRECT_URL` must be Preview-only Vercel values pointing to the Preview Neon branch.
 - Do not use production GoHighLevel, SMTP, Stripe, payout, or document-storage credentials in Preview.
 - No secret or connection string belongs in the repository.
+- Before re-enabling any integration action, implement and test an application-level Preview/test-mode guard; Vercel variable scoping alone is not sufficient release protection.
+
+## Schema Source-of-Truth Gate
+
+- `database/migrations/20260702_002_client_servicing_health.sql` is the approved SQL baseline for the four Client Servicing Health tables.
+- Those tables are present on the Preview database, but the active `prisma/schema.prisma` does not yet represent them.
+- This is migration-to-ORM drift, not permission to create another service migration.
+- Do not write Prisma-based servicing, commission, House-transfer, or database-change code until the Prisma schema is reconciled against the approved SQL baseline in a no-migration branch.
+- Do not run `prisma migrate deploy` against production. Record every future production schema release in the migration ledger and the daily log.
 
 ## Business Rules That Must Not Regress
 
