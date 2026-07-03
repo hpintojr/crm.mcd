@@ -1,105 +1,77 @@
 "use client";
 
-import { FormEvent, useState } from "react";
-import { getSession, signIn } from "next-auth/react";
-import { useRouter } from "next/navigation";
+import { useEffect, useState } from "react";
 
-const ADMIN_ROLES = new Set([
-  "OWNER",
-  "SUPER_ADMIN",
-  "SALES_MANAGER",
-  "COMPLIANCE_MANAGER",
-  "FINANCE_MANAGER",
-]);
+type LoginFormProps = {
+  initialError?: string | null;
+};
 
-function readErrorCode(result: unknown): string {
-  if (!result || typeof result !== "object") return "";
-  const record = result as Record<string, unknown>;
-  if (typeof record.code === "string") return record.code;
-  return typeof record.error === "string" ? record.error : "";
-}
+/**
+ * Uses a native browser POST to Auth.js instead of the client signIn helper.
+ * This lets the browser receive the callback response, persist the session
+ * cookie, and follow the role-protected callback URL without waiting on a
+ * client-side credentials promise.
+ */
+export function LoginForm({ initialError = null }: LoginFormProps) {
+  const [csrfToken, setCsrfToken] = useState<string | null>(null);
+  const [loadingToken, setLoadingToken] = useState(true);
+  const [error, setError] = useState<string | null>(initialError);
 
-export function LoginForm() {
-  const router = useRouter();
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
-  const [totp, setTotp] = useState("");
-  const [showTotp, setShowTotp] = useState(false);
-  const [submitting, setSubmitting] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  useEffect(() => {
+    let active = true;
 
-  async function handleSubmit(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault();
-    setSubmitting(true);
-    setError(null);
+    void fetch("/api/auth/csrf", { cache: "no-store" })
+      .then(async (response) => {
+        if (!response.ok) throw new Error("Unable to prepare the secure sign-in form.");
+        return response.json() as Promise<{ csrfToken?: unknown }>;
+      })
+      .then((payload) => {
+        if (!active) return;
+        if (typeof payload.csrfToken !== "string" || payload.csrfToken.length === 0) {
+          throw new Error("Unable to prepare the secure sign-in form.");
+        }
+        setCsrfToken(payload.csrfToken);
+        setLoadingToken(false);
+      })
+      .catch(() => {
+        if (!active) return;
+        setError("We could not prepare secure sign-in. Refresh the page and try again.");
+        setLoadingToken(false);
+      });
 
-    const result = await signIn("credentials", {
-      email,
-      password,
-      totp,
-      redirect: false,
-    });
-
-    const errorCode = readErrorCode(result);
-    if (!result || result.error) {
-      if (errorCode.includes("MFA")) {
-        setShowTotp(true);
-        setError(
-          errorCode.includes("INVALID")
-            ? "That authentication code is not valid. Try again."
-            : "Enter the six-digit code from your authenticator app.",
-        );
-      } else if (errorCode.includes("LOCKED")) {
-        setError("This account is temporarily locked after too many sign-in attempts.");
-      } else {
-        setError("We could not sign you in with those credentials.");
-      }
-      setSubmitting(false);
-      return;
-    }
-
-    const session = await getSession();
-    const role = session?.user?.role;
-    router.replace(role && ADMIN_ROLES.has(role) ? "/admin" : "/portal");
-    router.refresh();
-  }
+    return () => {
+      active = false;
+    };
+  }, []);
 
   return (
-    <form className="mt-7 space-y-5" onSubmit={handleSubmit}>
+    <form action="/api/auth/callback/credentials" className="mt-7 space-y-5" method="post">
       {error && (
         <div className="rounded-lg border border-red-800 bg-red-950/50 px-4 py-3 text-sm text-red-300" role="alert">
           {error}
         </div>
       )}
 
-      <Field label="Email" name="email" type="email" value={email} onChange={setEmail} autoComplete="email" />
-      <Field
-        label="Password"
-        name="password"
-        type="password"
-        value={password}
-        onChange={setPassword}
-        autoComplete="current-password"
-      />
+      <input name="csrfToken" type="hidden" value={csrfToken ?? ""} />
+      <input name="callbackUrl" type="hidden" value="/admin" />
 
-      {showTotp && (
-        <Field
-          label="Authentication code"
-          name="totp"
-          inputMode="numeric"
-          maxLength={6}
-          value={totp}
-          onChange={setTotp}
-          autoComplete="one-time-code"
-        />
-      )}
+      <Field label="Email" name="email" type="email" autoComplete="email" />
+      <Field label="Password" name="password" type="password" autoComplete="current-password" />
+      <Field
+        label="Authentication code"
+        name="totp"
+        inputMode="numeric"
+        maxLength={6}
+        autoComplete="one-time-code"
+        hint="Enter your current six-digit code."
+      />
 
       <button
         type="submit"
-        disabled={submitting}
+        disabled={!csrfToken || loadingToken}
         className="w-full rounded-lg bg-brand-500 px-6 py-3 font-medium text-ink-950 transition hover:bg-brand-400 disabled:cursor-not-allowed disabled:opacity-60"
       >
-        {submitting ? "Signing in…" : "Sign in"}
+        {loadingToken ? "Preparing secure sign-in…" : "Sign in"}
       </button>
     </form>
   );
@@ -109,20 +81,18 @@ function Field({
   label,
   name,
   type = "text",
-  value,
-  onChange,
   autoComplete,
   inputMode,
   maxLength,
+  hint,
 }: {
   label: string;
   name: string;
   type?: string;
-  value: string;
-  onChange: (value: string) => void;
   autoComplete?: string;
   inputMode?: "numeric";
   maxLength?: number;
+  hint?: string;
 }) {
   return (
     <div>
@@ -133,14 +103,13 @@ function Field({
         id={name}
         name={name}
         type={type}
-        value={value}
-        onChange={(event) => onChange(event.target.value)}
         required
         autoComplete={autoComplete}
         inputMode={inputMode}
         maxLength={maxLength}
         className="w-full rounded-lg border border-ink-700 bg-ink-800 px-3 py-2 text-gray-100 outline-none focus:border-brand-500"
       />
+      {hint && <p className="mt-1 text-xs text-gray-500">{hint}</p>}
     </div>
   );
 }
