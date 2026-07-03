@@ -33,7 +33,7 @@ export function previewLeadImport(rows: unknown[]): LeadImportPreviewRow[] {
     const rowNumber = index + 1;
     try {
       const row = leadImportRowSchema.parse(input);
-      assertLeadImportIntakeAllowed(row.intakeMethod);
+      assertLeadImportIntakeAllowed({ originalSource: row.originalSource, intakeMethod: row.intakeMethod });
       assertLeadImportAllowed(row);
       const dedupeKey = buildLeadDedupeKey({ company: row.company, email: row.email, businessPhone: row.businessPhone, website: row.website });
       const duplicateInBatch = seen.has(dedupeKey);
