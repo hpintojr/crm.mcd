@@ -1,0 +1,19 @@
+import Link from "next/link";
+import { ADMIN_ROLES, requireRole } from "@/lib/authz";
+
+export const dynamic = "force-dynamic";
+
+export default async function InboundReplyRelaySetupPage() {
+  await requireRole(ADMIN_ROLES);
+  return <main className="mx-auto min-h-screen max-w-5xl px-6 py-12"><div className="flex flex-wrap items-start justify-between gap-4"><div><p className="text-sm font-medium uppercase tracking-widest text-brand-400">Mercury Call Desk</p><h1 className="mt-2 text-3xl font-semibold text-white">Inbound reply relay setup</h1><p className="mt-2 max-w-3xl text-gray-400">Use this reference to send approved GHL email and SMS replies into the MiniCRM work queue. The relay is staged behind the independent Leads gate and requires a controlled test before normal use.</p></div><Link className="rounded-lg border border-ink-700 px-3 py-2 text-sm text-gray-200" href="/admin/integrations">Integration monitor</Link></div><section className="mt-8 rounded-2xl border border-ink-700 bg-ink-900 p-6"><h2 className="font-semibold text-white">GHL workflow action</h2><p className="mt-2 text-sm leading-6 text-gray-300">Trigger only after a prospect sends an inbound email or SMS reply. Use the same approved webhook authentication pattern already used for Mercury Call Desk appointment and opportunity relays. Send the request to <code className="text-brand-200">/api/ghl/replies</code>.</p><div className="mt-5 overflow-x-auto rounded-xl border border-ink-700 bg-ink-950 p-4"><pre className="text-sm text-gray-200">{`{
+  "ghl_event_id": "unique-inbound-event-id",
+  "location_id": "approved-ghl-location-id",
+  "channel": "EMAIL",
+  "message": "inbound reply text",
+  "ghl_contact_id": "ghl-contact-id",
+  "mini_crm_lead_id": "optional-minicrm-lead-id",
+  "from_email": "sender@example.com",
+  "from_phone": "optional-sender-phone",
+  "received_at": "ISO-8601 timestamp"
+}`}</pre></div><p className="mt-4 text-sm text-gray-400">At least one matching identifier is required: MiniCRM Lead ID, GHL contact ID, sender email, or sender phone. Keep the GHL event ID unique so retries remain idempotent.</p></section><section className="mt-6 grid gap-5 md:grid-cols-2"><article className="rounded-2xl border border-ink-700 bg-ink-900 p-5"><h2 className="font-semibold text-white">Expected routing</h2><ul className="mt-3 space-y-2 text-sm leading-6 text-gray-300"><li>Owned active Lead: reply is logged and the owner receives an immediate callback in Tasks and Inbox.</li><li>Unassigned active Lead: reply appears in Warm Reply Triage for an admin to assign.</li><li>Existing future callback: the due time is pulled forward to now rather than duplicated.</li><li>DNC or suppressed Lead: event is retained for audit but the Lead is not changed.</li></ul></article><article className="rounded-2xl border border-ink-700 bg-ink-900 p-5"><h2 className="font-semibold text-white">Controlled test</h2><ol className="mt-3 space-y-2 text-sm leading-6 text-gray-300"><li>Use an owned test Lead and verify an inbound reply creates one immediate callback.</li><li>Use an unassigned active test Lead and verify it appears in Warm Reply Triage.</li><li>Resend the same event ID and verify no duplicate note or callback is created.</li><li>Use a suppressed test Lead and verify the event does not alter Lead workflow state.</li></ol><Link className="mt-5 inline-block rounded-lg border border-brand-500 px-3 py-2 text-sm text-brand-200" href="/admin/leads/replies">Open Warm Reply Triage</Link></article></section><section className="mt-6 rounded-2xl border border-amber-800 bg-ink-900 p-5"><h2 className="font-semibold text-white">Safety boundary</h2><p className="mt-2 text-sm leading-6 text-gray-300">This relay receives and routes replies only. It does not send campaigns, alter consent, bypass DNC, grant agents GHL access, or create payment, commission, or Finance actions.</p></section></main>;
+}
