@@ -19,9 +19,12 @@ export default function Home() {
         >
           Partner sign-up
         </Link>
-        <span className="rounded-lg border border-ink-700 px-6 py-3 text-gray-400">
-          Agent portal (coming soon)
-        </span>
+        <Link
+          href="/login"
+          className="rounded-lg border border-ink-700 px-6 py-3 text-gray-200 transition hover:border-brand-500 hover:text-white"
+        >
+          Sign in
+        </Link>
       </div>
 
       <p className="mt-16 text-xs text-gray-600">
