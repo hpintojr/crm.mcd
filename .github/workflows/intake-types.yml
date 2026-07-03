@@ -1,0 +1,20 @@
+name: Intake Types
+
+on:
+  push:
+    branches: ["fix/remove-legacy-intake-rules"]
+  pull_request:
+    paths:
+      - "src/lib/lead-taxonomy.ts"
+      - "scripts/check-lead-intake-types.ts"
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+      - run: npm install --ignore-scripts --no-audit --no-fund
+      - run: npx tsx scripts/check-lead-intake-types.ts
