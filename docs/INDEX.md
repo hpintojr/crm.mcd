@@ -1,37 +1,32 @@
 # Mercury Call Desk — Documentation Index
 
-## Start Here for a Handoff
+## Start Here
 
-1. [README](../README.md) — purpose, stack, release posture, and rebuild status.
-2. [CLAUDE.md](../CLAUDE.md) — required implementation rules.
-3. [Daily Log](./DAILY_LOG.md) — dated facts, test results, and next acceptance actions.
-4. [Rebuild V1 Specification](./REBUILD_V1_SPEC.md) — product scope, roles, workflows, milestones, and acceptance gates.
-5. [Rebuild Preview Environment](./REBUILD_V1_PREVIEW_ENVIRONMENT.md) — Preview isolation and service guardrails.
-6. [Rebuild Codebase Audit](./CODEBASE_AUDIT.md) — verified source baseline and rebuild findings.
-7. [Database Schema Inventory](./DATABASE_SCHEMA_INVENTORY.md) — Preview database inventory and reconciliation gate.
+1. [README](../README.md)
+2. [CLAUDE.md](../CLAUDE.md)
+3. [Daily Log](./DAILY_LOG.md)
+4. [Rebuild V1 Specification](./REBUILD_V1_SPEC.md)
+5. [Rebuild Preview Environment](./REBUILD_V1_PREVIEW_ENVIRONMENT.md)
+6. [Rebuild Codebase Audit](./CODEBASE_AUDIT.md)
+7. [Database Schema Inventory](./DATABASE_SCHEMA_INVENTORY.md)
+8. [2026-07-03 Rebuild Audit Log](./REBUILD_AUDIT_LOG_2026-07-03.md)
 
-## Current Technical State
-
-- Recovery baseline: `recovery/e59-route-fix` at `92c052a`.
-- Active implementation branch: `rebuild/m1-role-shell`.
-- Documentation audit branch: `docs/rebuild-audit-2026-07-03`.
-- Preview database: `preview-rebuild-v1` (`br-twilight-snow-aj4widc4`).
-- Production is frozen pending explicit acceptance.
-- Current blocker: four client-servicing tables exist in Preview but are absent from `prisma/schema.prisma`.
-
-## Existing Operational Documents
+## Historical Feature-Gated References
 
 - [Lead MVP Rollout Status](./LEAD_MVP_ROLLOUT_STATUS.md)
 - [Lead MVP Acceptance Test](./LEAD_MVP_ACCEPTANCE_TEST.md)
+- [Client Servicing Health Status](./CLIENT_SERVICING_HEALTH_STATUS.md)
+- [Client Servicing Health Acceptance Test](./CLIENT_SERVICING_HEALTH_ACCEPTANCE_TEST.md)
 
-These Lead MVP documents are historical references during the rebuild. They do not authorize turning on lead workflows or changing production.
+## Current State
 
-## Documentation Maintenance Rule
+- Recovery: `recovery/e59-route-fix` at `92c052a`.
+- Workspace: `rebuild/m1-role-shell`.
+- Audit branch: `docs/rebuild-audit-2026-07-03`.
+- Preview database: `preview-rebuild-v1`.
+- Production is frozen.
+- Current gate: Client Servicing Health SQL exists, but its models are absent from `prisma/schema.prisma`.
 
-Any branch that changes product scope, release status, environments, access controls, data behavior, integrations, acceptance criteria, or schema alignment must update:
+## Maintenance
 
-- `README.md`
-- `docs/DAILY_LOG.md`
-- this index when navigation changes
-- `CLAUDE.md` when operating rules change
-- `docs/DATABASE_SCHEMA_INVENTORY.md` when the approved schema baseline changes
+Update `README.md`, `CLAUDE.md`, `docs/DAILY_LOG.md`, this index, and `docs/DATABASE_SCHEMA_INVENTORY.md` whenever scope, environment, acceptance status, schema baseline, or release rules change.
