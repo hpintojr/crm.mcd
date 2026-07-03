@@ -4,6 +4,7 @@ import { features } from "@/lib/features";
 import { getPortalContext } from "@/lib/portal-context";
 
 export default async function PortalLayout({ children }: { children: ReactNode }) {
+  console.info("[route-trace] portal layout entered");
   const { user, agent, isAdmin } = await getPortalContext();
   const partnerName = agent?.preferredName || agent?.legalName || user.email.split("@")[0] || "Partner";
 
