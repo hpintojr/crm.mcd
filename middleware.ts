@@ -4,15 +4,7 @@ import { authConfig } from "./src/auth.config";
 
 const { auth } = NextAuth(authConfig);
 
-export default auth((request) => {
-  // Temporary Preview-only diagnostic. It contains no credentials, cookies, or
-  // secrets; it only records the requested path and whether a session user was
-  // available at the edge.
-  console.info("[route-trace] middleware", {
-    path: request.nextUrl.pathname,
-    hasSessionUser: Boolean(request.auth?.user?.id),
-  });
-
+export default auth(() => {
   const response = NextResponse.next();
   response.headers.set("X-Content-Type-Options", "nosniff");
   response.headers.set("X-Frame-Options", "DENY");
@@ -23,5 +15,5 @@ export default auth((request) => {
 });
 
 export const config = {
-  matcher: ["/((?!api|_next/static|_next/image|favicon.ico).*)"],
+  matcher: ["/admin/:path*", "/portal/:path*"],
 };
