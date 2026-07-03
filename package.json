@@ -5,7 +5,7 @@
   "description": "Mercury Call Desk — Mini CRM (Agent + Admin portals). GHL is a one-way backend.",
   "scripts": {
     "dev": "next dev",
-    "build": "npx tsx scripts/check-recovery-route-guard.ts && npx tsx scripts/check-lead-intake-types.ts && prisma generate && next build",
+    "build": "npx tsx scripts/check-recovery-route-guard.ts && npx tsx scripts/check-lead-intake-types.ts && npx tsx scripts/check-lead-import-contract.ts && prisma generate && next build",
     "start": "next start",
     "lint": "next lint",
     "typecheck": "tsc --noEmit",
@@ -15,7 +15,8 @@
     "seed:admin": "tsx scripts/create-admin.ts",
     "check:commission-policy": "tsx scripts/check-commission-policy.ts",
     "check:recovery-route-guard": "tsx scripts/check-recovery-route-guard.ts",
-    "check:lead-intake-types": "tsx scripts/check-lead-intake-types.ts"
+    "check:lead-intake-types": "tsx scripts/check-lead-intake-types.ts",
+    "check:lead-import-contract": "tsx scripts/check-lead-import-contract.ts"
   },
   "dependencies": {
     "@node-rs/argon2": "^2.0.2",
