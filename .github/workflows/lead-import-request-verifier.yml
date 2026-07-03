@@ -1,0 +1,25 @@
+name: Lead Import Request Verifier
+
+on:
+  pull_request:
+    paths:
+      - "src/lib/lead-import-request-verifier.ts"
+      - "scripts/check-lead-import-request-verifier.ts"
+      - ".github/workflows/lead-import-request-verifier.yml"
+  push:
+    branches:
+      - "rebuild/lead-import-request-verifier-v2"
+
+permissions:
+  contents: read
+
+jobs:
+  request-verifier-check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+      - run: npm install --ignore-scripts --no-audit --no-fund
+      - run: npx tsx scripts/check-lead-import-request-verifier.ts
