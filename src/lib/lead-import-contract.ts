@@ -44,6 +44,7 @@ export type LeadImportBatchStatus = z.infer<typeof leadImportBatchStatusSchema>;
 export type LeadImportRowStatus = z.infer<typeof leadImportRowStatusSchema>;
 
 const identifierSchema = z.string().trim().min(1).max(160).regex(/^[A-Za-z0-9._:-]+$/, "Use only letters, numbers, periods, underscores, colons, or hyphens.");
+const idempotencyKeySchema = z.string().trim().min(1).max(256).regex(/^[A-Za-z0-9._:-]+$/, "Use only letters, numbers, periods, underscores, colons, or hyphens.");
 const sha256Schema = z.string().trim().regex(/^[a-f0-9]{64}$/i, "Expected a SHA-256 hex digest.");
 
 export const createLeadImportBatchSchema = z.object({
@@ -58,7 +59,7 @@ export const createLeadImportBatchSchema = z.object({
 export const leadImportRowEnvelopeSchema = z.object({
   rowNumber: z.number().int().positive().max(1_000_000),
   rowHash: sha256Schema,
-  idempotencyKey: identifierSchema,
+  idempotencyKey: idempotencyKeySchema,
   row: leadImportRowSchema,
 });
 
@@ -126,5 +127,5 @@ export function makeRowIdempotencyKey(localRunId: string, rowNumber: number, row
     throw new Error("A positive integer row number is required for an idempotency key.");
   }
 
-  return `${parsedRunId}:${rowNumber}:${parsedRowHash}`;
+  return idempotencyKeySchema.parse(`${parsedRunId}:${rowNumber}:${parsedRowHash}`);
 }
