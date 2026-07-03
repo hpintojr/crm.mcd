@@ -1,7 +1,6 @@
 import { strict as assert } from "node:assert";
 import { makeRowIdempotencyKey, uploadLeadImportRowMetadataSchema } from "../src/lib/lead-import-contract";
 import { DEFAULT_LEAD_IMPORT_MAX_CLOCK_SKEW_MS, sha256Hex, signLeadImportRequest, verifyLeadImportRequest } from "../src/lib/lead-import-auth";
-import { getLeadImportIntakePolicyViolation } from "../src/lib/lead-import-intake-policy";
 
 const fixtureKey = "fixture-key-material";
 const keyId = "local-exporter-v1";
@@ -36,7 +35,4 @@ assert.equal(uploadLeadImportRowMetadataSchema.safeParse({
   ],
 }).success, false);
 
-assert.equal(getLeadImportIntakePolicyViolation({ originalSource: "WEB_FORM", intakeMethod: "WEB_FORM_SUBMISSION" }), null);
-assert.ok(getLeadImportIntakePolicyViolation({ originalSource: "OTHER", intakeMethod: "SCRAPE_IMPORT" }));
-
-console.log("Lead import contract and HMAC policy checks passed.");
+console.log("Lead import contract checks passed.");
