@@ -14,7 +14,8 @@
     "prisma:studio": "prisma studio",
     "seed:admin": "tsx scripts/create-admin.ts",
     "check:commission-policy": "tsx scripts/check-commission-policy.ts",
-    "check:lead-import-contract": "tsx scripts/check-lead-import-contract.ts"
+    "check:lead-import-contract": "tsx scripts/check-lead-import-contract.ts",
+    "check:lead-import-workflow": "tsx scripts/check-lead-import-workflow.ts"
   },
   "dependencies": {
     "@node-rs/argon2": "^2.0.2",
