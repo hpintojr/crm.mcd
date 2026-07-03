@@ -13,6 +13,7 @@
 - Failed logins, MFA failures, lockouts, successful login, and logout are audited.
 - Lead queries in the Portal remain behind `LEADS_ENABLED`.
 - The four client-servicing tables were created by the checked-in migration `database/migrations/20260702_002_client_servicing_health.sql` and prior rollout documentation records that this service-only schema was applied while `SERVICING_ENABLED` remained disabled.
+- The current servicing workspace uses parameterized raw SQL for those four tables, which is why it can operate without Prisma client models while the feature gate is off.
 
 ## Rebuild Blockers
 
