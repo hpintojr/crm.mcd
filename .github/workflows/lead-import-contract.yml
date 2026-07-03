@@ -1,23 +1,27 @@
-name: Lead Import Contract
+name: Lead Import Policy
 
 on:
   pull_request:
     paths:
       - "src/lib/lead-import-contract.ts"
       - "src/lib/lead-import-auth.ts"
+      - "src/lib/lead-import-intake-policy.ts"
       - "src/lib/lead-import-payload-schema.ts"
+      - "src/lib/lead-import-workflow.ts"
       - "scripts/check-lead-import-contract.ts"
+      - "scripts/check-lead-import-workflow.ts"
       - "package.json"
       - ".github/workflows/lead-import-contract.yml"
   push:
     branches:
       - "rebuild/lead-import-contract-slice-a"
+      - "rebuild/lead-import-workflow-rules"
 
 permissions:
   contents: read
 
 jobs:
-  contract-check:
+  policy-check:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -26,3 +30,4 @@ jobs:
           node-version: 24
       - run: npm install --ignore-scripts --no-audit --no-fund
       - run: npm run check:lead-import-contract
+      - run: npm run check:lead-import-workflow
