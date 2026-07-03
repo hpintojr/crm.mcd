@@ -1,20 +1,15 @@
-import type { LeadIntakeMethodValue } from "@/lib/lead-taxonomy";
+export type LeadImportIntakePolicyInput = { originalSource: string; intakeMethod: string };
 
-/**
- * Intake policy shared by legacy Admin import and the future signed importer.
- * The local lead tool must never use a prohibited intake method as a shortcut
- * around approved acquisition and review controls.
- */
+const blockedIntakeMethods = new Set(["SCRAPE_IMPORT"]);
 
-const blockedIntakeMethods = new Set<LeadIntakeMethodValue>(["SCRAPE_IMPORT"]);
-
-export function getLeadImportIntakePolicyViolation(intakeMethod: LeadIntakeMethodValue) {
-  if (!blockedIntakeMethods.has(intakeMethod)) return null;
-
-  return "This intake method is not permitted. Use an approved source and the controlled lead-review workflow.";
+export function getLeadImportIntakePolicyViolation(input: LeadImportIntakePolicyInput): string | null {
+  if (blockedIntakeMethods.has(input.intakeMethod)) {
+    return "This acquisition mode is not permitted for MiniCRM import. Use an approved intake method with documented permitted use.";
+  }
+  return null;
 }
 
-export function assertLeadImportIntakeAllowed(intakeMethod: LeadIntakeMethodValue) {
-  const violation = getLeadImportIntakePolicyViolation(intakeMethod);
+export function assertLeadImportIntakeAllowed(input: LeadImportIntakePolicyInput) {
+  const violation = getLeadImportIntakePolicyViolation(input);
   if (violation) throw new Error(violation);
 }
