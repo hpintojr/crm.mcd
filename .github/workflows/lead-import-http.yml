@@ -1,0 +1,25 @@
+name: Lead Import HTTP Boundary
+
+on:
+  pull_request:
+    paths:
+      - "src/lib/lead-import-http.ts"
+      - "scripts/check-lead-import-http.ts"
+      - ".github/workflows/lead-import-http.yml"
+  push:
+    branches:
+      - "rebuild/lead-import-http-v2"
+
+permissions:
+  contents: read
+
+jobs:
+  http-boundary-check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+      - run: npm install --ignore-scripts --no-audit --no-fund
+      - run: npx tsx scripts/check-lead-import-http.ts
