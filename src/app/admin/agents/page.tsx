@@ -25,8 +25,9 @@ export default async function AgentsPage() {
                     <p className="mt-1 text-sm text-gray-400">{agent.personalEmail} · {agent.status}</p>
                     <p className="mt-1 text-xs text-gray-500">Documents: {documentsComplete}/4 · Account: {agent.user?.status ?? "Not provisioned"}</p>
                   </div>
-                  <div className="flex items-center gap-3">
+                  <div className="flex flex-wrap items-center gap-3">
                     <span className={agent.canClaimLeads ? "text-xs text-emerald-300" : "text-xs text-amber-300"}>{agent.canClaimLeads ? "Lead eligible" : "Lead access pending"}</span>
+                    <a className="rounded-lg border border-ink-700 px-3 py-2 text-sm text-gray-200 hover:border-brand-500" href={`/admin/agents/${agent.id}/onboarding`}>Documents</a>
                     <a className="rounded-lg border border-ink-700 px-3 py-2 text-sm text-gray-200 hover:border-brand-500" href={`/admin/agents/${agent.id}/certify`}>Certification</a>
                   </div>
                 </article>
