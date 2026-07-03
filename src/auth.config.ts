@@ -11,7 +11,7 @@ export const authConfig = {
   callbacks: {
     authorized({ auth, request: { nextUrl } }) {
       const pathname = nextUrl.pathname;
-      const isPublic = pathname === "/" || pathname === "/login" || pathname === "/login/complete" || pathname === "/signup" || pathname === "/activate" || pathname.startsWith("/api/auth") || pathname === "/api/signup" || pathname === "/api/activate";
+      const isPublic = pathname === "/" || pathname === "/login" || pathname === "/signup" || pathname === "/activate" || pathname.startsWith("/api/auth") || pathname === "/api/signup" || pathname === "/api/activate";
       if (isPublic) return true;
       if (!auth?.user?.id) return false;
       if (pathname.startsWith("/admin")) return isAdmin(auth.user.role);
