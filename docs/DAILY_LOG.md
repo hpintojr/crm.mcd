@@ -59,3 +59,32 @@
 2. Test an Agent account in Preview: successful MFA must route to `/portal`; direct Admin access must be denied.
 3. Inspect Milestone 1 runtime logs after testing.
 4. Record the result here before creating the next focused branch.
+
+## 2026-07-03 — Controlled Rebuild Audit
+
+### Documentation and source review
+
+- Created `docs/rebuild-audit-2026-07-03` from `rebuild/m1-role-shell`.
+- Added `docs/CODEBASE_AUDIT.md` and `docs/DATABASE_SCHEMA_INVENTORY.md`.
+- Updated `README.md`, `CLAUDE.md`, and `docs/INDEX.md` with the audit handoff path and rebuild gates.
+- Reviewed the Admin and Portal entry points, authentication/authorization, feature gates, GHL environment handling, migration source, Preview database structure, Vercel deployment status, and operating documents.
+
+### Verified
+
+- The latest `rebuild/m1-role-shell` Vercel Preview is `READY`.
+- Admin and Portal routes have middleware and server-side role checks.
+- Applicant Review is restricted to Owner, Super Admin, and Sales Manager roles.
+- Login failure, MFA failure, account lockout, successful login, and logout events are audited.
+- Production, feature flags, schema, customer data, and external services were not changed by this audit.
+
+### Migration-to-ORM reconciliation gate
+
+- `database/migrations/20260702_002_client_servicing_health.sql` defines the four Client Servicing Health tables, and the Preview database contains those same tables.
+- The active `prisma/schema.prisma` does not represent `ClientAccount`, `ClientServiceActivity`, `ClientServiceAssignmentEvent`, or `ClientServiceCase`.
+- This is migration-to-ORM drift. Reconcile Prisma to the approved SQL baseline in a no-migration branch before any ORM-based servicing, commission, House-transfer, or database-change work.
+
+### Integration and acceptance findings
+
+- GHL is stub-safe when credentials are absent, but application code has no independent Preview/test-mode hard-stop when credentials are configured.
+- Applicant approval calls GHL before its local database transaction; future integration work should use a retry-safe, auditable outbox pattern.
+- The pending Agent MFA → `/portal` and denied `/admin` test remains required.
