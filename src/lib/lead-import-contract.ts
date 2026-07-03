@@ -1,13 +1,11 @@
 import { z } from "zod";
-import { leadImportRowSchema } from "@/lib/lead-taxonomy";
 
 /**
- * Canonical, provider-neutral contract for the local mcd_lead_ops exporter.
+ * Pure, provider-neutral primitives for the local mcd_lead_ops exporter.
  *
- * This file intentionally defines only request/response shapes and invariants.
- * It does not create database records or expose an endpoint. The database-backed
- * implementation arrives only after the focused lead-foundation migration is
- * accepted and tested on an isolated Neon branch.
+ * This module contains no server-only row validation, database access, or route
+ * handler. The server-only payload schema is intentionally kept separate so the
+ * signing and idempotency contract can be exercised outside the Next.js app.
  */
 
 export const leadImportBatchStatuses = [
@@ -43,28 +41,27 @@ export const leadImportRowStatusSchema = z.enum(leadImportRowStatuses);
 export type LeadImportBatchStatus = z.infer<typeof leadImportBatchStatusSchema>;
 export type LeadImportRowStatus = z.infer<typeof leadImportRowStatusSchema>;
 
-const identifierSchema = z.string().trim().min(1).max(160).regex(/^[A-Za-z0-9._:-]+$/, "Use only letters, numbers, periods, underscores, colons, or hyphens.");
-const idempotencyKeySchema = z.string().trim().min(1).max(256).regex(/^[A-Za-z0-9._:-]+$/, "Use only letters, numbers, periods, underscores, colons, or hyphens.");
-const sha256Schema = z.string().trim().regex(/^[a-f0-9]{64}$/i, "Expected a SHA-256 hex digest.");
+export const leadImportIdentifierSchema = z.string().trim().min(1).max(160).regex(/^[A-Za-z0-9._:-]+$/, "Use only letters, numbers, periods, underscores, colons, or hyphens.");
+export const leadImportIdempotencyKeySchema = z.string().trim().min(1).max(256).regex(/^[A-Za-z0-9._:-]+$/, "Use only letters, numbers, periods, underscores, colons, or hyphens.");
+export const leadImportSha256Schema = z.string().trim().regex(/^[a-f0-9]{64}$/i, "Expected a SHA-256 hex digest.");
 
 export const createLeadImportBatchSchema = z.object({
-  localRunId: identifierSchema,
+  localRunId: leadImportIdentifierSchema,
   operatorName: z.string().trim().min(1).max(200),
   sourceAdapter: z.string().trim().min(1).max(120),
   sourceAdapterVersion: z.string().trim().min(1).max(120),
-  manifestHash: sha256Schema,
+  manifestHash: leadImportSha256Schema,
   clientVersion: z.string().trim().min(1).max(120),
 });
 
-export const leadImportRowEnvelopeSchema = z.object({
+export const leadImportRowEnvelopeMetadataSchema = z.object({
   rowNumber: z.number().int().positive().max(1_000_000),
-  rowHash: sha256Schema,
-  idempotencyKey: idempotencyKeySchema,
-  row: leadImportRowSchema,
+  rowHash: leadImportSha256Schema,
+  idempotencyKey: leadImportIdempotencyKeySchema,
 });
 
-export const uploadLeadImportRowsSchema = z.object({
-  rows: z.array(leadImportRowEnvelopeSchema).min(1).max(250),
+export const uploadLeadImportRowMetadataSchema = z.object({
+  rows: z.array(leadImportRowEnvelopeMetadataSchema).min(1).max(250),
 }).superRefine((value, ctx) => {
   const rowNumbers = new Set<number>();
   const idempotencyKeys = new Set<string>();
@@ -101,15 +98,15 @@ export const submitLeadImportSchema = z.object({
 });
 
 export const leadImportRequestHeadersSchema = z.object({
-  keyId: identifierSchema,
+  keyId: leadImportIdentifierSchema,
   timestamp: z.string().trim().regex(/^\d{13}$/, "Expected a Unix timestamp in milliseconds."),
-  bodySha256: sha256Schema,
-  signature: sha256Schema,
+  bodySha256: leadImportSha256Schema,
+  signature: leadImportSha256Schema,
 });
 
 export type CreateLeadImportBatchInput = z.infer<typeof createLeadImportBatchSchema>;
-export type LeadImportRowEnvelope = z.infer<typeof leadImportRowEnvelopeSchema>;
-export type UploadLeadImportRowsInput = z.infer<typeof uploadLeadImportRowsSchema>;
+export type LeadImportRowEnvelopeMetadata = z.infer<typeof leadImportRowEnvelopeMetadataSchema>;
+export type UploadLeadImportRowMetadataInput = z.infer<typeof uploadLeadImportRowMetadataSchema>;
 export type LeadImportRequestHeaders = z.infer<typeof leadImportRequestHeadersSchema>;
 
 export const leadImportApiPaths = {
@@ -121,11 +118,11 @@ export const leadImportApiPaths = {
 } as const;
 
 export function makeRowIdempotencyKey(localRunId: string, rowNumber: number, rowHash: string) {
-  const parsedRunId = identifierSchema.parse(localRunId);
-  const parsedRowHash = sha256Schema.parse(rowHash).toLowerCase();
+  const parsedRunId = leadImportIdentifierSchema.parse(localRunId);
+  const parsedRowHash = leadImportSha256Schema.parse(rowHash).toLowerCase();
   if (!Number.isSafeInteger(rowNumber) || rowNumber < 1) {
     throw new Error("A positive integer row number is required for an idempotency key.");
   }
 
-  return idempotencyKeySchema.parse(`${parsedRunId}:${rowNumber}:${parsedRowHash}`);
+  return leadImportIdempotencyKeySchema.parse(`${parsedRunId}:${rowNumber}:${parsedRowHash}`);
 }
