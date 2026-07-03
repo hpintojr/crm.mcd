@@ -2,6 +2,14 @@
 
 Secure Agent and Admin portals for Mercury Call Desk. GoHighLevel (GHL) is a backend integration only; agents never receive GHL credentials. Neon PostgreSQL is the system of record, and GitHub `main` deploys to Vercel production.
 
+## Handoff entry points
+
+- [Project operating instructions](./CLAUDE.md)
+- [Documentation index](./docs/INDEX.md)
+- [Daily log](./docs/DAILY_LOG.md)
+- [V1 rebuild specification](./docs/REBUILD_V1_SPEC.md)
+- [Preview environment isolation](./docs/REBUILD_V1_PREVIEW_ENVIRONMENT.md)
+
 ## Production workflow
 
 - `main` is the production source branch.
@@ -10,6 +18,17 @@ Secure Agent and Admin portals for Mercury Call Desk. GoHighLevel (GHL) is a bac
 - Neon schema changes use a safety-branch review before an explicit production apply.
 - Do not enable a database-backed feature until its schema, production build, and controlled live test are complete.
 - Do not run a blanket `prisma migrate deploy` against production; use the documented database-release process and recorded production baseline.
+
+## Current controlled rebuild — 2026-07-03
+
+- **Known-good recovery baseline:** `recovery/e59-route-fix` at `92c052a`.
+- **Rebuild foundation:** `rebuild/v1-foundation`.
+- **Active workspace branch:** `rebuild/m1-role-shell`.
+- **Milestone 1 Preview:** `https://crm-mcd-git-rebuild-m1-role-shell-hamiltons-projects-f65eeb81.vercel.app`.
+- **Preview database:** Neon branch `preview-rebuild-v1` (`br-twilight-snow-aj4widc4`).
+- **Production posture:** `main`, production Vercel, production Neon schema, and production data are frozen pending explicit owner approval after Preview acceptance.
+- **Confirmed:** Owner credentials + MFA reached `/admin` successfully on the isolated Preview database.
+- **Still required:** Agent credentials + MFA must be tested to `/portal`, with direct Admin access denied.
 
 ## Stack
 
@@ -29,20 +48,34 @@ Secure Agent and Admin portals for Mercury Call Desk. GoHighLevel (GHL) is a bac
 - Security response headers plus branded error/not-found fallbacks.
 - **Lead MVP:** production schema, agent workspace, controlled imports, admin review, Open Pool protection, DNC/suppression, callbacks, and inbound GHL appointment attribution are deployed behind the Lead feature gate.
 
-## Current Lead MVP status
+## Milestone 1: Role-Aware Workspace Shell
 
-- **Database:** Lead MVP schema is applied and validated in production.
-- **Application:** Latest Lead MVP production deployment is `READY`.
+Current Preview-only changes on `rebuild/m1-role-shell`:
+
+- Protected Admin workspace header and navigation.
+- Role-aware `/admin` overview.
+- Applicant Review available at `/admin/applicants` for Owner, Super Admin, and Sales Manager roles.
+- Existing Partner Portal available from Admin.
+- Server-side authorization remains mandatory for Admin routes.
+
+This milestone does **not** change authentication, database schema, lead/client records, commissions, GHL behavior, or production.
+
+## Historical Lead MVP status
+
+- **Database:** Lead MVP schema exists in production.
 - **Feature gate:** `LEADS_ENABLED=false`; agents cannot access Lead workflows until owner acceptance testing is complete.
-- **Activation handoff:** [Lead MVP Rollout Status](./docs/LEAD_MVP_ROLLOUT_STATUS.md)
-- **Test plan:** [Lead MVP Acceptance Test](./docs/LEAD_MVP_ACCEPTANCE_TEST.md)
+- **Historical rollout reference:** [Lead MVP Rollout Status](./docs/LEAD_MVP_ROLLOUT_STATUS.md)
+- **Historical test reference:** [Lead MVP Acceptance Test](./docs/LEAD_MVP_ACCEPTANCE_TEST.md)
+
+These documents do not authorize enabling Lead workflows or changing production during the controlled rebuild.
 
 ## Module status
 
 | Module | Feature gate | Current status |
 |---|---:|---|
-| Lead pools, claim, activity, DNC, workspace | `LEADS_ENABLED` | Schema and app deployed; held for owner acceptance testing |
-| Booking attribution and appointment relay | uses lead module | Inbound appointment attribution deployed behind Lead gate; outbound GHL booking endpoint contract remains pending |
+| Admin and Agent role shell | none | Rebuilding in Preview; Milestone 1 acceptance in progress |
+| Lead pools, claim, activity, DNC, workspace | `LEADS_ENABLED` | Historical implementation exists; disabled and excluded from active rebuild until its dedicated milestone |
+| Booking attribution and appointment relay | uses lead module | Historical implementation exists; no active Preview integration testing |
 | Commission calculations and funding validation | `COMMISSIONS_ENABLED` | Staged; disabled |
 | Client servicing cadence and health | `SERVICING_ENABLED` | Staged; disabled |
 | Finance/payout eligibility | `FINANCE_ENABLED` | Staged; disabled |
@@ -69,9 +102,8 @@ Secure Agent and Admin portals for Mercury Call Desk. GoHighLevel (GHL) is a bac
 
 ## Immediate next sequence
 
-1. Review the [Lead MVP Rollout Status](./docs/LEAD_MVP_ROLLOUT_STATUS.md).
-2. Execute and sign off on the [Lead MVP Acceptance Test](./docs/LEAD_MVP_ACCEPTANCE_TEST.md).
-3. Enable `LEADS_ENABLED=true` only for the controlled acceptance test window.
-4. Run a small approved batch through import → review → claim → activity/callback → DNC → appointment attribution.
-5. Stabilize the Lead MVP and monitor audit and runtime logs.
-6. Start Client Servicing Health only after owner authorization.
+1. Accept or revise the Milestone 1 Admin workspace Preview.
+2. Run the pending Agent MFA → `/portal` and denied direct `/admin` acceptance checks in Preview.
+3. Inspect runtime logs and record the outcome in `docs/DAILY_LOG.md`.
+4. Use the accepted Milestone 1 branch as the basis for the next focused rebuild milestone.
+5. Do not enable `LEADS_ENABLED`, run external integrations, alter production, or apply database migrations without explicit owner approval.
