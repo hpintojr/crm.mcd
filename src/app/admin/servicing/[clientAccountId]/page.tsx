@@ -1,14 +1,17 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
+import { revalidatePath } from "next/cache";
 import { Prisma } from "@prisma/client";
 import { ADMIN_ROLES, requireRole } from "@/lib/authz";
 import { db } from "@/lib/db";
 import { features } from "@/lib/features";
+import { recordPaymentResolved } from "@/lib/client-servicing-resolution";
 
 export const dynamic = "force-dynamic";
 
 type AccountRow = {
   id: string;
+  leadId: string | null;
   clientName: string;
   packageCode: string;
   status: string;
@@ -73,7 +76,7 @@ export default async function AdminClientServiceDetailPage({ params }: { params:
 
   const [accounts, cases, activities, assignments] = await Promise.all([
     db.$queryRaw<AccountRow[]>(Prisma.sql`
-      SELECT "id", "clientName", "packageCode", "status"::text AS "status", "healthStatus"::text AS "healthStatus", "currentOnPayments", "accountOwnerAgentId", "originatingAgentId", "ghlLocationId", "ghlContactId", "lastSuccessfulPaymentAt", "lastPaymentIssueAt", "lastClientRequestAt", "lastSupportResponseAt", "lastEscalationAt", "lastResolvedAt", "nextRenewalAt", "houseTransferredAt", "houseTransferReason"
+      SELECT "id", "leadId", "clientName", "packageCode", "status"::text AS "status", "healthStatus"::text AS "healthStatus", "currentOnPayments", "accountOwnerAgentId", "originatingAgentId", "ghlLocationId", "ghlContactId", "lastSuccessfulPaymentAt", "lastPaymentIssueAt", "lastClientRequestAt", "lastSupportResponseAt", "lastEscalationAt", "lastResolvedAt", "nextRenewalAt", "houseTransferredAt", "houseTransferReason"
       FROM "ClientAccount" WHERE "id"=${clientAccountId}
     `),
     db.$queryRaw<ServiceCaseRow[]>(Prisma.sql`
@@ -95,6 +98,19 @@ export default async function AdminClientServiceDetailPage({ params }: { params:
   const account = accounts[0];
   if (!account) notFound();
 
+  async function confirmPaymentClearance(formData: FormData) {
+    "use server";
+    await recordPaymentResolved({
+      clientAccountId: String(formData.get("clientAccountId") ?? ""),
+      note: String(formData.get("note") ?? ""),
+    });
+    revalidatePath(`/admin/servicing/${clientAccountId}`);
+    revalidatePath("/admin/servicing");
+    revalidatePath("/admin/servicing/cases");
+    revalidatePath("/admin/readiness");
+    revalidatePath("/admin/audit");
+  }
+
   return (
     <main className="mx-auto min-h-screen max-w-7xl px-6 py-12">
       <div className="flex flex-wrap items-start justify-between gap-4">
@@ -104,6 +120,7 @@ export default async function AdminClientServiceDetailPage({ params }: { params:
           <p className="mt-2 text-gray-400">{account.packageCode} · {label(account.healthStatus)} · {account.currentOnPayments ? "Current on payments" : "Payment issue"}</p>
         </div>
         <Link className="rounded-lg border border-ink-700 px-3 py-2 text-sm text-gray-200" href="/admin/servicing">Client servicing</Link>
+        {account.leadId && <Link className="rounded-lg border border-ink-700 px-3 py-2 text-sm text-gray-200" href={`/admin/leads/${account.leadId}`}>Source Lead</Link>}
       </div>
 
       <section className="mt-8 grid gap-4 md:grid-cols-4">
@@ -164,6 +181,12 @@ export default async function AdminClientServiceDetailPage({ params }: { params:
             </div>
           )}
         </article>
+      </section>
+
+      <section className="mt-6 rounded-2xl border border-ink-700 bg-ink-900 p-6">
+        <h2 className="font-semibold text-white">Payment-clearance record</h2>
+        <p className="mt-3 text-sm text-gray-400">Use only after external payment clearance is verified. This records the servicing outcome; it does not collect money, create a payment instruction, change commission eligibility, or invoke Finance.</p>
+        {!account.currentOnPayments ? <form action={confirmPaymentClearance} className="mt-4 grid gap-3"><input name="clientAccountId" type="hidden" value={account.id} /><textarea className="min-h-28 rounded-lg border border-ink-700 bg-ink-950 px-3 py-2 text-sm text-gray-100" name="note" placeholder="External clearance evidence and date" required /><button className="justify-self-start rounded-lg border border-emerald-700 px-4 py-2 text-sm text-emerald-200" type="submit">Record payment resolved</button></form> : <p className="mt-4 text-sm text-emerald-200">No payment-clearance action is needed while the account is current.</p>}
       </section>
 
       <section className="mt-6 overflow-hidden rounded-2xl border border-ink-700 bg-ink-900">
