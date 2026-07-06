@@ -12,6 +12,7 @@ import {
 assert.doesNotThrow(() => assertLeadImportBatchTransition("DRAFT", "ROWS_RECEIVED"));
 assert.throws(() => assertLeadImportBatchTransition("DRAFT", "SUBMITTED"));
 assert.doesNotThrow(() => assertLeadImportRecordTransition("VALID", "PENDING_ADMIN_REVIEW"));
+assert.doesNotThrow(() => assertLeadImportRecordTransition("VALID", "APPROVED"));
 assert.throws(() => assertLeadImportRecordTransition("VALID", "IMPORTED"));
 assert.equal(requiresAdminReview("POSSIBLE_EXISTING_DUPLICATE"), true);
 assert.equal(mayCreateLeadFromImport({ batchStatus: "SUBMITTED", recordStatus: "APPROVED" }), true);
