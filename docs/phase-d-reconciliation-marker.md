@@ -1,0 +1,1 @@
+Phase D reconciliation is being prepared under Hamilton's 2026-07-06 authorization. The working changes will remain on a review branch.
