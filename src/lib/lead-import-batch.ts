@@ -1,11 +1,7 @@
 import "server-only";
 
 import { db } from "@/lib/db";
-import type {
-  LeadImportBatch,
-  LeadImportRow,
-  Prisma,
-} from "@prisma/client";
+import type { LeadImportBatch, LeadImportRow, Prisma } from "@prisma/client";
 import {
   leadImportRowEnvelopeSchema,
   uploadLeadImportRowsPayloadSchema,
@@ -22,11 +18,7 @@ import {
   recommendLeadImportBatchStatus,
   summarizeLeadImportRows,
 } from "@/lib/lead-import-workflow";
-import {
-  buildLeadDedupeKey,
-  normalizeEmail,
-  normalizePhone,
-} from "@/lib/lead-normalization";
+import { buildLeadDedupeKey, normalizeEmail, normalizePhone } from "@/lib/lead-normalization";
 import {
   defaultPoolForSource,
   defaultWebsiteOpportunityStatus,
@@ -35,17 +27,16 @@ import {
 } from "@/lib/lead-taxonomy";
 
 /**
- * Service layer for the mcd_lead_ops batch import API (Phase D, 2026-07-03).
+ * Durable service layer for the signed mcd_lead_ops batch import API.
  *
- * Batches are created and populated by a signed machine client (see
- * lead-import-auth.ts + lead-import-env.ts). Rows are staged, previewed
- * against existing Leads/suppressions, and only committed to Lead /
- * LeadActivity / AuditLog rows once `submitLeadImportBatch` is called with
- * an operator-recorded approval. No route in this file writes a Lead
- * outside of that explicit submit step.
+ * Rows are staged and previewed before an operator records batch approval.
+ * Only rows promoted from VALID to APPROVED by that recorded batch approval
+ * are eligible to create Lead, LeadActivity, and AuditLog records.
  */
 
 const SYSTEM_ACTOR_ROLE = "LEAD_IMPORT_API";
+
+type ImportOutcome = "IMPORTED" | "DUPLICATE";
 
 export class LeadImportBatchNotFoundError extends Error {
   constructor(batchId: string) {
@@ -90,7 +81,7 @@ export function serializeLeadImportBatch(batch: LeadImportBatchWithRows) {
         idempotencyKey: row.idempotencyKey,
         status: asContractRowStatus(row.status),
         issues: Array.isArray(row.issues) ? (row.issues as string[]) : [],
-        resolvedLeadId: row.createdLeadId ?? null,
+        resolvedLeadId: row.createdLeadId ?? row.existingLeadId ?? null,
       })),
   };
 }
@@ -138,6 +129,27 @@ export async function uploadLeadImportRows(batchId: string, rawBody: unknown) {
   }
 
   const payload = uploadLeadImportRowsPayloadSchema.parse(rawBody);
+  const existingByRowNumber = new Map(batch.rows.map((row) => [row.rowNumber, row]));
+  const existingByIdempotencyKey = new Map(batch.rows.map((row) => [row.idempotencyKey, row]));
+
+  // Validate all replay identities before any write, so an invalid replay cannot
+  // leave a partially uploaded request behind.
+  for (const envelope of payload.rows as LeadImportRowEnvelope[]) {
+    const priorAtRowNumber = existingByRowNumber.get(envelope.rowNumber);
+    const priorWithIdempotencyKey = existingByIdempotencyKey.get(envelope.idempotencyKey);
+
+    if (priorAtRowNumber && priorAtRowNumber.idempotencyKey !== envelope.idempotencyKey) {
+      throw new LeadImportBatchStateError(
+        `Row ${envelope.rowNumber} already exists in batch ${batchId} with a different idempotency key.`
+      );
+    }
+
+    if (priorWithIdempotencyKey && priorWithIdempotencyKey.rowNumber !== envelope.rowNumber) {
+      throw new LeadImportBatchStateError(
+        `Idempotency key ${envelope.idempotencyKey} is already associated with row ${priorWithIdempotencyKey.rowNumber}.`
+      );
+    }
+  }
 
   for (const envelope of payload.rows as LeadImportRowEnvelope[]) {
     await db.leadImportRow.upsert({
@@ -155,6 +167,11 @@ export async function uploadLeadImportRows(batchId: string, rawBody: unknown) {
       update: {
         rowHash: envelope.rowHash,
         payload: envelope.row as unknown as Prisma.InputJsonValue,
+        status: "RECEIVED",
+        issues: [] as unknown as Prisma.InputJsonValue,
+        dedupeKey: null,
+        existingLeadId: null,
+        createdLeadId: null,
       },
     });
   }
@@ -190,10 +207,10 @@ export async function previewLeadImportBatch(batchId: string) {
     const issues: string[] = [];
     let status: ContractRowStatus = "REJECTED";
     let dedupeKey: string | null = null;
+    let existingLeadId: string | null = null;
 
     if (!parsed.success) {
       issues.push(...parsed.error.issues.map((issue) => issue.message));
-      status = "REJECTED";
     } else {
       const record = parsed.data as LeadImportRowPayload;
       dedupeKey = buildLeadDedupeKey({
@@ -208,20 +225,21 @@ export async function previewLeadImportBatch(batchId: string) {
         issues.push("Duplicate of an earlier row in this import batch.");
       } else {
         seenDedupeKeys.add(dedupeKey);
-
         const existingLead = await db.lead.findFirst({ where: { dedupeKey } });
+
         if (existingLead) {
           status = "POSSIBLE_EXISTING_DUPLICATE";
+          existingLeadId = existingLead.id;
           issues.push(`Matches existing lead ${existingLead.id} on company/phone/email/website.`);
         } else {
           const normalizedEmail = normalizeEmail(record.email);
           const normalizedPhone = normalizePhone(record.businessPhone);
-          const suppressed = await db.leadSuppression.findFirst({
-            where: {
-              active: true,
-              identifier: { in: [normalizedEmail, normalizedPhone].filter((v): v is string => Boolean(v)) },
-            },
-          });
+          const identifiers = [normalizedEmail, normalizedPhone].filter((value): value is string => Boolean(value));
+          const suppressed = identifiers.length
+            ? await db.leadSuppression.findFirst({
+                where: { active: true, identifier: { in: identifiers } },
+              })
+            : null;
 
           if (suppressed) {
             status = "SUPPRESSED";
@@ -235,23 +253,27 @@ export async function previewLeadImportBatch(batchId: string) {
 
     await db.leadImportRow.update({
       where: { id: row.id },
-      data: { status, issues: issues as unknown as Prisma.InputJsonValue, dedupeKey },
+      data: {
+        status,
+        issues: issues as unknown as Prisma.InputJsonValue,
+        dedupeKey,
+        existingLeadId,
+        createdLeadId: null,
+      },
     });
-
     updatedStatuses.push(status);
   }
 
   const nextStatus = recommendLeadImportBatchStatus(updatedStatuses);
-  const counts = summarizeLeadImportRows(updatedStatuses);
+  const duplicateCount = updatedStatuses.filter((status) =>
+    ["DUPLICATE_IN_BATCH", "POSSIBLE_EXISTING_DUPLICATE"].includes(status)
+  ).length;
+  const suppressedCount = updatedStatuses.filter((status) => status === "SUPPRESSED").length;
+  const rejectedCount = updatedStatuses.filter((status) => status === "REJECTED").length;
 
   await db.leadImportBatch.update({
     where: { id: batchId },
-    data: {
-      status: nextStatus,
-      duplicateCount: counts.rejectedRows,
-      rejectedCount: updatedStatuses.filter((s) => s === "REJECTED").length,
-      suppressedCount: updatedStatuses.filter((s) => s === "SUPPRESSED").length,
-    },
+    data: { status: nextStatus, duplicateCount, rejectedCount, suppressedCount },
   });
 
   return loadBatchWithRows(batchId);
@@ -266,35 +288,42 @@ export async function submitLeadImportBatch(
 
   try {
     assertLeadImportBatchTransition(currentStatus, "APPROVED_FOR_SUBMISSION");
-  } catch (err) {
-    throw new LeadImportBatchStateError((err as Error).message);
+  } catch (error) {
+    throw new LeadImportBatchStateError((error as Error).message);
   }
 
-  await db.leadImportBatch.update({
-    where: { id: batchId },
-    data: {
-      status: "APPROVED_FOR_SUBMISSION",
-      approvalRecordedAt: new Date(input.approvalRecordedAt),
-      approvalReference: input.approvalReference,
-      operatorName: input.operatorName,
-    },
+  await db.$transaction(async (tx) => {
+    await tx.leadImportBatch.update({
+      where: { id: batchId },
+      data: {
+        status: "APPROVED_FOR_SUBMISSION",
+        approvalRecordedAt: new Date(input.approvalRecordedAt),
+        approvalReference: input.approvalReference,
+        operatorName: input.operatorName,
+      },
+    });
+
+    await tx.leadImportRow.updateMany({
+      where: { batchId, status: "VALID" },
+      data: { status: "APPROVED" },
+    });
+
+    await tx.leadImportBatch.update({
+      where: { id: batchId },
+      data: { status: "SUBMITTED", submittedAt: new Date() },
+    });
   });
 
-  await db.leadImportBatch.update({
-    where: { id: batchId },
-    data: { status: "SUBMITTED", submittedAt: new Date() },
-  });
-
-  const importableRows = batch.rows.filter((row) => row.status === "VALID");
+  const submittedBatch = await loadBatchWithRows(batchId);
+  const importableRows = submittedBatch.rows.filter((row) => row.status === "APPROVED");
   let insertedCount = 0;
   let importErrorCount = 0;
 
   for (const row of importableRows) {
     try {
-      await db.$transaction(async (tx) => {
+      const outcome = await db.$transaction(async (tx): Promise<ImportOutcome> => {
         const parsed = leadImportRowEnvelopeSchema.shape.row.parse(row.payload);
         const record = parsed as LeadImportRowPayload;
-
         const dedupeKey = buildLeadDedupeKey({
           company: record.company,
           email: record.email,
@@ -310,9 +339,10 @@ export async function submitLeadImportBatch(
               status: "POSSIBLE_EXISTING_DUPLICATE",
               issues: [`Matches existing lead ${clash.id} discovered at submit time.`] as unknown as Prisma.InputJsonValue,
               dedupeKey,
+              existingLeadId: clash.id,
             },
           });
-          return;
+          return "DUPLICATE";
         }
 
         const websiteStatus = websiteStatusFromRecordedUrl(record.website);
@@ -379,16 +409,21 @@ export async function submitLeadImportBatch(
 
         await tx.leadImportRow.update({
           where: { id: row.id },
-          data: { status: "IMPORTED", createdLeadId: lead.id, dedupeKey },
+          data: { status: "IMPORTED", createdLeadId: lead.id, existingLeadId: null, dedupeKey },
         });
+
+        return "IMPORTED";
       });
 
-      insertedCount += 1;
+      if (outcome === "IMPORTED") insertedCount += 1;
     } catch {
       importErrorCount += 1;
       await db.leadImportRow.update({
         where: { id: row.id },
-        data: { status: "IMPORT_ERROR", issues: ["Unexpected error while committing this row."] as unknown as Prisma.InputJsonValue },
+        data: {
+          status: "IMPORT_ERROR",
+          issues: ["Unexpected error while committing this row."] as unknown as Prisma.InputJsonValue,
+        },
       });
     }
   }
@@ -407,7 +442,6 @@ export async function submitLeadImportBatch(
 
   const finalBatch = await loadBatchWithRows(batchId);
   const finalStatuses = finalBatch.rows.map((row) => asContractRowStatus(row.status));
-
   const needsReview = finalStatuses.some((status) =>
     ["REVIEW_REQUIRED", "POSSIBLE_EXISTING_DUPLICATE", "PENDING_ADMIN_REVIEW"].includes(status)
   );
