@@ -12,9 +12,9 @@ import {
 import type { LeadImportRequestHeaders } from "@/lib/lead-import-contract";
 
 /**
- * Pure verification boundary for a future paid-data import endpoint.
- * It does not create a route, load environment variables, resolve secrets,
- * access the database, or submit an import.
+ * Pure verification boundary for the signed paid-data import endpoint family.
+ * Read-only status requests may be signed with an empty body and no
+ * Content-Type. Requests that carry a body still require application/json.
  */
 
 export type LeadImportRequestVerifierInput = {
@@ -32,6 +32,10 @@ export type LeadImportRequestVerification =
   | { ok: true; auth: LeadImportRequestHeaders; requestId: string | null }
   | { ok: false; response: ReturnType<typeof leadImportUnauthorizedResponse> | ReturnType<typeof leadImportUnsupportedMediaTypeResponse> };
 
+function bodyIsEmpty(body: string | Uint8Array) {
+  return typeof body === "string" ? body.length === 0 : body.byteLength === 0;
+}
+
 export function verifyLeadImportTransportRequest({
   headers,
   contentType,
@@ -42,7 +46,10 @@ export function verifyLeadImportTransportRequest({
   now,
   maxClockSkewMs = DEFAULT_LEAD_IMPORT_MAX_CLOCK_SKEW_MS,
 }: LeadImportRequestVerifierInput): LeadImportRequestVerification {
-  if (!isLeadImportJsonContentType(contentType)) {
+  const normalizedMethod = method.trim().toUpperCase();
+  const signedEmptyGet = normalizedMethod === "GET" && bodyIsEmpty(body) && !contentType;
+
+  if (!signedEmptyGet && !isLeadImportJsonContentType(contentType)) {
     return { ok: false, response: leadImportUnsupportedMediaTypeResponse() };
   }
 
@@ -51,7 +58,7 @@ export function verifyLeadImportTransportRequest({
     const verification = verifyLeadImportRequest({
       headers: transport.auth,
       body,
-      method,
+      method: normalizedMethod,
       path,
       hmacSecret,
       now,
