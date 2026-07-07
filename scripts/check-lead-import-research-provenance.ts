@@ -5,8 +5,12 @@ import { ownerLeadAcquisitionProvenanceInputSchema } from "../src/lib/lead-impor
 assert.equal(ownerLeadAcquisitionProvenanceInputSchema.safeParse({
   sourceCode: "OWNER_SOURCE_FIXTURE",
   acquisitionReference: "OWNER_REFERENCE_FIXTURE",
-  providerName: "Private Test Provider",
 }).success, true);
+assert.equal(ownerLeadAcquisitionProvenanceInputSchema.safeParse({
+  sourceCode: "OWNER_SOURCE_FIXTURE",
+  acquisitionReference: "OWNER_REFERENCE_FIXTURE",
+  providerName: "must fail",
+}).success, false);
 assert.equal(ownerLeadAcquisitionProvenanceInputSchema.safeParse({
   sourceCode: "OWNER_SOURCE_FIXTURE",
   acquisitionReference: "OWNER_REFERENCE_FIXTURE",
@@ -38,8 +42,10 @@ assert.match(ownerService, /requireRole\(\["OWNER"\]\)/);
 assert.match(ownerService, /SELECT[\s\S]*"OwnerLeadAcquisitionProvenance"/);
 assert.match(ownerService, /INSERT INTO "OwnerLeadAcquisitionProvenance"/);
 assert.match(ownerService, /batch\.status !== "DRAFT"/);
+assert.doesNotMatch(ownerService, /providerName/);
 assert.doesNotMatch(ownerPage, /from "@\/lib\/db"/);
 assert.match(ownerPage, /readOwnerLeadAcquisitionProvenance/);
+assert.doesNotMatch(ownerPage, /Provider/);
 assert.match(ownerRoute, /guardLeadImportRequest/);
 assert.match(ownerRoute, /ownerLeadAcquisitionProvenanceInputSchema/);
 assert.match(ownerRoute, /LEAD_IMPORT_INVALID_STATE/);
