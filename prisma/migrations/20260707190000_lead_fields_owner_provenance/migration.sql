@@ -32,3 +32,35 @@ ALTER TABLE "OwnerLeadAcquisitionProvenance"
   ADD CONSTRAINT "OwnerLeadAcquisitionProvenance_leadImportBatchId_fkey"
   FOREIGN KEY ("leadImportBatchId") REFERENCES "LeadImportBatch"("id")
   ON DELETE CASCADE ON UPDATE CASCADE;
+
+-- The signed row contract validates address/rating/timestamp/Maps URL before
+-- staging. When the existing import workflow marks a row IMPORTED, mirror only
+-- those validated sales-research fields into the Lead. No acquisition data is
+-- present in the row payload or this trigger.
+CREATE OR REPLACE FUNCTION "applyLeadImportResearchFields"()
+RETURNS TRIGGER AS $$
+BEGIN
+  IF NEW."status" = 'IMPORTED' AND NEW."createdLeadId" IS NOT NULL THEN
+    UPDATE "Lead"
+    SET
+      "businessAddress" = NULLIF(NEW."payload" ->> 'businessAddress', ''),
+      "googleRating" = CASE
+        WHEN NEW."payload" ? 'googleRating'
+          THEN (NEW."payload" ->> 'googleRating')::DECIMAL(2,1)
+        ELSE NULL
+      END,
+      "googleRatingObservedAt" = CASE
+        WHEN NEW."payload" ? 'googleRatingObservedAt'
+          THEN timezone('UTC', (NEW."payload" ->> 'googleRatingObservedAt')::timestamptz)
+        ELSE NULL
+      END,
+      "googleMapsUrl" = NULLIF(NEW."payload" ->> 'googleMapsUrl', '')
+    WHERE "id" = NEW."createdLeadId";
+  END IF;
+  RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+CREATE TRIGGER "LeadImportRow_applyResearchFields"
+AFTER INSERT OR UPDATE OF "status", "createdLeadId", "payload" ON "LeadImportRow"
+FOR EACH ROW EXECUTE FUNCTION "applyLeadImportResearchFields"();
