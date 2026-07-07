@@ -1,7 +1,6 @@
 import "server-only";
 
 import type { User, UserRole } from "@prisma/client";
-import { auth } from "@/auth";
 import { db } from "@/lib/db";
 
 export type Role = UserRole;
@@ -25,6 +24,7 @@ async function redirectToLogin(path: string): Promise<never> {
 
 export async function requireUser(): Promise<User> {
   console.info("[route-trace] requireUser: auth start");
+  const { auth } = await import("../auth");
   const session = await auth();
   const userId = session?.user?.id;
   console.info("[route-trace] requireUser: auth finished", { hasUserId: Boolean(userId) });
