@@ -61,5 +61,8 @@ for (const route of routes) {
 const guard = readFileSync("src/lib/lead-import-route-guard.ts", "utf8");
 assert.match(guard, /LEAD_IMPORT_UNAVAILABLE/);
 assert.match(guard, /status: 503/);
+assert.match(guard, /LEAD_IMPORT_PAYLOAD_TOO_LARGE/);
+assert.match(guard, /status: 413/);
+assert.match(guard, /MAX_LEAD_IMPORT_BODY_BYTES = 1_000_000/);
 
 console.log("Lead import response contract checks passed.");
