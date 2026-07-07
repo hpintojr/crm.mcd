@@ -5,8 +5,8 @@ import {
   LeadImportBatchNotFoundError,
   LeadImportBatchStateError,
   serializeLeadImportBatch,
-  submitLeadImportBatch,
 } from "@/lib/lead-import-batch";
+import { submitImportWithAudit } from "@/lib/import-audit-service";
 import { guardLeadImportRequest } from "@/lib/lead-import-route-guard";
 
 export async function POST(request: Request, { params }: { params: Promise<{ batchId: string }> }) {
@@ -16,7 +16,7 @@ export async function POST(request: Request, { params }: { params: Promise<{ bat
 
   try {
     const input = submitLeadImportSchema.parse(guard.body);
-    const batch = await submitLeadImportBatch(batchId, input);
+    const batch = await submitImportWithAudit(batchId, input);
     return NextResponse.json(serializeLeadImportBatch(batch), { status: 200 });
   } catch (error) {
     if (error instanceof LeadImportBatchNotFoundError) {
@@ -28,6 +28,6 @@ export async function POST(request: Request, { params }: { params: Promise<{ bat
     if (error instanceof ZodError) {
       return NextResponse.json({ error: "LEAD_IMPORT_VALIDATION_ERROR", issues: error.issues }, { status: 422 });
     }
-    return NextResponse.json({ error: "LEAD_IMPORT_INTERNAL_ERROR", message: (error as Error).message }, { status: 500 });
+    return NextResponse.json({ error: "LEAD_IMPORT_INTERNAL_ERROR", message: "Unable to submit lead-import batch." }, { status: 500 });
   }
 }
