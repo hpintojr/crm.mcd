@@ -2,7 +2,10 @@ import "server-only";
 
 import { NextResponse } from "next/server";
 import { verifyLeadImportTransportRequest } from "@/lib/lead-import-request-verifier";
-import { requireLeadImportHmacConfig } from "@/lib/lead-import-env";
+import {
+  LeadImportConfigurationError,
+  requireLeadImportHmacConfig,
+} from "@/lib/lead-import-env";
 
 export type LeadImportGuardResult =
   | { ok: true; body: unknown }
@@ -16,7 +19,25 @@ export type LeadImportGuardResult =
  */
 export async function guardLeadImportRequest(request: Request, path: string): Promise<LeadImportGuardResult> {
   const bodyText = await request.text();
-  const { secret, keyId: expectedKeyId } = requireLeadImportHmacConfig();
+
+  let secret: string;
+  let expectedKeyId: string;
+  try {
+    const config = requireLeadImportHmacConfig();
+    secret = config.secret;
+    expectedKeyId = config.keyId;
+  } catch (error) {
+    if (error instanceof LeadImportConfigurationError) {
+      return {
+        ok: false,
+        response: NextResponse.json(
+          { error: "LEAD_IMPORT_UNAVAILABLE", message: "Lead-import service is not configured." },
+          { status: 503 }
+        ),
+      };
+    }
+    throw error;
+  }
 
   const verification = verifyLeadImportTransportRequest({
     headers: request.headers,
