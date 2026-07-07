@@ -4,6 +4,7 @@ import { notFound } from "next/navigation";
 import { ADMIN_ROLES, requireRole } from "@/lib/authz";
 import { db } from "@/lib/db";
 import { features } from "@/lib/features";
+import { LeadResearchFields } from "@/components/lead-research-fields";
 
 export const dynamic = "force-dynamic";
 
@@ -120,6 +121,8 @@ export default async function AdminLeadDetailPage({ params }: { params: Promise<
           </dl>
         </article>
       </section>
+
+      <section className="mt-6"><LeadResearchFields leadId={lead.id} /></section>
 
       <section className="mt-6 rounded-2xl border border-ink-700 bg-ink-900 p-6">
         <h2 className="font-semibold text-white">Verified close decision</h2>
