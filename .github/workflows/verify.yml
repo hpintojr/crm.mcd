@@ -46,3 +46,4 @@ jobs:
           npm run check:lead-import-response-contract
           npm run check:lead-import-replay
           npm run check:import-audit-outcomes
+          npm run check:lead-import-concurrency
