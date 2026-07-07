@@ -1,0 +1,30 @@
+name: Isolated Lead Import Short Log
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - ".github/workflows/isolated-lead-import-short-log.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  research:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    env:
+      GH_TOKEN: ${{ github.token }}
+      MCD_RUN_DB_INTEGRATION_TESTS: "1"
+      MCD_TEST_DATABASE_URL: ${{ secrets.MCD_TEST_DATABASE_URL }}
+      DATABASE_URL: postgresql://unused:unused@127.0.0.1:5432/mcd_ci_sentinel
+    steps:
+      - name: Clone and run research harness
+        shell: bash
+        run: |
+          gh repo clone hpintojr/crm.mcd app -- --quiet --depth 1 --branch "$GITHUB_HEAD_REF"
+          cd app
+          npm install --no-audit --no-fund >/dev/null
+          npm run prisma:generate >/dev/null
+          npm run test:lead-import-research-db
