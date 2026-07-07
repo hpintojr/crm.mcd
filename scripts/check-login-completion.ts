@@ -11,5 +11,8 @@ assert.equal(loginForm.includes("getSession().catch(() => null)"), true);
 assert.equal(loginForm.includes("SESSION_RECOVERY_ATTEMPTS"), true);
 assert.equal(completionPage.includes('redirect(role && ADMIN_ROLES.has(role) ? "/admin" : "/portal")'), true);
 assert.equal(authConfig.includes('pathname === "/login/complete"'), true);
+assert.equal(authConfig.includes("if (!auth?.user?.id) return false;"), true);
+assert.equal(authConfig.includes('if (pathname.startsWith("/admin")) return isAdmin(auth.user.role);'), true);
+assert.equal(authConfig.includes('if (pathname.startsWith("/portal")) return auth.user.role === "AGENT" || isAdmin(auth.user.role);'), true);
 
-console.log("Login completion checks passed.");
+console.log("Login completion and route access checks passed.");
