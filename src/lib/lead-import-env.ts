@@ -5,6 +5,12 @@ export type LeadImportHmacConfig = {
   secret: string;
 };
 
+export class LeadImportConfigurationError extends Error {
+  constructor() {
+    super("Lead import API is not configured.");
+  }
+}
+
 /**
  * Reads the shared HMAC credential used to authenticate signed lead-import
  * batch requests (mcd_lead_ops -> POST /api/lead-imports and friends).
@@ -18,11 +24,7 @@ export function requireLeadImportHmacConfig(): LeadImportHmacConfig {
   const keyId = process.env.LEAD_IMPORT_KEY_ID;
   const secret = process.env.LEAD_IMPORT_HMAC_SECRET;
 
-  if (!keyId || !secret) {
-    throw new Error(
-      "Lead import API is not configured: LEAD_IMPORT_KEY_ID and LEAD_IMPORT_HMAC_SECRET must both be set."
-    );
-  }
+  if (!keyId || !secret) throw new LeadImportConfigurationError();
 
   return { keyId, secret };
 }
