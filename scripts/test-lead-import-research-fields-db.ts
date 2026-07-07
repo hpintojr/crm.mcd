@@ -19,9 +19,8 @@ async function main() {
   const localRunId = `${prefix}:RUN`;
   const keyId = "research-db-integration-key";
   const observedAt = "2026-07-07T19:00:00.000Z";
-  const privateSourceCode = "RAW072026";
-  const privateReference = "OP_ACQ_072026_001";
-  const privateProvider = "Private Test Provider";
+  const privateSourceCode = "OWNER_SOURCE_FIXTURE";
+  const privateReference = "OWNER_REFERENCE_FIXTURE";
 
   const row = {
     company: `${prefix} Roofing`,
@@ -73,14 +72,12 @@ async function main() {
     const firstProvenanceWrite = await recordOwnerLeadAcquisitionProvenance(batchId, {
       sourceCode: privateSourceCode,
       acquisitionReference: privateReference,
-      providerName: privateProvider,
     });
     assert.equal(firstProvenanceWrite.recorded, true);
 
     const exactProvenanceRetry = await recordOwnerLeadAcquisitionProvenance(batchId, {
       sourceCode: privateSourceCode,
       acquisitionReference: privateReference,
-      providerName: privateProvider,
     });
     assert.equal(exactProvenanceRetry.recorded, false);
 
@@ -118,12 +115,11 @@ async function main() {
 
     const provenance = await db.ownerLeadAcquisitionProvenance.findUnique({
       where: { leadImportBatchId: batchId },
-      select: { sourceCode: true, acquisitionReference: true, providerName: true },
+      select: { sourceCode: true, acquisitionReference: true },
     });
     assert.deepEqual(provenance, {
       sourceCode: privateSourceCode,
       acquisitionReference: privateReference,
-      providerName: privateProvider,
     });
 
     const audit = await db.auditLog.findMany({
@@ -133,7 +129,6 @@ async function main() {
     const auditText = JSON.stringify(audit);
     assert.equal(auditText.includes(privateSourceCode), false);
     assert.equal(auditText.includes(privateReference), false);
-    assert.equal(auditText.includes(privateProvider), false);
 
     console.log("Lead-import research and private provenance database harness passed.");
   } finally {
