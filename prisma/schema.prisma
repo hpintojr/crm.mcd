@@ -561,7 +561,6 @@ model OwnerLeadAcquisitionProvenance {
   batch                LeadImportBatch @relation(fields: [leadImportBatchId], references: [id], onDelete: Cascade)
   sourceCode           String
   acquisitionReference String
-  providerName         String?
   createdAt            DateTime        @default(now())
   updatedAt            DateTime        @updatedAt
 }
