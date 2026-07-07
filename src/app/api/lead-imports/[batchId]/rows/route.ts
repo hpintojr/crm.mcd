@@ -5,8 +5,8 @@ import {
   LeadImportBatchNotFoundError,
   LeadImportBatchStateError,
   serializeLeadImportBatch,
-  uploadLeadImportRows,
 } from "@/lib/lead-import-batch";
+import { uploadLeadImportRowsWithConcurrencyRecovery } from "@/lib/lead-import-concurrency";
 import { guardLeadImportRequest } from "@/lib/lead-import-route-guard";
 
 export async function POST(request: Request, { params }: { params: Promise<{ batchId: string }> }) {
@@ -15,7 +15,7 @@ export async function POST(request: Request, { params }: { params: Promise<{ bat
   if (!guard.ok) return guard.response;
 
   try {
-    const batch = await uploadLeadImportRows(batchId, guard.body);
+    const batch = await uploadLeadImportRowsWithConcurrencyRecovery(batchId, guard.body);
     return NextResponse.json(serializeLeadImportBatch(batch), { status: 202 });
   } catch (error) {
     if (error instanceof LeadImportBatchNotFoundError) {
