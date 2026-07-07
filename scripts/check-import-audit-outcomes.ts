@@ -28,8 +28,10 @@ assert.deepEqual(
 );
 
 const auditService = readFileSync("src/lib/import-audit-service.ts", "utf8");
-assert.match(auditService, /reconcileConcurrentLeadInsertDuplicates/);
+assert.match(auditService, /reconcileConcurrentSubmitOutcomes/);
 assert.match(auditService, /row\.status !== "IMPORT_ERROR"/);
+assert.match(auditService, /row\.createdLeadId/);
+assert.match(auditService, /status: "IMPORTED"/);
 assert.match(auditService, /POSSIBLE_EXISTING_DUPLICATE/);
 assert.match(auditService, /An equivalent Lead was committed concurrently/);
 assert.match(auditService, /RECONCILIATION_REQUIRED/);
