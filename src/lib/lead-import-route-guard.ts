@@ -7,9 +7,25 @@ import {
   requireLeadImportHmacConfig,
 } from "@/lib/lead-import-env";
 
+const MAX_LEAD_IMPORT_BODY_BYTES = 1_000_000;
+
 export type LeadImportGuardResult =
   | { ok: true; body: unknown }
   | { ok: false; response: NextResponse };
+
+function payloadTooLargeResponse() {
+  return NextResponse.json(
+    { error: "LEAD_IMPORT_PAYLOAD_TOO_LARGE", message: "Lead-import payload exceeds the allowed size." },
+    { status: 413 }
+  );
+}
+
+function declaredContentLength(headers: Headers) {
+  const value = headers.get("content-length");
+  if (!value) return null;
+  const parsed = Number(value);
+  return Number.isSafeInteger(parsed) && parsed >= 0 ? parsed : null;
+}
 
 /**
  * Shared entry guard for every /api/lead-imports/* route: validates the
@@ -18,7 +34,15 @@ export type LeadImportGuardResult =
  * touches the database.
  */
 export async function guardLeadImportRequest(request: Request, path: string): Promise<LeadImportGuardResult> {
+  const declaredLength = declaredContentLength(request.headers);
+  if (declaredLength !== null && declaredLength > MAX_LEAD_IMPORT_BODY_BYTES) {
+    return { ok: false, response: payloadTooLargeResponse() };
+  }
+
   const bodyText = await request.text();
+  if (new TextEncoder().encode(bodyText).byteLength > MAX_LEAD_IMPORT_BODY_BYTES) {
+    return { ok: false, response: payloadTooLargeResponse() };
+  }
 
   let secret: string;
   let expectedKeyId: string;
