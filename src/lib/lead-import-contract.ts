@@ -45,9 +45,8 @@ export const leadImportIdempotencyKeySchema = z.string().trim().min(1).max(256).
 export const leadImportSha256Schema = z.string().trim().regex(/^[a-f0-9]{64}$/i, "Expected a SHA-256 hex digest.");
 
 /**
- * Private batch-level procurement record. This is accepted only by the signed
- * machine client and must never be included in shared Lead/Batch serializers,
- * audit text, row payloads, or non-OWNER read paths.
+ * Private batch-level procurement record. It travels only through the separate
+ * signed owner-acquisition endpoint, never through shared batch or row bodies.
  */
 export const ownerLeadAcquisitionProvenanceInputSchema = z.object({
   sourceCode: leadImportIdentifierSchema.max(80),
@@ -62,7 +61,6 @@ export const createLeadImportBatchSchema = z.object({
   sourceAdapterVersion: z.string().trim().min(1).max(120),
   manifestHash: leadImportSha256Schema,
   clientVersion: z.string().trim().min(1).max(120),
-  ownerAcquisition: ownerLeadAcquisitionProvenanceInputSchema.optional(),
 }).strict();
 
 export const leadImportRowEnvelopeMetadataSchema = z.object({
@@ -119,6 +117,7 @@ export const leadImportApiPaths = {
   preview: (batchId: string) => `/api/lead-imports/${batchId}/preview`,
   submit: (batchId: string) => `/api/lead-imports/${batchId}/submit`,
   status: (batchId: string) => `/api/lead-imports/${batchId}`,
+  ownerAcquisition: (batchId: string) => `/api/lead-imports/${batchId}/owner-acquisition`,
 } as const;
 
 export function makeRowIdempotencyKey(localRunId: string, rowNumber: number, rowHash: string) {
