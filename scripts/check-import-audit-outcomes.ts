@@ -1,4 +1,5 @@
 import { strict as assert } from "node:assert";
+import { readFileSync } from "node:fs";
 import {
   importPreviewAuditReason,
   importRowAuditMetadata,
@@ -25,5 +26,12 @@ assert.deepEqual(
   }),
   { batchId: "batch_demo_001", rowNumber: 7, status: "SUPPRESSED" }
 );
+
+const auditService = readFileSync("src/lib/import-audit-service.ts", "utf8");
+assert.match(auditService, /reconcileConcurrentLeadInsertDuplicates/);
+assert.match(auditService, /row\.status !== "IMPORT_ERROR"/);
+assert.match(auditService, /POSSIBLE_EXISTING_DUPLICATE/);
+assert.match(auditService, /An equivalent Lead was committed concurrently/);
+assert.match(auditService, /RECONCILIATION_REQUIRED/);
 
 console.log("Import audit outcome checks passed.");
