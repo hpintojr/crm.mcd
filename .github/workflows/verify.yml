@@ -1,0 +1,50 @@
+name: Verify CRM
+
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    name: Typecheck and contract guards
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - name: Check out source
+        uses: actions/checkout@v4
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 24
+
+      - name: Install dependencies
+        run: npm install --no-audit --no-fund
+
+      - name: Generate Prisma client
+        run: npm run prisma:generate
+
+      - name: Typecheck
+        run: npm run typecheck
+
+      - name: Run route and contract guards
+        run: |
+          npm run check:next-dynamic-route-collisions
+          npm run check:recovery-route-guard
+          npm run check:login-completion
+          npm run check:lead-intake-types
+          npm run check:lead-import-contract
+          npm run check:lead-import-workflow
+          npm run check:lead-import-http
+          npm run check:lead-import-request-verifier
+          npm run check:lead-import-response-contract
+          npm run check:lead-import-replay
+          npm run check:import-audit-outcomes
+          npm run check:lead-import-concurrency
+          npm run check:lead-import-db-harness

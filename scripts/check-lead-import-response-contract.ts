@@ -1,4 +1,5 @@
 import { strict as assert } from "node:assert";
+import { readFileSync } from "node:fs";
 import {
   createLeadImportBatchResponseSchema,
   leadImportBatchCountsSchema,
@@ -43,5 +44,25 @@ assert.equal(previewLeadImportResponseSchema.safeParse({
     },
   ],
 }).success, true);
+
+const routes = [
+  "src/app/api/lead-imports/route.ts",
+  "src/app/api/lead-imports/[batchId]/rows/route.ts",
+  "src/app/api/lead-imports/[batchId]/preview/route.ts",
+  "src/app/api/lead-imports/[batchId]/submit/route.ts",
+  "src/app/api/lead-imports/[batchId]/route.ts",
+].map((path) => readFileSync(path, "utf8"));
+
+for (const route of routes) {
+  assert.equal(route.includes("(error as Error).message"), false);
+  assert.match(route, /LEAD_IMPORT_INTERNAL_ERROR/);
+}
+
+const guard = readFileSync("src/lib/lead-import-route-guard.ts", "utf8");
+assert.match(guard, /LEAD_IMPORT_UNAVAILABLE/);
+assert.match(guard, /status: 503/);
+assert.match(guard, /LEAD_IMPORT_PAYLOAD_TOO_LARGE/);
+assert.match(guard, /status: 413/);
+assert.match(guard, /MAX_LEAD_IMPORT_BODY_BYTES = 1_000_000/);
 
 console.log("Lead import response contract checks passed.");

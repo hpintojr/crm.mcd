@@ -5,7 +5,7 @@
   "description": "Mercury Call Desk — Mini CRM (Agent + Admin portals). GHL is a one-way backend.",
   "scripts": {
     "dev": "next dev",
-    "build": "npx tsx scripts/check-recovery-route-guard.ts && npx tsx scripts/check-login-completion.ts && npx tsx scripts/check-lead-intake-types.ts && npx tsx scripts/check-lead-import-contract.ts && npx tsx scripts/check-lead-import-workflow.ts && npx tsx scripts/check-lead-import-http.ts && npx tsx scripts/check-lead-import-request-verifier.ts && npx tsx scripts/check-lead-import-response-contract.ts && prisma generate && next build",
+    "build": "npx tsx scripts/check-next-dynamic-route-collisions.ts && npx tsx scripts/check-recovery-route-guard.ts && npx tsx scripts/check-login-completion.ts && npx tsx scripts/check-lead-intake-types.ts && npx tsx scripts/check-lead-import-contract.ts && npx tsx scripts/check-lead-import-workflow.ts && npx tsx scripts/check-lead-import-http.ts && npx tsx scripts/check-lead-import-request-verifier.ts && npx tsx scripts/check-lead-import-response-contract.ts && npx tsx scripts/check-lead-import-replay.ts && npx tsx scripts/check-import-audit-outcomes.ts && npx tsx scripts/check-lead-import-concurrency.ts && npx tsx scripts/check-lead-import-db-harness.ts && prisma generate && next build",
     "start": "next start",
     "lint": "next lint",
     "typecheck": "tsc --noEmit",
@@ -13,7 +13,9 @@
     "prisma:migrate": "prisma migrate dev",
     "prisma:studio": "prisma studio",
     "seed:admin": "tsx scripts/create-admin.ts",
+    "test:lead-import-db": "node --conditions=react-server --import tsx scripts/test-lead-import-lifecycle-db.ts",
     "check:commission-policy": "tsx scripts/check-commission-policy.ts",
+    "check:next-dynamic-route-collisions": "tsx scripts/check-next-dynamic-route-collisions.ts",
     "check:recovery-route-guard": "tsx scripts/check-recovery-route-guard.ts",
     "check:login-completion": "tsx scripts/check-login-completion.ts",
     "check:lead-intake-types": "tsx scripts/check-lead-intake-types.ts",
@@ -21,7 +23,11 @@
     "check:lead-import-workflow": "tsx scripts/check-lead-import-workflow.ts",
     "check:lead-import-http": "tsx scripts/check-lead-import-http.ts",
     "check:lead-import-request-verifier": "tsx scripts/check-lead-import-request-verifier.ts",
-    "check:lead-import-response-contract": "tsx scripts/check-lead-import-response-contract.ts"
+    "check:lead-import-response-contract": "tsx scripts/check-lead-import-response-contract.ts",
+    "check:lead-import-replay": "tsx scripts/check-lead-import-replay.ts",
+    "check:import-audit-outcomes": "tsx scripts/check-import-audit-outcomes.ts",
+    "check:lead-import-concurrency": "tsx scripts/check-lead-import-concurrency.ts",
+    "check:lead-import-db-harness": "tsx scripts/check-lead-import-db-harness.ts"
   },
   "dependencies": {
     "@node-rs/argon2": "^2.0.2",

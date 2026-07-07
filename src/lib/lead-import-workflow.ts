@@ -4,7 +4,7 @@ import {
 } from "@/lib/lead-import-contract";
 
 /**
- * Pure state rules for the future durable paid-data import workflow.
+ * Pure state rules for the durable paid-data import workflow.
  * No route, database dependency, or side effect is present in this module.
  */
 
@@ -23,7 +23,8 @@ const batchTransitions: Record<LeadImportBatchStatus, readonly LeadImportBatchSt
 
 const rowTransitions: Record<LeadImportRowStatus, readonly LeadImportRowStatus[]> = {
   RECEIVED: ["VALID", "DUPLICATE_IN_BATCH", "POSSIBLE_EXISTING_DUPLICATE", "SUPPRESSED", "REVIEW_REQUIRED", "REJECTED", "IMPORT_ERROR"],
-  VALID: ["PENDING_ADMIN_REVIEW", "REJECTED", "IMPORT_ERROR"],
+  // Batch-level approval may promote a clean VALID row directly to APPROVED.
+  VALID: ["PENDING_ADMIN_REVIEW", "APPROVED", "REJECTED", "IMPORT_ERROR"],
   DUPLICATE_IN_BATCH: [],
   POSSIBLE_EXISTING_DUPLICATE: ["PENDING_ADMIN_REVIEW", "REJECTED"],
   SUPPRESSED: [],
