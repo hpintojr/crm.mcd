@@ -78,15 +78,6 @@ jobs:
           echo "status=$status" >> "$GITHUB_OUTPUT"
           exit 0
 
-      - name: Upload isolated-harness diagnostics
-        if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: isolated-lead-import-harness-logs
-          path: .ci-logs/
-          retention-days: 3
-          if-no-files-found: error
-
       - name: Fail when any harness fails
         if: steps.lifecycle.outputs.status != '0' || steps.research.outputs.status != '0'
         shell: bash
