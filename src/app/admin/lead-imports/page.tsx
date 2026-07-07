@@ -94,6 +94,9 @@ export default async function LeadImportReconciliationPage() {
                       <div className="flex flex-wrap items-center gap-2">
                         <h3 className="font-medium text-white">{batch.localRunId}</h3>
                         <span className="rounded-full border border-ink-700 px-2 py-0.5 text-xs text-gray-300">{label(batch.status)}</span>
+                        <Link className="rounded-md border border-ink-700 px-2 py-1 text-xs text-brand-300 hover:border-brand-500 hover:text-brand-200" href={`/admin/lead-imports/${batch.id}`}>
+                          Review batch
+                        </Link>
                       </div>
                       <p className="mt-2 text-sm text-gray-400">Batch ID: <span className="font-mono text-xs">{batch.id}</span></p>
                       <p className="mt-1 text-sm text-gray-400">Created {pacific(batch.createdAt)} PT · Updated {pacific(batch.updatedAt)} PT</p>
