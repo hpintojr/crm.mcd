@@ -19,6 +19,11 @@ const ownerRoute = readFileSync("src/app/api/lead-imports/[batchId]/owner-acquis
 const taxonomy = readFileSync("src/lib/lead-taxonomy.ts", "utf8");
 const schema = readFileSync("prisma/schema.prisma", "utf8");
 const migration = readFileSync("prisma/migrations/20260707190000_lead_fields_owner_provenance/migration.sql", "utf8");
+const batchService = readFileSync("src/lib/lead-import-batch.ts", "utf8");
+const importList = readFileSync("src/app/admin/lead-imports/page.tsx", "utf8");
+const importDetail = readFileSync("src/app/admin/lead-imports/[batchId]/page.tsx", "utf8");
+const agentLeadPage = readFileSync("src/app/portal/leads/page.tsx", "utf8");
+const adminLeadPage = readFileSync("src/app/admin/leads/[leadId]/page.tsx", "utf8");
 
 assert.match(taxonomy, /businessAddress: z\.string\(\)\.trim\(\)\.max\(500\)\.optional\(\)/);
 assert.match(taxonomy, /googleRating: z\.number\(\)\.finite\(\)\.min\(0\)\.max\(5\)\.optional\(\)/);
@@ -39,6 +44,13 @@ assert.match(ownerRoute, /guardLeadImportRequest/);
 assert.match(ownerRoute, /ownerLeadAcquisitionProvenanceInputSchema/);
 assert.match(ownerRoute, /LEAD_IMPORT_INVALID_STATE/);
 assert.doesNotMatch(ownerRoute, /providerName.*NextResponse/);
+
+for (const sharedSurface of [batchService, importList, importDetail, agentLeadPage, adminLeadPage]) {
+  assert.doesNotMatch(sharedSurface, /ownerAcquisitionProvenance/);
+  assert.doesNotMatch(sharedSurface, /OwnerLeadAcquisitionProvenance/);
+}
+assert.doesNotMatch(batchService, /sourceCode/);
+assert.doesNotMatch(batchService, /acquisitionReference/);
 
 assert.match(schema, /businessAddress\s+String\?/);
 assert.match(schema, /googleRating\s+Decimal\?\s+@db\.Decimal\(2, 1\)/);
