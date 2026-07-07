@@ -1,0 +1,62 @@
+name: Isolated Lead Import Integration
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - ".github/workflows/isolated-lead-import-integration.yml"
+      - "prisma/schema.prisma"
+      - "prisma/migrations/20260707190000_lead_fields_owner_provenance/**"
+      - "scripts/test-lead-import-lifecycle-db.ts"
+      - "scripts/test-lead-import-research-fields-db.ts"
+      - "src/lib/db-integration-test-guard.ts"
+      - "src/lib/lead-import-**"
+      - "src/lib/import-audit-service.ts"
+      - "src/lib/owner-lead-acquisition-provenance.ts"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: isolated-lead-import-integration-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  integration:
+    name: Isolated database lifecycle
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    env:
+      MCD_RUN_DB_INTEGRATION_TESTS: "1"
+      MCD_TEST_DATABASE_URL: ${{ secrets.MCD_TEST_DATABASE_URL }}
+      # Sentinel only: runtime selects MCD_TEST_DATABASE_URL and the guard rejects
+      # a test target that matches this normal-runtime placeholder.
+      DATABASE_URL: postgresql://unused:unused@127.0.0.1:5432/mcd_ci_sentinel
+
+    steps:
+      - name: Check out source
+        uses: actions/checkout@v4
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 24
+
+      - name: Confirm isolated database secret is available
+        shell: bash
+        run: |
+          test -n "$MCD_TEST_DATABASE_URL"
+          echo "Isolated database secret is available."
+
+      - name: Install dependencies
+        run: npm install --no-audit --no-fund
+
+      - name: Generate Prisma client
+        run: npm run prisma:generate
+
+      - name: Run signed import lifecycle harness
+        run: npm run test:lead-import-db
+
+      - name: Run research and opaque acquisition harness
+        run: npm run test:lead-import-research-db
