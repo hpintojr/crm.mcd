@@ -8,23 +8,37 @@ import {
 } from "@/lib/lead-import-batch";
 import type { CreateLeadImportBatchInput } from "@/lib/lead-import-contract";
 import {
+  assertImmutableLeadImportBatchReplay,
   isLeadImportUniqueConstraintError,
   MAX_ROW_UPLOAD_RETRIES,
 } from "@/lib/lead-import-concurrency-contract";
 
-export { isLeadImportUniqueConstraintError } from "@/lib/lead-import-concurrency-contract";
+export {
+  isLeadImportUniqueConstraintError,
+  LeadImportBatchReplayConflictError,
+} from "@/lib/lead-import-concurrency-contract";
+
+function assertBatchReplay(
+  batch: LeadImportBatchWithRows,
+  input: CreateLeadImportBatchInput,
+  keyId: string
+) {
+  assertImmutableLeadImportBatchReplay(batch, input, keyId);
+}
 
 /**
- * `localRunId` is the durable idempotency identity for a batch. Two matching
- * create requests can race between lookup and insert; return the winning batch
- * rather than expose the database uniqueness error to the signed client.
+ * `localRunId` is the durable idempotency identity for a batch. A matching
+ * retry returns the winning batch; changed immutable batch metadata is a
+ * replay conflict rather than a silent return of unrelated prior state.
  */
 export async function createLeadImportBatchWithConcurrencyRecovery(
   input: CreateLeadImportBatchInput,
   keyId: string
 ): Promise<{ batch: LeadImportBatchWithRows; created: boolean }> {
   try {
-    return await createLeadImportBatch(input, keyId);
+    const result = await createLeadImportBatch(input, keyId);
+    if (!result.created) assertBatchReplay(result.batch, input, keyId);
+    return result;
   } catch (error) {
     if (!isLeadImportUniqueConstraintError(error)) throw error;
 
@@ -34,6 +48,7 @@ export async function createLeadImportBatchWithConcurrencyRecovery(
     });
 
     if (!existing) throw error;
+    assertBatchReplay(existing, input, keyId);
     return { batch: existing, created: false };
   }
 }
