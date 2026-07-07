@@ -1,7 +1,8 @@
 import { NextResponse } from "next/server";
 import { ZodError } from "zod";
 import { createLeadImportBatchSchema, leadImportApiPaths } from "@/lib/lead-import-contract";
-import { createLeadImportBatch, serializeLeadImportBatch } from "@/lib/lead-import-batch";
+import { serializeLeadImportBatch } from "@/lib/lead-import-batch";
+import { createLeadImportBatchWithConcurrencyRecovery } from "@/lib/lead-import-concurrency";
 import { guardLeadImportRequest } from "@/lib/lead-import-route-guard";
 import { requireLeadImportHmacConfig } from "@/lib/lead-import-env";
 
@@ -12,7 +13,7 @@ export async function POST(request: Request) {
   try {
     const input = createLeadImportBatchSchema.parse(guard.body);
     const { keyId } = requireLeadImportHmacConfig();
-    const { batch, created } = await createLeadImportBatch(input, keyId);
+    const { batch, created } = await createLeadImportBatchWithConcurrencyRecovery(input, keyId);
     return NextResponse.json(serializeLeadImportBatch(batch), { status: created ? 201 : 200 });
   } catch (error) {
     if (error instanceof ZodError) {
