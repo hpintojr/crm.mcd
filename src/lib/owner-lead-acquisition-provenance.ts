@@ -10,7 +10,6 @@ export type OwnerLeadAcquisitionProvenance = {
   leadImportBatchId: string;
   sourceCode: string;
   acquisitionReference: string;
-  providerName: string | null;
   createdAt: Date;
   updatedAt: Date;
 };
@@ -40,11 +39,7 @@ function isUniqueConstraintError(error: unknown) {
 }
 
 function sameProvenance(existing: OwnerLeadAcquisitionProvenance, input: OwnerLeadAcquisitionProvenanceInput) {
-  return (
-    existing.sourceCode === input.sourceCode &&
-    existing.acquisitionReference === input.acquisitionReference &&
-    existing.providerName === (input.providerName ?? null)
-  );
+  return existing.sourceCode === input.sourceCode && existing.acquisitionReference === input.acquisitionReference;
 }
 
 async function findOwnerLeadAcquisitionProvenance(batchId: string) {
@@ -53,7 +48,6 @@ async function findOwnerLeadAcquisitionProvenance(batchId: string) {
       "leadImportBatchId",
       "sourceCode",
       "acquisitionReference",
-      "providerName",
       "createdAt",
       "updatedAt"
     FROM "OwnerLeadAcquisitionProvenance"
@@ -77,10 +71,10 @@ export async function readOwnerLeadAcquisitionProvenance(batchId: string) {
 }
 
 /**
- * Private signed-machine write path. It intentionally creates no AuditLog row
- * and never returns the sensitive values. The first write is allowed only in
- * DRAFT. Exact retries are idempotent even after the batch progresses; changed
- * values are a hard conflict.
+ * Private signed-machine write path. It stores opaque references only: actual
+ * provider identity and commercial records remain outside MiniCRM. It creates
+ * no AuditLog row and never returns private values. The first write is allowed
+ * only in DRAFT. Exact retries are idempotent; changed values conflict.
  */
 export async function recordOwnerLeadAcquisitionProvenance(
   batchId: string,
@@ -108,7 +102,6 @@ export async function recordOwnerLeadAcquisitionProvenance(
         "leadImportBatchId",
         "sourceCode",
         "acquisitionReference",
-        "providerName",
         "createdAt",
         "updatedAt"
       ) VALUES (
@@ -116,7 +109,6 @@ export async function recordOwnerLeadAcquisitionProvenance(
         ${batchId},
         ${input.sourceCode},
         ${input.acquisitionReference},
-        ${input.providerName ?? null},
         ${now},
         ${now}
       )
