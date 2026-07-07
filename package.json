@@ -5,7 +5,7 @@
   "description": "Mercury Call Desk — Mini CRM (Agent + Admin portals). GHL is a one-way backend.",
   "scripts": {
     "dev": "next dev",
-    "build": "npx tsx scripts/check-next-dynamic-route-collisions.ts && npx tsx scripts/check-recovery-route-guard.ts && npx tsx scripts/check-login-completion.ts && npx tsx scripts/check-lead-intake-types.ts && npx tsx scripts/check-lead-import-contract.ts && npx tsx scripts/check-lead-import-workflow.ts && npx tsx scripts/check-lead-import-http.ts && npx tsx scripts/check-lead-import-request-verifier.ts && npx tsx scripts/check-lead-import-response-contract.ts && npx tsx scripts/check-lead-import-replay.ts && npx tsx scripts/check-import-audit-outcomes.ts && prisma generate && next build",
+    "build": "npx tsx scripts/check-next-dynamic-route-collisions.ts && npx tsx scripts/check-recovery-route-guard.ts && npx tsx scripts/check-login-completion.ts && npx tsx scripts/check-lead-intake-types.ts && npx tsx scripts/check-lead-import-contract.ts && npx tsx scripts/check-lead-import-workflow.ts && npx tsx scripts/check-lead-import-http.ts && npx tsx scripts/check-lead-import-request-verifier.ts && npx tsx scripts/check-lead-import-response-contract.ts && npx tsx scripts/check-lead-import-replay.ts && npx tsx scripts/check-import-audit-outcomes.ts && npx tsx scripts/check-lead-import-concurrency.ts && prisma generate && next build",
     "start": "next start",
     "lint": "next lint",
     "typecheck": "tsc --noEmit",
@@ -24,7 +24,8 @@
     "check:lead-import-request-verifier": "tsx scripts/check-lead-import-request-verifier.ts",
     "check:lead-import-response-contract": "tsx scripts/check-lead-import-response-contract.ts",
     "check:lead-import-replay": "tsx scripts/check-lead-import-replay.ts",
-    "check:import-audit-outcomes": "tsx scripts/check-import-audit-outcomes.ts"
+    "check:import-audit-outcomes": "tsx scripts/check-import-audit-outcomes.ts",
+    "check:lead-import-concurrency": "tsx scripts/check-lead-import-concurrency.ts"
   },
   "dependencies": {
     "@node-rs/argon2": "^2.0.2",
