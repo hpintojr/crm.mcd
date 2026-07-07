@@ -10,16 +10,13 @@ ALTER TABLE "Lead"
   ADD CONSTRAINT "Lead_googleRating_range_check"
   CHECK ("googleRating" IS NULL OR ("googleRating" >= 0 AND "googleRating" <= 5));
 
--- Separate the commercially sensitive batch acquisition record from ordinary
--- Lead source fields. This table is selected only by the dedicated OWNER-only
--- server service; no shared serializer, import-review projection, or audit
--- record includes these values.
+-- Keep only opaque Owner acquisition identifiers in MiniCRM. Actual commercial
+-- identity, terms, purchase records, and vendor documents remain outside it.
 CREATE TABLE "OwnerLeadAcquisitionProvenance" (
   "id" TEXT NOT NULL,
   "leadImportBatchId" TEXT NOT NULL,
   "sourceCode" TEXT NOT NULL,
   "acquisitionReference" TEXT NOT NULL,
-  "providerName" TEXT,
   "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
   "updatedAt" TIMESTAMP(3) NOT NULL,
   CONSTRAINT "OwnerLeadAcquisitionProvenance_pkey" PRIMARY KEY ("id")
