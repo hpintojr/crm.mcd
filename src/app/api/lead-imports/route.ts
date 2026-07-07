@@ -18,6 +18,6 @@ export async function POST(request: Request) {
     if (error instanceof ZodError) {
       return NextResponse.json({ error: "LEAD_IMPORT_VALIDATION_ERROR", issues: error.issues }, { status: 422 });
     }
-    return NextResponse.json({ error: "LEAD_IMPORT_INTERNAL_ERROR", message: (error as Error).message }, { status: 500 });
+    return NextResponse.json({ error: "LEAD_IMPORT_INTERNAL_ERROR", message: "Unable to create lead-import batch." }, { status: 500 });
   }
 }
