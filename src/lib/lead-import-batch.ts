@@ -18,6 +18,7 @@ import {
   recommendLeadImportBatchStatus,
   summarizeLeadImportRows,
 } from "@/lib/lead-import-workflow";
+import { assertImmutableLeadImportReplay } from "@/lib/lead-import-replay";
 import { buildLeadDedupeKey, normalizeEmail, normalizePhone } from "@/lib/lead-normalization";
 import {
   defaultPoolForSource,
@@ -132,8 +133,8 @@ export async function uploadLeadImportRows(batchId: string, rawBody: unknown) {
   const existingByRowNumber = new Map(batch.rows.map((row) => [row.rowNumber, row]));
   const existingByIdempotencyKey = new Map(batch.rows.map((row) => [row.idempotencyKey, row]));
 
-  // Validate all replay identities before any write, so an invalid replay cannot
-  // leave a partially uploaded request behind.
+  // Validate every replay before any write. An exact replay is a no-op; any
+  // mismatch is rejected before it can mutate staged payload or review state.
   for (const envelope of payload.rows as LeadImportRowEnvelope[]) {
     const priorAtRowNumber = existingByRowNumber.get(envelope.rowNumber);
     const priorWithIdempotencyKey = existingByIdempotencyKey.get(envelope.idempotencyKey);
@@ -149,29 +150,30 @@ export async function uploadLeadImportRows(batchId: string, rawBody: unknown) {
         `Idempotency key ${envelope.idempotencyKey} is already associated with row ${priorWithIdempotencyKey.rowNumber}.`
       );
     }
+
+    const prior = priorAtRowNumber ?? priorWithIdempotencyKey;
+    if (prior) {
+      try {
+        assertImmutableLeadImportReplay(prior, envelope);
+      } catch (error) {
+        throw new LeadImportBatchStateError((error as Error).message);
+      }
+    }
   }
 
   for (const envelope of payload.rows as LeadImportRowEnvelope[]) {
-    await db.leadImportRow.upsert({
-      where: {
-        batchId_idempotencyKey: { batchId, idempotencyKey: envelope.idempotencyKey },
-      },
-      create: {
+    // Exact replays were verified above. Do not reset status, issues, or prior
+    // preview evidence for a row that has already been staged.
+    if (existingByIdempotencyKey.has(envelope.idempotencyKey)) continue;
+
+    await db.leadImportRow.create({
+      data: {
         batchId,
         rowNumber: envelope.rowNumber,
         rowHash: envelope.rowHash,
         idempotencyKey: envelope.idempotencyKey,
         payload: envelope.row as unknown as Prisma.InputJsonValue,
         status: "RECEIVED",
-      },
-      update: {
-        rowHash: envelope.rowHash,
-        payload: envelope.row as unknown as Prisma.InputJsonValue,
-        status: "RECEIVED",
-        issues: [] as unknown as Prisma.InputJsonValue,
-        dedupeKey: null,
-        existingLeadId: null,
-        createdLeadId: null,
       },
     });
   }
