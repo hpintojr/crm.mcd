@@ -45,13 +45,12 @@ export const leadImportIdempotencyKeySchema = z.string().trim().min(1).max(256).
 export const leadImportSha256Schema = z.string().trim().regex(/^[a-f0-9]{64}$/i, "Expected a SHA-256 hex digest.");
 
 /**
- * Private batch-level procurement record. It travels only through the separate
- * signed owner-acquisition endpoint, never through shared batch or row bodies.
+ * Private batch-level ownership identifiers. The actual provider identity,
+ * commercial terms, and purchase details remain outside MiniCRM.
  */
 export const ownerLeadAcquisitionProvenanceInputSchema = z.object({
   sourceCode: leadImportIdentifierSchema.max(80),
   acquisitionReference: leadImportIdentifierSchema.max(160),
-  providerName: z.string().trim().min(1).max(200).optional(),
 }).strict();
 
 export const createLeadImportBatchSchema = z.object({
