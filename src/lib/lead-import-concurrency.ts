@@ -7,14 +7,12 @@ import {
   type LeadImportBatchWithRows,
 } from "@/lib/lead-import-batch";
 import type { CreateLeadImportBatchInput } from "@/lib/lead-import-contract";
+import {
+  isLeadImportUniqueConstraintError,
+  MAX_ROW_UPLOAD_RETRIES,
+} from "@/lib/lead-import-concurrency-contract";
 
-const MAX_ROW_UPLOAD_RETRIES = 2;
-
-type PrismaErrorLike = { code?: unknown };
-
-export function isLeadImportUniqueConstraintError(error: unknown) {
-  return typeof error === "object" && error !== null && (error as PrismaErrorLike).code === "P2002";
-}
+export { isLeadImportUniqueConstraintError } from "@/lib/lead-import-concurrency-contract";
 
 /**
  * `localRunId` is the durable idempotency identity for a batch. Two matching
