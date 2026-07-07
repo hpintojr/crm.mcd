@@ -23,7 +23,7 @@ export default async function OwnerLeadAcquisitionPage({ params }: { params: Pro
       <section className="mt-6 rounded-2xl border border-amber-800/70 bg-ink-900 p-6">
         <p className="text-sm font-medium uppercase tracking-widest text-amber-300">Owner-only</p>
         <h1 className="mt-2 text-2xl font-semibold text-white">Acquisition record</h1>
-        <p className="mt-3 text-sm text-gray-400">This record contains opaque internal identifiers only. Provider identity and commercial records remain outside MiniCRM.</p>
+        <p className="mt-3 text-sm text-gray-400">This record contains opaque internal identifiers only. Commercial identity and purchase records remain outside MiniCRM.</p>
         <dl className="mt-6 grid gap-4 text-sm sm:grid-cols-2">
           <div><dt className="text-gray-500">Batch</dt><dd className="mt-1 font-mono text-xs text-gray-200">{provenance.leadImportBatchId}</dd></div>
           <div><dt className="text-gray-500">Source code</dt><dd className="mt-1 text-gray-200">{provenance.sourceCode}</dd></div>
