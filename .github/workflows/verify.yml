@@ -44,3 +44,4 @@ jobs:
           npm run check:lead-import-http
           npm run check:lead-import-request-verifier
           npm run check:lead-import-response-contract
+          npm run check:lead-import-replay
