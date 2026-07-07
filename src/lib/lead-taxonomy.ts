@@ -72,7 +72,7 @@ export const websiteOpportunityStatusLabels: Record<WebsiteOpportunityStatusValu
   BUNDLE_OFFERED: "Website included with package offered",
   WEBSITE_ONLY_QUOTE: "Website-only quote sent",
   WEBSITE_ONLY_WON: "Website-only won",
-  DECLINED: "Website-only won",
+  DECLINED: "Declined",
   NOT_ELIGIBLE: "Not eligible",
 };
 
