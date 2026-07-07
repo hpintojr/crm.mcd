@@ -71,11 +71,30 @@ async function writeAudit(batchId: string, row: Row, actionType: string, reason:
   }
 }
 
-async function reconcileConcurrentLeadInsertDuplicates(batchId: string, batch: LeadImportBatchWithRows) {
+async function reconcileConcurrentSubmitOutcomes(batchId: string, batch: LeadImportBatchWithRows) {
   let reconciledAny = false;
 
   for (const row of batch.rows) {
     if (row.status !== "IMPORT_ERROR") continue;
+
+    // A concurrent submit of this same batch can observe the Lead unique-key
+    // collision after the winning transaction already recorded createdLeadId.
+    // Preserve that durable success instead of downgrading it to an error.
+    if (row.createdLeadId) {
+      const createdLead = await db.lead.findUnique({ where: { id: row.createdLeadId }, select: { id: true } });
+      if (createdLead) {
+        await db.leadImportRow.update({
+          where: { id: row.id },
+          data: {
+            status: "IMPORTED",
+            issues: [] as unknown as Prisma.InputJsonValue,
+            existingLeadId: null,
+          },
+        });
+        reconciledAny = true;
+        continue;
+      }
+    }
 
     const parsed = leadImportRowEnvelopeSchema.shape.row.safeParse(row.payload);
     if (!parsed.success) continue;
@@ -143,7 +162,7 @@ export async function previewImportWithAudit(batchId: string) {
 export async function submitImportWithAudit(batchId: string, input: SubmitInput) {
   const before = statuses(await getLeadImportBatchStatus(batchId));
   const submitted = await submitLeadImportBatch(batchId, input);
-  const batch = await reconcileConcurrentLeadInsertDuplicates(batchId, submitted);
+  const batch = await reconcileConcurrentSubmitOutcomes(batchId, submitted);
 
   for (const row of batch.rows) {
     const status = row.status as LeadImportRowStatus;
