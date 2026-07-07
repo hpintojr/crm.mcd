@@ -3,9 +3,9 @@ import { leadImportApiPaths } from "@/lib/lead-import-contract";
 import {
   LeadImportBatchNotFoundError,
   LeadImportBatchStateError,
-  previewLeadImportBatch,
   serializeLeadImportBatch,
 } from "@/lib/lead-import-batch";
+import { previewImportWithAudit } from "@/lib/import-audit-service";
 import { guardLeadImportRequest } from "@/lib/lead-import-route-guard";
 
 export async function POST(request: Request, { params }: { params: Promise<{ batchId: string }> }) {
@@ -14,7 +14,7 @@ export async function POST(request: Request, { params }: { params: Promise<{ bat
   if (!guard.ok) return guard.response;
 
   try {
-    const batch = await previewLeadImportBatch(batchId);
+    const batch = await previewImportWithAudit(batchId);
     return NextResponse.json(serializeLeadImportBatch(batch), { status: 200 });
   } catch (error) {
     if (error instanceof LeadImportBatchNotFoundError) {
@@ -23,6 +23,6 @@ export async function POST(request: Request, { params }: { params: Promise<{ bat
     if (error instanceof LeadImportBatchStateError) {
       return NextResponse.json({ error: "LEAD_IMPORT_INVALID_STATE", message: error.message }, { status: 409 });
     }
-    return NextResponse.json({ error: "LEAD_IMPORT_INTERNAL_ERROR", message: (error as Error).message }, { status: 500 });
+    return NextResponse.json({ error: "LEAD_IMPORT_INTERNAL_ERROR", message: "Unable to preview lead-import batch." }, { status: 500 });
   }
 }
