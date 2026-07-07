@@ -3,13 +3,13 @@ import { existsSync, readFileSync } from "node:fs";
 import { ownerLeadAcquisitionProvenanceInputSchema } from "../src/lib/lead-import-contract";
 
 assert.equal(ownerLeadAcquisitionProvenanceInputSchema.safeParse({
-  sourceCode: "RAW072026",
-  acquisitionReference: "OP_ACQ_072026_001",
-  providerName: "Licensed Provider",
+  sourceCode: "OWNER_SOURCE_FIXTURE",
+  acquisitionReference: "OWNER_REFERENCE_FIXTURE",
+  providerName: "Private Test Provider",
 }).success, true);
 assert.equal(ownerLeadAcquisitionProvenanceInputSchema.safeParse({
-  sourceCode: "RAW072026",
-  acquisitionReference: "OP_ACQ_072026_001",
+  sourceCode: "OWNER_SOURCE_FIXTURE",
+  acquisitionReference: "OWNER_REFERENCE_FIXTURE",
   unexpected: "must fail",
 }).success, false);
 
