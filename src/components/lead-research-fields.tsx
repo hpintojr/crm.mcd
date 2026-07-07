@@ -1,4 +1,9 @@
-import { db } from "@/lib/db";
+type LeadResearchData = {
+  businessAddress: string | null;
+  googleRating: { toString(): string } | null;
+  googleRatingObservedAt: Date | null;
+  googleMapsUrl: string | null;
+};
 
 function pacific(value: Date | null) {
   return value
@@ -7,22 +12,11 @@ function pacific(value: Date | null) {
 }
 
 /**
- * Displays only values stored by the signed import. The Maps URL is an outbound
- * manual-research link; this component never fetches, embeds, or renders Maps
- * content or reviews.
+ * Displays only authorized Lead data supplied by the calling page. The Maps URL
+ * is an outbound manual-research link; this component never fetches, embeds,
+ * or renders Maps content or reviews.
  */
-export async function LeadResearchFields({ leadId }: { leadId: string }) {
-  const research = await db.lead.findUnique({
-    where: { id: leadId },
-    select: {
-      businessAddress: true,
-      googleRating: true,
-      googleRatingObservedAt: true,
-      googleMapsUrl: true,
-    },
-  });
-  if (!research) return null;
-
+export function LeadResearchFields({ research }: { research: LeadResearchData }) {
   return (
     <article className="rounded-2xl border border-ink-700 bg-ink-900 p-6">
       <h2 className="font-semibold text-white">Sales research</h2>
