@@ -58,4 +58,8 @@ for (const route of routes) {
   assert.match(route, /LEAD_IMPORT_INTERNAL_ERROR/);
 }
 
+const guard = readFileSync("src/lib/lead-import-route-guard.ts", "utf8");
+assert.match(guard, /LEAD_IMPORT_UNAVAILABLE/);
+assert.match(guard, /status: 503/);
+
 console.log("Lead import response contract checks passed.");
