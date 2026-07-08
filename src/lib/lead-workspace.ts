@@ -1,6 +1,6 @@
 import "server-only";
 
-import { LeadDisposition, type LeadLifecycle } from "@prisma/client";
+import { LeadDisposition, type LeadLifecycle, type LeadPool } from "@prisma/client";
 import { z } from "zod";
 import { requireRole } from "@/lib/authz";
 import { db } from "@/lib/db";
@@ -11,6 +11,10 @@ const interactionSchema = z.object({
   disposition: z.nativeEnum(LeadDisposition),
   note: z.string().trim().max(2_000).optional(),
   callbackAtPacific: z.string().trim().optional(),
+});
+
+const leadIdSchema = z.object({
+  leadId: z.string().cuid(),
 });
 
 const dncSchema = z.object({
@@ -26,6 +30,13 @@ const twoWayDispositions: LeadDisposition[] = [
   LeadDisposition.FOLLOW_UP,
 ];
 
+const claimEligibleDispositions: LeadDisposition[] = [
+  LeadDisposition.CALLBACK_REQUESTED,
+  LeadDisposition.QUALIFIED,
+  LeadDisposition.DEMO_BOOKED,
+  LeadDisposition.FOLLOW_UP,
+];
+
 const invalidContactDispositions: LeadDisposition[] = [
   LeadDisposition.WRONG_NUMBER,
   LeadDisposition.OUT_OF_BUSINESS,
@@ -36,11 +47,27 @@ function lifecycleFor(disposition: LeadDisposition): LeadLifecycle {
   if (disposition === LeadDisposition.NOT_INTERESTED) return "CLOSED_LOST";
   if (invalidContactDispositions.includes(disposition)) return "DISQUALIFIED";
   if (disposition === LeadDisposition.NO_ANSWER || disposition === LeadDisposition.VOICEMAIL) return "CLAIMED";
+  if (disposition === LeadDisposition.CALLBACK_REQUESTED) return "NURTURING";
   return "CONTACTED";
+}
+
+function coldPoolFor(disposition: LeadDisposition): LeadPool {
+  if (disposition === LeadDisposition.CALLBACK_REQUESTED) return "NURTURE";
+  if (claimEligibleDispositions.includes(disposition)) return "HOT";
+  return "COLD";
+}
+
+function coldLifecycleFor(disposition: LeadDisposition): LeadLifecycle {
+  if (disposition === LeadDisposition.NO_ANSWER || disposition === LeadDisposition.VOICEMAIL) return "AVAILABLE";
+  return lifecycleFor(disposition);
 }
 
 function isTwoWayContact(disposition: LeadDisposition) {
   return twoWayDispositions.includes(disposition);
+}
+
+function isClaimEligibleDisposition(disposition: LeadDisposition) {
+  return claimEligibleDispositions.includes(disposition);
 }
 
 function pacificDateTime(value?: string) {
@@ -63,6 +90,83 @@ async function activeAgent() {
   const agent = await db.agent.findUnique({ where: { userId: user.id } });
   if (!agent?.canClaimLeads) throw new Error("Lead access is pending manager certification.");
   return { user, agent };
+}
+
+export async function logColdLeadCallInitiated(input: { leadId: string }) {
+  const parsed = leadIdSchema.parse(input);
+  const { user, agent } = await activeAgent();
+  const lead = await db.lead.findFirst({
+    where: {
+      id: parsed.leadId,
+      ownerAgentId: null,
+      pool: { in: ["COLD", "HOT", "NURTURE"] },
+      lifecycle: { in: ["AVAILABLE", "CONTACTED", "NURTURING"] },
+      dnc: false,
+      suppressed: false,
+    },
+    select: { id: true, pool: true, lifecycle: true },
+  });
+  if (!lead) throw new Error("This Cold Lead is no longer available for activity logging.");
+  const now = new Date();
+
+  await db.$transaction([
+    db.lead.update({ where: { id: lead.id }, data: { lastActionAt: now } }),
+    db.leadActivity.create({ data: { leadId: lead.id, agentId: agent.id, type: "CALL_INITIATED", metadata: { priorPool: lead.pool, priorLifecycle: lead.lifecycle, claimCreated: false, rule: "ACTIVITY_ONLY_NO_SOFT_LOCK" } } }),
+    db.auditLog.create({ data: { actorUserId: user.id, actorRole: user.role, actionType: "COLD_LEAD_CALL_INITIATED", entityType: "Lead", entityId: lead.id, metadata: { priorPool: lead.pool, priorLifecycle: lead.lifecycle, claimCreated: false } } }),
+  ]);
+}
+
+export async function logColdLeadDisposition(input: { leadId: string; disposition: string; note?: string; callbackAtPacific?: string }) {
+  const parsed = interactionSchema.parse(input);
+  if (parsed.disposition === LeadDisposition.DO_NOT_CONTACT) throw new Error("Use the DNC action to suppress a contact.");
+  const { user, agent } = await activeAgent();
+  const lead = await db.lead.findFirst({
+    where: {
+      id: parsed.leadId,
+      ownerAgentId: null,
+      pool: { in: ["COLD", "HOT", "NURTURE"] },
+      lifecycle: { in: ["AVAILABLE", "CONTACTED", "NURTURING"] },
+      dnc: false,
+      suppressed: false,
+    },
+  });
+  if (!lead) throw new Error("This Cold Lead is no longer available for disposition logging.");
+
+  const now = new Date();
+  const callbackAt = pacificDateTime(parsed.callbackAtPacific);
+  if (parsed.disposition === LeadDisposition.CALLBACK_REQUESTED && !callbackAt) throw new Error("A callback time is required when the prospect requests a callback.");
+  const lifecycle = coldLifecycleFor(parsed.disposition);
+  const pool = coldPoolFor(parsed.disposition);
+  const invalidContact = invalidContactDispositions.includes(parsed.disposition);
+  const claimEligible = isClaimEligibleDisposition(parsed.disposition);
+  const note = parsed.note?.trim() || undefined;
+  const nextActionAt = invalidContact || lifecycle === "CLOSED_LOST" || lifecycle === "DEMO_BOOKED" ? null : callbackAt;
+
+  await db.$transaction(async (tx) => {
+    await tx.lead.update({ where: { id: lead.id }, data: {
+      pool,
+      lifecycle,
+      lastActionAt: now,
+      nextActionAt,
+      twoWayContactAt: isTwoWayContact(parsed.disposition) ? lead.twoWayContactAt ?? now : lead.twoWayContactAt,
+      suppressed: invalidContact,
+    } });
+    await tx.leadCallback.updateMany({ where: { leadId: lead.id, agentId: agent.id, status: "SCHEDULED" }, data: { status: "COMPLETED", completedAt: now } });
+    await tx.leadActivity.create({ data: { leadId: lead.id, agentId: agent.id, type: "CALL_COMPLETED", disposition: parsed.disposition, metadata: { callbackAt: callbackAt?.toISOString() ?? null, invalidContact, claimEligible, claimCreated: false, priorPool: lead.pool, nextPool: pool, priorLifecycle: lead.lifecycle, nextLifecycle: lifecycle } } });
+    await tx.leadActivity.create({ data: { leadId: lead.id, agentId: agent.id, type: "DISPOSITION_SET", disposition: parsed.disposition, metadata: { claimEligible, twoWayContact: isTwoWayContact(parsed.disposition), callbackAt: callbackAt?.toISOString() ?? null } } });
+    if (note) {
+      await tx.leadNote.create({ data: { leadId: lead.id, agentId: agent.id, body: note } });
+      await tx.leadActivity.create({ data: { leadId: lead.id, agentId: agent.id, type: "NOTE_ADDED" } });
+    }
+    if (callbackAt && !invalidContact && lifecycle !== "CLOSED_LOST" && lifecycle !== "DEMO_BOOKED") {
+      await tx.leadCallback.create({ data: { leadId: lead.id, agentId: agent.id, dueAt: callbackAt } });
+      await tx.leadActivity.create({ data: { leadId: lead.id, agentId: agent.id, type: "CALLBACK_SCHEDULED", metadata: { dueAt: callbackAt.toISOString(), reservesLead: false } } });
+    }
+    if (invalidContact) {
+      await tx.leadSuppression.create({ data: { leadId: lead.id, identifier: lead.normalizedPhone || lead.businessPhone, type: "INVALID_PHONE", reason: note || parsed.disposition, createdById: user.id } });
+    }
+    await tx.auditLog.create({ data: { actorUserId: user.id, actorRole: user.role, actionType: "COLD_LEAD_DISPOSITION_RECORDED", entityType: "Lead", entityId: lead.id, metadata: { disposition: parsed.disposition, priorPool: lead.pool, pool, priorLifecycle: lead.lifecycle, lifecycle, callbackAt: callbackAt?.toISOString() ?? null, invalidContact, claimEligible, claimCreated: false } } });
+  });
 }
 
 export async function logLeadInteraction(input: { leadId: string; disposition: string; note?: string; callbackAtPacific?: string }) {
@@ -107,7 +211,14 @@ export async function logLeadInteraction(input: { leadId: string; disposition: s
 export async function suppressLeadForDnc(input: { leadId: string; reason?: string }) {
   const parsed = dncSchema.parse(input);
   const { user, agent } = await activeAgent();
-  const lead = await db.lead.findFirst({ where: { id: parsed.leadId, ownerAgentId: agent.id, dnc: false, suppressed: false } });
+  const lead = await db.lead.findFirst({
+    where: {
+      id: parsed.leadId,
+      dnc: false,
+      suppressed: false,
+      OR: [{ ownerAgentId: agent.id }, { ownerAgentId: null }],
+    },
+  });
   if (!lead) throw new Error("This record is no longer available in your workspace.");
   const now = new Date();
   const reason = parsed.reason?.trim() || "Contact requested no further communication.";
@@ -116,7 +227,7 @@ export async function suppressLeadForDnc(input: { leadId: string; reason?: strin
     await tx.lead.update({ where: { id: lead.id }, data: { lifecycle: "SUPPRESSED", dnc: true, suppressed: true, lastActionAt: now, nextActionAt: null, openPoolReleaseAt: null } });
     await tx.leadCallback.updateMany({ where: { leadId: lead.id, status: "SCHEDULED" }, data: { status: "CANCELLED" } });
     await tx.leadSuppression.create({ data: { leadId: lead.id, identifier: lead.normalizedPhone || lead.businessPhone, type: "DNC", reason, createdById: user.id } });
-    await tx.leadActivity.create({ data: { leadId: lead.id, agentId: agent.id, type: "DNC_REQUESTED", disposition: "DO_NOT_CONTACT", metadata: { reason } } });
-    await tx.auditLog.create({ data: { actorUserId: user.id, actorRole: user.role, actionType: "LEAD_DNC_APPLIED", entityType: "Lead", entityId: lead.id, reason } });
+    await tx.leadActivity.create({ data: { leadId: lead.id, agentId: agent.id, type: "DNC_REQUESTED", disposition: "DO_NOT_CONTACT", metadata: { reason, absoluteBlackout: true } } });
+    await tx.auditLog.create({ data: { actorUserId: user.id, actorRole: user.role, actionType: "LEAD_DNC_APPLIED", entityType: "Lead", entityId: lead.id, reason, metadata: { absoluteBlackout: true, priorOwnerAgentId: lead.ownerAgentId } } });
   });
 }
