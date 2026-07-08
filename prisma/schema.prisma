@@ -313,35 +313,39 @@ model Appointment {
 }
 
 model Lead {
-  id                String        @id @default(cuid())
-  company           String
-  contactFirstName  String?
-  contactLastName   String?
-  email             String?
-  businessPhone     String
-  normalizedPhone   String?
-  website           String?
-  industry          String?
-  city              String?
-  state             String?
-  country           String?
-  timezone          String?
-  source            String?
-  sourceReference   String?
-  originalSource      LeadOriginalSource?
-  sourceDetail        String?
-  sourceRecordUrl     String?
-  campaignName        String?
-  campaignExternalId  String?
-  intakeMethod        LeadIntakeMethod?
-  referrerName        String?
-  referrerType        LeadReferrerType?
-  referrerLeadId      String?
-  utmSource           String?
-  utmMedium           String?
-  utmCampaign         String?
-  utmContent          String?
-  utmTerm             String?
+  id                       String        @id @default(cuid())
+  company                  String
+  contactFirstName         String?
+  contactLastName          String?
+  email                    String?
+  businessPhone            String
+  normalizedPhone          String?
+  website                  String?
+  businessAddress          String?
+  industry                 String?
+  city                     String?
+  state                    String?
+  country                  String?
+  timezone                 String?
+  googleRating             Decimal?      @db.Decimal(2, 1)
+  googleRatingObservedAt   DateTime?
+  googleMapsUrl            String?
+  source                   String?
+  sourceReference          String?
+  originalSource           LeadOriginalSource?
+  sourceDetail             String?
+  sourceRecordUrl          String?
+  campaignName             String?
+  campaignExternalId       String?
+  intakeMethod             LeadIntakeMethod?
+  referrerName             String?
+  referrerType             LeadReferrerType?
+  referrerLeadId           String?
+  utmSource                String?
+  utmMedium                String?
+  utmCampaign              String?
+  utmContent               String?
+  utmTerm                  String?
   websiteStatus            WebsiteStatus             @default(UNKNOWN)
   websiteReviewedAt        DateTime?
   websiteReviewNote        String?
@@ -350,26 +354,26 @@ model Lead {
   websiteQuotedAmountCents Int?
   websiteQuoteExpiresAt    DateTime?
   websiteScopeNote         String?
-  dedupeKey         String?       @unique
-  score             Int           @default(0)
-  lifecycle         LeadLifecycle @default(PENDING_REVIEW)
-  pool              LeadPool      @default(COLD)
-  ownerAgentId      String?
-  claimedAt         DateTime?
-  twoWayContactAt   DateTime?
-  lastActionAt      DateTime?
-  nextActionAt      DateTime?
-  openPoolReleaseAt DateTime?
-  isReferral        Boolean       @default(false)
-  referralSource    String?
-  suppressed        Boolean       @default(false)
-  dnc               Boolean       @default(false)
-  ghlContactId      String?
-  ghlOpportunityId  String?
-  ghlAppointmentId  String?
-  packageInterest   String?
-  createdAt         DateTime      @default(now())
-  updatedAt         DateTime      @updatedAt
+  dedupeKey                String?       @unique
+  score                    Int           @default(0)
+  lifecycle                LeadLifecycle @default(PENDING_REVIEW)
+  pool                     LeadPool      @default(COLD)
+  ownerAgentId             String?
+  claimedAt                DateTime?
+  twoWayContactAt          DateTime?
+  lastActionAt             DateTime?
+  nextActionAt             DateTime?
+  openPoolReleaseAt        DateTime?
+  isReferral               Boolean       @default(false)
+  referralSource           String?
+  suppressed               Boolean       @default(false)
+  dnc                      Boolean       @default(false)
+  ghlContactId             String?
+  ghlOpportunityId         String?
+  ghlAppointmentId         String?
+  packageInterest          String?
+  createdAt                DateTime      @default(now())
+  updatedAt                DateTime      @updatedAt
 
   @@index([pool, lifecycle, ownerAgentId])
   @@index([nextActionAt])
@@ -522,32 +526,43 @@ enum LeadImportRowStatus {
 }
 
 model LeadImportBatch {
-  id                   String                @id @default(cuid())
-  localRunId           String                @unique
-  operatorName         String
-  sourceAdapter        String
-  sourceAdapterVersion String
-  manifestHash         String
-  clientVersion        String
-  keyId                String?
-  status               LeadImportBatchStatus @default(DRAFT)
-  rowCount             Int                   @default(0)
-  insertedCount        Int?
-  duplicateCount       Int?
-  suppressedCount      Int?
-  rejectedCount        Int?
-  approvalRecordedAt   DateTime?
-  approvalReference    String?
-  approvedByUserId     String?
-  submittedAt          DateTime?
-  completedAt          DateTime?
-  failureReason        String?
-  rows                 LeadImportRow[]
-  createdAt            DateTime              @default(now())
-  updatedAt            DateTime              @updatedAt
+  id                         String                           @id @default(cuid())
+  localRunId                 String                           @unique
+  operatorName               String
+  sourceAdapter              String
+  sourceAdapterVersion       String
+  manifestHash               String
+  clientVersion              String
+  keyId                      String?
+  status                     LeadImportBatchStatus            @default(DRAFT)
+  rowCount                   Int                              @default(0)
+  insertedCount              Int?
+  duplicateCount             Int?
+  suppressedCount            Int?
+  rejectedCount              Int?
+  approvalRecordedAt         DateTime?
+  approvalReference          String?
+  approvedByUserId           String?
+  submittedAt                DateTime?
+  completedAt                DateTime?
+  failureReason              String?
+  rows                       LeadImportRow[]
+  ownerAcquisitionProvenance OwnerLeadAcquisitionProvenance?
+  createdAt                  DateTime                         @default(now())
+  updatedAt                  DateTime                         @updatedAt
 
   @@index([status])
   @@index([createdAt])
+}
+
+model OwnerLeadAcquisitionProvenance {
+  id                   String          @id @default(cuid())
+  leadImportBatchId    String          @unique
+  batch                LeadImportBatch @relation(fields: [leadImportBatchId], references: [id], onDelete: Cascade)
+  sourceCode           String
+  acquisitionReference String
+  createdAt            DateTime        @default(now())
+  updatedAt            DateTime        @updatedAt
 }
 
 model LeadImportRow {

@@ -1,7 +1,7 @@
 import { z } from "zod";
 
 /**
- * Provider-neutral primitives for the future paid-data import API.
+ * Provider-neutral primitives for the signed batch import API.
  *
  * This module intentionally contains no route handler, database access, or
  * server-only row validation. It defines the signed batch/row contract only.
@@ -44,6 +44,15 @@ export const leadImportIdentifierSchema = z.string().trim().min(1).max(160).rege
 export const leadImportIdempotencyKeySchema = z.string().trim().min(1).max(256).regex(/^[A-Za-z0-9._:-]+$/, "Use only letters, numbers, periods, underscores, colons, or hyphens.");
 export const leadImportSha256Schema = z.string().trim().regex(/^[a-f0-9]{64}$/i, "Expected a SHA-256 hex digest.");
 
+/**
+ * Private batch-level ownership identifiers. The actual provider identity,
+ * commercial terms, and purchase details remain outside MiniCRM.
+ */
+export const ownerLeadAcquisitionProvenanceInputSchema = z.object({
+  sourceCode: leadImportIdentifierSchema.max(80),
+  acquisitionReference: leadImportIdentifierSchema.max(160),
+}).strict();
+
 export const createLeadImportBatchSchema = z.object({
   localRunId: leadImportIdentifierSchema,
   operatorName: z.string().trim().min(1).max(200),
@@ -51,7 +60,7 @@ export const createLeadImportBatchSchema = z.object({
   sourceAdapterVersion: z.string().trim().min(1).max(120),
   manifestHash: leadImportSha256Schema,
   clientVersion: z.string().trim().min(1).max(120),
-});
+}).strict();
 
 export const leadImportRowEnvelopeMetadataSchema = z.object({
   rowNumber: z.number().int().positive().max(1_000_000),
@@ -96,6 +105,7 @@ export const leadImportRequestHeadersSchema = z.object({
 });
 
 export type CreateLeadImportBatchInput = z.infer<typeof createLeadImportBatchSchema>;
+export type OwnerLeadAcquisitionProvenanceInput = z.infer<typeof ownerLeadAcquisitionProvenanceInputSchema>;
 export type LeadImportRowEnvelopeMetadata = z.infer<typeof leadImportRowEnvelopeMetadataSchema>;
 export type UploadLeadImportRowMetadataInput = z.infer<typeof uploadLeadImportRowMetadataSchema>;
 export type LeadImportRequestHeaders = z.infer<typeof leadImportRequestHeadersSchema>;
@@ -106,6 +116,7 @@ export const leadImportApiPaths = {
   preview: (batchId: string) => `/api/lead-imports/${batchId}/preview`,
   submit: (batchId: string) => `/api/lead-imports/${batchId}/submit`,
   status: (batchId: string) => `/api/lead-imports/${batchId}`,
+  ownerAcquisition: (batchId: string) => `/api/lead-imports/${batchId}/owner-acquisition`,
 } as const;
 
 export function makeRowIdempotencyKey(localRunId: string, rowNumber: number, rowHash: string) {

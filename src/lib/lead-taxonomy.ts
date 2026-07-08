@@ -72,7 +72,7 @@ export const websiteOpportunityStatusLabels: Record<WebsiteOpportunityStatusValu
   BUNDLE_OFFERED: "Website included with package offered",
   WEBSITE_ONLY_QUOTE: "Website-only quote sent",
   WEBSITE_ONLY_WON: "Website-only won",
-  DECLINED: "Website offer declined",
+  DECLINED: "Declined",
   NOT_ELIGIBLE: "Not eligible",
 };
 
@@ -138,17 +138,27 @@ const leadImportBaseSchema = z.object({
   email: z.string().trim().email().max(320).optional(),
   businessPhone: z.string().trim().min(7).max(40).optional(),
   website: z.string().trim().url().max(2000).optional(),
+  businessAddress: z.string().trim().max(500).optional(),
   industry: z.string().trim().max(150).optional(),
   city: z.string().trim().max(150).optional(),
   state: z.string().trim().max(100).optional(),
   country: z.string().trim().max(100).optional(),
   timezone: z.string().trim().max(100).optional(),
+  googleRating: z.number().finite().min(0).max(5).optional(),
+  googleRatingObservedAt: z.string().datetime({ offset: true }).optional(),
+  googleMapsUrl: z.string().trim().url().max(2000).optional(),
 });
 
 export const leadImportRowSchema = leadImportBaseSchema.merge(leadSourceFieldsSchema).superRefine((value, ctx) => {
   validateLeadSource(value, ctx);
   if (!value.email && !value.businessPhone) {
     ctx.addIssue({ code: z.ZodIssueCode.custom, path: ["businessPhone"], message: "At least one contact route, email or business phone, is required." });
+  }
+  if (value.googleRating !== undefined && !value.googleRatingObservedAt) {
+    ctx.addIssue({ code: z.ZodIssueCode.custom, path: ["googleRatingObservedAt"], message: "A provider-observed timestamp is required when a Google rating is supplied." });
+  }
+  if (value.googleRating !== undefined && Math.round(value.googleRating * 10) !== value.googleRating * 10) {
+    ctx.addIssue({ code: z.ZodIssueCode.custom, path: ["googleRating"], message: "Google rating must use one decimal place or fewer." });
   }
 });
 
