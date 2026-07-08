@@ -19,6 +19,6 @@ assertContains("src/app/portal/leads/page.tsx", "selectedCold");
 assertContains("src/lib/lead-aging-jobs.ts", "LEAD_AUTO_RETURNED_TO_OPEN_POOL");
 assertContains("src/lib/lead-aging-jobs.ts", "LEAD_PROMOTED_TO_SHARK_TANK");
 assertContains("src/app/api/cron/leads/aging/route.ts", "CRON_SECRET");
-assertContains("vercel.json", "\"path\": \"/api/cron/leads/aging\"");
+assertContains("src/app/api/cron/leads/aging/route.ts", "runLeadAgingSweep");
 
 console.log("Lead flow alignment guard passed.");
