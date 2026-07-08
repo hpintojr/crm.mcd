@@ -5,6 +5,9 @@ import { db } from "@/lib/db";
 import { requireFeature } from "@/lib/features";
 
 const ADMIN: UserRole[] = ["OWNER", "SUPER_ADMIN", "SALES_MANAGER", "COMPLIANCE_MANAGER", "FINANCE_MANAGER"];
+const CLAIM_ELIGIBLE_LIFECYCLES = ["CONTACTED", "NURTURING", "DEMO_BOOKED"] as const;
+const CLAIM_ELIGIBLE_POOLS = ["HOT", "NURTURE"] as const;
+const CLAIM_RELEASE_DAYS = 45;
 
 export async function claimAvailableLead(actor: { userId: string; role: UserRole }, leadId: string) {
   requireFeature("leads");
@@ -15,23 +18,44 @@ export async function claimAvailableLead(actor: { userId: string; role: UserRole
   const active = await db.lead.count({ where: { ownerAgentId: agent.id, lifecycle: { in: ["CLAIMED", "CONTACTED", "NURTURING", "DEMO_BOOKED"] }, dnc: false, suppressed: false } });
   if (active >= capacity) throw new Error(`Active lead capacity of ${capacity} reached.`);
 
-  const now = new Date();
-  const updated = await db.lead.updateMany({
+  const lead = await db.lead.findFirst({
     where: {
       id: leadId,
       ownerAgentId: null,
-      lifecycle: "AVAILABLE",
-      pool: "OPEN",
-      openPoolReleaseAt: { lte: now },
+      lifecycle: { in: [...CLAIM_ELIGIBLE_LIFECYCLES] },
+      pool: { in: [...CLAIM_ELIGIBLE_POOLS] },
+      twoWayContactAt: { not: null },
       dnc: false,
       suppressed: false,
     },
-    data: { ownerAgentId: agent.id, lifecycle: "CLAIMED", claimedAt: now, lastActionAt: now },
+    select: { id: true, pool: true, lifecycle: true, twoWayContactAt: true },
   });
-  if (updated.count !== 1) throw new Error("This Open Pool record is no longer available to claim.");
+  if (!lead) throw new Error("This lead is not claim-eligible. A two-way contact disposition is required before claiming.");
+
+  const now = new Date();
+  const releaseAt = new Date(now.getTime() + CLAIM_RELEASE_DAYS * 24 * 60 * 60 * 1000);
+  const updated = await db.lead.updateMany({
+    where: {
+      id: lead.id,
+      ownerAgentId: null,
+      lifecycle: lead.lifecycle,
+      pool: lead.pool,
+      twoWayContactAt: { not: null },
+      dnc: false,
+      suppressed: false,
+    },
+    data: {
+      ownerAgentId: agent.id,
+      lifecycle: "CLAIMED",
+      claimedAt: now,
+      lastActionAt: now,
+      openPoolReleaseAt: releaseAt,
+    },
+  });
+  if (updated.count !== 1) throw new Error("This record is no longer available to claim.");
   await db.$transaction([
-    db.leadClaimEvent.create({ data: { leadId, agentId: agent.id, action: "CLAIMED" } }),
-    db.leadActivity.create({ data: { leadId, agentId: agent.id, type: "LEAD_CLAIMED" } }),
-    db.auditLog.create({ data: { actorUserId: actor.userId, actorRole: actor.role, actionType: "LEAD_CLAIMED", entityType: "Lead", entityId: leadId } }),
+    db.leadClaimEvent.create({ data: { leadId, agentId: agent.id, action: "CLAIMED", reason: "Two-way contact verified before claim." } }),
+    db.leadActivity.create({ data: { leadId, agentId: agent.id, type: "LEAD_CLAIMED", metadata: { priorPool: lead.pool, priorLifecycle: lead.lifecycle, releaseAt: releaseAt.toISOString(), rule: "TWO_WAY_CONTACT_REQUIRED" } } }),
+    db.auditLog.create({ data: { actorUserId: actor.userId, actorRole: actor.role, actionType: "LEAD_CLAIMED", entityType: "Lead", entityId: leadId, metadata: { priorPool: lead.pool, priorLifecycle: lead.lifecycle, releaseAt: releaseAt.toISOString(), twoWayContactAt: lead.twoWayContactAt?.toISOString() ?? null } } }),
   ]);
 }
