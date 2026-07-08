@@ -114,6 +114,32 @@ When claim succeeds:
 - `openPoolReleaseAt` is set to 45 days after claim;
 - `LeadClaimEvent`, `LeadActivity`, and `AuditLog` are written.
 
+### Aging sweep
+
+A secured cron endpoint was added:
+
+```text
+/api/cron/leads/aging
+```
+
+It is configured in `vercel.json` to run daily at 12:00 UTC and requires:
+
+```text
+Authorization: Bearer $CRON_SECRET
+```
+
+The sweep performs two controlled jobs:
+
+1. **45-day claim expiration**
+   - Finds claimed/contacted/nurturing, non-referral, non-suppressed Leads whose `openPoolReleaseAt` has passed.
+   - Clears ownership and returns the Lead to `OPEN / AVAILABLE`.
+   - Writes `LeadClaimEvent`, `LeadActivity`, and `AuditLog` evidence.
+
+2. **21-day Open Pool stall promotion**
+   - Finds unowned `OPEN / AVAILABLE` Leads that have remained released for 21 days.
+   - Moves them to `SHARK_TANK`.
+   - Writes `LeadActivity` and `AuditLog` evidence.
+
 ### DNC rule
 
 DNC can be applied from both unowned Cold Lead flow and owned Lead flow. It suppresses the record, cancels scheduled callbacks, and records absolute-blackout metadata.
@@ -126,15 +152,13 @@ A build guard was added:
 scripts/check-lead-flow-alignment.ts
 ```
 
-It verifies that the code still contains the key Cold Lead / no-claim-before-contact safeguards.
+It verifies that the code still contains the key Cold Lead, no-claim-before-contact, aging-sweep, and cron safeguards.
 
 ## Still gated / not completed in this branch
 
 - Full client-side `tel:` interception is not yet implemented; the current branch uses a dial link plus explicit call-start logging.
-- Open Pool expiration background job is not built here.
-- Shark Tank promotion background job is not built here.
 - Commission and Finance remain gated and intentionally untouched.
-- Production feature-gate values still must be verified before rollout.
+- Production feature-gate values and `CRON_SECRET` must be verified before rollout.
 
 ## Acceptance checks to run next
 
@@ -145,3 +169,5 @@ It verifies that the code still contains the key Cold Lead / no-claim-before-con
 - Claim succeeds only after two-way contact.
 - Claim sets a 45-day `openPoolReleaseAt`.
 - DNC suppresses and cancels callbacks.
+- Aging sweep returns expired owned leads to Open Pool.
+- Aging sweep moves 21-day stale Open Pool leads to Shark Tank.
