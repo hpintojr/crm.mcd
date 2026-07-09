@@ -47,6 +47,9 @@ assertContains("src/lib/lead-production-acceptance.ts", "leadProductionAcceptanc
 assertContains("src/app/api/admin/leads/acceptance-report/route.ts", "lead-production-acceptance");
 assertContains("src/app/api/admin/leads/acceptance-report/route.ts", "readyForOwnerDecision");
 assertContains("src/app/api/admin/leads/acceptance-report.csv/route.ts", "LEAD_PRODUCTION_ACCEPTANCE_EXPORT_CREATED");
+assertContains("src/app/admin/leads/acceptance-report/page.tsx", "Lead Production Acceptance Report");
+assertContains("src/app/admin/leads/acceptance-report/page.tsx", "Owner decision readiness");
+assertContains("src/app/admin/leads/acceptance-report/page.tsx", "CSV export");
 assertContains("src/app/admin/operating-status/page.tsx", "Production Lead Flow acceptance");
 assertContains("src/app/admin/operating-status/page.tsx", "Custom-domain smoke passed");
 assertContains("src/app/admin/operating-status/page.tsx", "Record the controlled production Lead Flow acceptance results");
