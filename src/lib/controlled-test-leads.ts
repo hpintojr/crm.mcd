@@ -39,7 +39,7 @@ export function buildControlledTestPhone(sourceReference: string) {
   };
 }
 
-export function isControlledTestLead(lead: ControlledTestLeadMarker | null | undefined) {
+export function isControlledTestLead(lead: ControlledTestLeadMarker | null | undefined): lead is ControlledTestLeadMarker {
   if (!lead) return false;
   return (
     lead.source === CONTROLLED_TEST_LEAD_SOURCE ||
