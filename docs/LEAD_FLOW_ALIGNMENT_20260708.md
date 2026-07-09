@@ -10,7 +10,7 @@ The build now follows the Section 17 decisions:
 - Callback before two-way contact does not reserve a lead.
 - Agents cannot claim before two-way contact.
 - DNC is an absolute blackout.
-- The 45-day responsibility timer starts on claim.
+- The 45-day responsibility timer starts on claim or owner assignment after verified two-way contact.
 - The original 50 imported leads were corrected out of Open Pool.
 
 ## Production data correction completed
@@ -114,6 +114,26 @@ When claim succeeds:
 - `openPoolReleaseAt` is set to 45 days after claim;
 - `LeadClaimEvent`, `LeadActivity`, and `AuditLog` are written.
 
+### Warm Reply Triage
+
+`/admin/leads/replies` is aligned with the same ownership rule:
+
+- unowned inbound replies require an existing recorded `twoWayContactAt` before assignment;
+- assignment creates owner follow-up work;
+- assignment sets `openPoolReleaseAt` to 45 days after assignment;
+- assignment writes `LeadClaimEvent`, `LeadActivity`, and `AuditLog` evidence;
+- suppressed/DNC/closed/already-owned/no-contact Leads remain excluded from the triage queue.
+
+### GHL appointment relay hardening
+
+`/api/ghl/appointments` now returns attribution outcomes and its Lead attribution layer enforces:
+
+- suppressed or DNC Leads are not changed by appointment events;
+- booked/confirmed/rescheduled appointments record two-way contact when missing;
+- cancelled/no-show recovery creates one immediate owner callback or expedites an existing callback;
+- Closed Won Leads are not rolled back by later recovery events;
+- ignored, callback-created, callback-expedited, and preserved-Closed-Won outcomes are recorded in audit metadata.
+
 ### Aging sweep
 
 A secured cron endpoint was added:
@@ -152,13 +172,13 @@ A build guard was added:
 scripts/check-lead-flow-alignment.ts
 ```
 
-It verifies that the code still contains the key Cold Lead, no-claim-before-contact, aging-sweep, and cron safeguards.
+It verifies that the code still contains the key Cold Lead, no-claim-before-contact, warm-reply assignment, GHL appointment suppression, aging-sweep, and cron safeguards.
 
 ## Still gated / not completed in this branch
 
 - Full client-side `tel:` interception is not yet implemented; the current branch uses a dial link plus explicit call-start logging.
 - Commission and Finance remain gated and intentionally untouched.
-- Production feature-gate values and `CRON_SECRET` must be verified before rollout.
+- Merge/production activation still requires owner decision.
 
 ## Acceptance checks to run next
 
@@ -168,6 +188,9 @@ It verifies that the code still contains the key Cold Lead, no-claim-before-cont
 - Callback disposition creates claim eligibility but does not auto-claim.
 - Claim succeeds only after two-way contact.
 - Claim sets a 45-day `openPoolReleaseAt`.
+- Warm Reply Triage assignment sets a 45-day `openPoolReleaseAt`.
 - DNC suppresses and cancels callbacks.
+- GHL appointment events do not mutate suppressed/DNC Leads.
+- GHL appointment cancellation/no-show creates or expedites one owner callback.
 - Aging sweep returns expired owned leads to Open Pool.
 - Aging sweep moves 21-day stale Open Pool leads to Shark Tank.
