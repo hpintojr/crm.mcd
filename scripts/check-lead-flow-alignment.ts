@@ -20,6 +20,7 @@ assertContains("src/app/portal/leads/page.tsx", "ColdLeadDialButton");
 assertContains("src/components/cold-lead-dial-button.tsx", "Click to call logs activity first");
 assertContains("src/components/cold-lead-dial-button.tsx", "/api/portal/leads/call-start");
 assertContains("src/components/cold-lead-dial-button.tsx", "window.location.href = telHref(phone)");
+assertContains("src/components/cold-lead-dial-button.tsx", "Dialer was not opened because activity must be logged first");
 assertContains("src/app/api/portal/leads/call-start/route.ts", "logColdLeadCallInitiated");
 assertContains("src/app/api/portal/leads/call-start/route.ts", "ACTIVITY_ONLY_NO_SOFT_LOCK");
 assertContains("src/app/portal/workspace/page.tsx", "My Workspace");
