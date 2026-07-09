@@ -62,6 +62,8 @@ assertContains("src/app/admin/audit/page.tsx", "NextCRM-inspired timeline view")
 assertContains("src/app/admin/audit/page.tsx", "data-audit-ux=\"filter-bar\"");
 assertContains("src/app/admin/audit/page.tsx", "Filtered audit timeline");
 assertContains("src/app/admin/audit/page.tsx", "metadataPreview");
+assertContains("src/app/admin/audit/page.tsx", "/admin/leads/acceptance-command-center");
+assertContains("src/app/admin/audit/page.tsx", "Lead command center");
 assertContains("src/app/admin/leads/replies/page.tsx", "Warm reply triage");
 assertContains("src/app/admin/leads/replies/page.tsx", "starts the 45-day responsibility timer");
 assertContains("src/lib/lead-appointment-attribution.ts", "GHL_APPOINTMENT_IGNORED");
