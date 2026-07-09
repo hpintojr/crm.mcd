@@ -92,4 +92,15 @@ assertContains("src/lib/controlled-ghl-test-events.ts", "liveGhlWorkflowActivate
 assertContains("src/app/admin/integrations/test-events/page.tsx", "Controlled GHL event harness");
 assertContains("src/app/api/admin/integrations/test-events/route.ts", "applyControlledGhlTestEvent");
 
+assertContains("src/app/admin/leads/acceptance-runbook/page.tsx", "Lead acceptance runbook");
+assertContains("src/app/admin/leads/acceptance-runbook/page.tsx", "data-acceptance-runbook=\"lead-flow\"");
+assertContains("src/app/admin/leads/acceptance-runbook/page.tsx", "Gates that remain closed");
+assertContains("src/app/admin/leads/acceptance-runbook/page.tsx", "Verify the two-way-contact claim gate");
+assertContains("src/app/admin/leads/acceptance-runbook/page.tsx", "Verify the Warm Reply Triage 45-day timer");
+assertContains("src/app/admin/leads/acceptance-runbook/page.tsx", "Verify DNC suppresses and cancels callbacks");
+assertContains("src/app/admin/leads/acceptance-runbook/page.tsx", "Only use the controlled GHL event harness");
+assertContains("src/app/admin/leads/acceptance-runbook/page.tsx", "mutationPerformed:false");
+assertContains("src/app/admin/leads/acceptance-command-center/page.tsx", "/admin/leads/acceptance-runbook");
+assertContains("src/app/admin/leads/acceptance-command-center/page.tsx", "Acceptance runbook");
+
 console.log("Lead flow alignment guard passed.");
