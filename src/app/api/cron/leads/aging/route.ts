@@ -1,0 +1,19 @@
+import { NextRequest, NextResponse } from "next/server";
+import { runLeadAgingSweep } from "@/lib/lead-aging-jobs";
+import { features } from "@/lib/features";
+
+export const dynamic = "force-dynamic";
+
+function authorized(request: NextRequest) {
+  const cronSecret = process.env.CRON_SECRET;
+  const header = request.headers.get("authorization");
+  return Boolean(cronSecret && header === `Bearer ${cronSecret}`);
+}
+
+export async function GET(request: NextRequest) {
+  if (!features.leads) return NextResponse.json({ error: "Not found." }, { status: 404 });
+  if (!authorized(request)) return NextResponse.json({ error: "Unauthorized." }, { status: 401 });
+
+  const result = await runLeadAgingSweep();
+  return NextResponse.json(result);
+}

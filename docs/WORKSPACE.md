@@ -19,7 +19,7 @@ Feature flags are independent. Do not assume a flag value from this document; ve
 
 | Module | Gate | Build state | Activation rule |
 |---|---|---|---|
-| Leads | `LEADS_ENABLED` | Controlled lead import, review, claim, work, DNC, warm replies, GHL relays, acceptance board | Controlled test window only after owner approval |
+| Leads | `LEADS_ENABLED` | Controlled lead import, review, Cold Lead activity-first workspace, My Workspace dashboard, two-way-contact claim gate, DNC, aging sweep, warm replies, GHL relays, acceptance board | Controlled test window only after owner approval |
 | Servicing | `SERVICING_ENABLED` | Closed Won onboarding, client account guard, launch, cases, ownership/House controls, acceptance board | Controlled servicing test after Lead lifecycle is proven |
 | Commissions | `COMMISSIONS_ENABLED` | Eligibility/readiness/ledger review and acceptance board; Hold management intentionally paused pending schema confirmation | Do not enable until migration and policy tests are approved |
 | Finance | `FINANCE_ENABLED` | Readiness-only boundary page | No money movement or payout execution |
@@ -35,12 +35,18 @@ Feature flags are independent. Do not assume a flag value from this document; ve
 
 ### 2. Lead lifecycle
 
-`RAW/PENDING_REVIEW → AVAILABLE → CLAIMED/CONTACTED/NURTURING → DEMO_BOOKED → CLOSED_WON or CLOSED_LOST`
+`RAW/PENDING_REVIEW → AVAILABLE → CONTACTED/NURTURING → CLAIMED → DEMO_BOOKED → CLOSED_WON or CLOSED_LOST`
 
 - Imports support controlled JSON and CSV conversion, but server preview is required before commit.
 - Required import values are company, usable business phone, original source, and intake method. CSV headers will be mapped after the test-file headers are reviewed.
 - Admin review approves only managed pools. New imports cannot enter Open Pool.
-- Claiming is atomic and agent-scoped.
+- Cold Leads are worked activity-first: call attempts log `CALL_INITIATED` only and do not soft-lock, reserve, or claim the record.
+- No-answer and voicemail dispositions keep the Lead unowned and available in Cold Leads.
+- Callback-requested, qualified, and follow-up/interested dispositions record two-way contact and unlock claim eligibility without auto-claiming.
+- Claiming is atomic and agent-scoped; claiming requires `twoWayContactAt` and starts the 45-day responsibility timer.
+- My Workspace now shows assigned records, callback queue, recent activity, and claim-timer responsibility without requiring a selected Lead ID.
+- The secured daily aging sweep returns expired claimed Leads to Open Pool and promotes 21-day stale unclaimed Open Pool records to Shark Tank.
+- `CRON_SECRET` has been configured by the owner in Vercel for the secured aging endpoint.
 - Notes, dispositions, callbacks, two-way contact, wrong-number/out-of-business, DNC, and suppression are audited.
 - Admin suppression cancels scheduled callbacks and clears future action state.
 - Warm reply triage assigns an unowned reply to one active agent atomically and creates immediate callback work.
@@ -70,6 +76,7 @@ All three use verified webhook handling, approved location validation, idempoten
 
 ## What is not complete or intentionally paused
 
+- Full client-side `tel:` interception is not complete; the current Cold Lead branch uses a dial link plus explicit call-start logging.
 - GHL Opportunity and Inbound Reply workflows still require external GHL configuration and controlled acceptance testing.
 - Automatic GHL Opportunity Won → Client Account creation remains intentionally disabled.
 - Client-account production migration protections are prepared but not yet approved/applied as a production database release.
@@ -111,7 +118,7 @@ Useful optional columns include contact names, email, website, industry, city, s
 1. Confirm feature gates and deployment state.
 2. Create/configure the second test agent and record company/entity W-9 status.
 3. Validate CSV header mapping and use a small internal-only batch.
-4. Execute Lead acceptance steps: import, review, claim boundary, agent work, DNC, Open Pool return, GHL appointments, opportunity results, and inbound replies.
+4. Execute Lead acceptance steps: import, review, Cold Lead activity, no-claim-before-contact boundary, DNC, claim after two-way contact, My Workspace dashboard, Open Pool return, aging sweep, GHL appointments, opportunity results, and inbound replies.
 5. Record Pass/Fail/Deferred evidence on `/admin/leads/testing`.
 6. Run servicing acceptance only after the Lead lifecycle test is signed off.
 7. Keep Commissions and Finance gated.
@@ -122,6 +129,9 @@ Useful optional columns include contact names, email, website, industry, city, s
 |---|---|
 | Lead review / controlled import | `/admin/leads` |
 | Lead acceptance evidence | `/admin/leads/testing` |
+| Agent Cold Lead / active Lead workspace | `/portal/leads` |
+| My assigned-work dashboard | `/portal/workspace` |
+| Lead aging cron | `/api/cron/leads/aging` |
 | Warm Reply Triage | `/admin/leads/replies` |
 | Demo-booked GHL handoff | `/admin/leads/handoff` |
 | Open Pool return controls | `/admin/leads/release` |

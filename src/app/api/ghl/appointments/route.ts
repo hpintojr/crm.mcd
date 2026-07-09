@@ -54,10 +54,10 @@ export async function POST(request: NextRequest) {
     });
     const leadAttribution = await attributeAppointmentToLead({ eventType: payload.event_type, ghlEventId: payload.ghl_event_id, ghlAppointmentId: payload.ghl_appointment_id, ghlContactId: payload.ghl_contact_id, miniCrmLeadId: payload.mini_crm_lead_id, startsAt: startAt });
     await db.$transaction([
-      db.auditLog.create({ data: { actionType: "GHL_APPOINTMENT_RELAYED", entityType: "Appointment", entityId: appointment.id, ipAddress: requestIp(request), metadata: { leadMatched: leadAttribution.matched, leadGated: leadAttribution.gated } } }),
+      db.auditLog.create({ data: { actionType: "GHL_APPOINTMENT_RELAYED", entityType: "Appointment", entityId: appointment.id, ipAddress: requestIp(request), metadata: { leadMatched: leadAttribution.matched, leadGated: leadAttribution.gated, leadIgnored: leadAttribution.ignored, callbackCreated: leadAttribution.callbackCreated, callbackExpedited: leadAttribution.callbackExpedited, preservedClosedWon: leadAttribution.preservedClosedWon } } }),
       db.webhookEvent.update({ where: { ghlEventId: payload.ghl_event_id }, data: { status: "PROCESSED", processedAt: new Date() } }),
     ]);
-    return NextResponse.json({ ok: true, relayed: true, appointmentId: appointment.id, agentMatched: Boolean(agent), leadMatched: leadAttribution.matched });
+    return NextResponse.json({ ok: true, relayed: true, appointmentId: appointment.id, agentMatched: Boolean(agent), leadMatched: leadAttribution.matched, leadGated: leadAttribution.gated, leadIgnored: leadAttribution.ignored, callbackCreated: leadAttribution.callbackCreated, callbackExpedited: leadAttribution.callbackExpedited });
   } catch (error) {
     const message = error instanceof Error ? error.message : "Appointment webhook processing failed.";
     await Promise.allSettled([

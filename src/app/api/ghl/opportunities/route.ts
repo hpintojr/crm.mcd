@@ -35,7 +35,7 @@ export async function POST(request: NextRequest) {
     });
     if (result.duplicate) return NextResponse.json({ ok: true, duplicate: true });
     await finishInboundEvent(payload.ghl_event_id, "PROCESSED");
-    return NextResponse.json({ ok: true, relayed: true, leadMatched: result.leadMatched, leadGated: result.leadGated });
+    return NextResponse.json({ ok: true, relayed: true, leadMatched: result.leadMatched, leadGated: result.leadGated, leadIgnored: result.leadIgnored, preservedClosedWon: result.preservedClosedWon, callbacksCancelled: result.callbacksCancelled });
   } catch (error) {
     await finishInboundEvent(payload.ghl_event_id, "ERROR").catch(() => undefined);
     await logIntegrationError({ source: "ghl.opportunities", refId: payload.ghl_event_id, message: error instanceof Error ? error.message : "Webhook processing failed.", payload: raw as Prisma.InputJsonValue });
