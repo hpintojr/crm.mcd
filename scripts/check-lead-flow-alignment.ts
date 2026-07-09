@@ -26,11 +26,12 @@ assertContains("src/app/api/portal/leads/call-start/route.ts", "ACTIVITY_ONLY_NO
 assertContains("src/app/portal/workspace/page.tsx", "My Workspace");
 assertContains("src/app/portal/workspace/page.tsx", "Work Cold Leads");
 assertContains("src/app/portal/workspace/page.tsx", "Claim timer");
-assertContains("src/app/admin/leads/testing/page.tsx", "Lead Flow Alignment acceptance test");
-assertContains("src/app/admin/leads/testing/page.tsx", "PR_34_LEAD_FLOW_ALIGNMENT");
+assertContains("src/app/admin/leads/testing/page.tsx", "Production Lead Flow acceptance");
+assertContains("src/app/admin/leads/testing/page.tsx", "PRODUCTION_ACCEPTANCE_20260709");
+assertContains("src/app/admin/leads/testing/page.tsx", "LEAD_PRODUCTION_ACCEPTANCE_RECORDED");
 assertContains("src/app/admin/leads/testing/page.tsx", "Verify click-to-call logs activity first");
-assertContains("src/app/admin/leads/testing/page.tsx", "Verify click-to-call creates no ownership");
-assertContains("src/app/admin/leads/testing/page.tsx", "Verify dialer is blocked if logging fails");
+assertContains("src/app/admin/leads/testing/page.tsx", "Verify dialer blocks if logging fails");
+assertContains("src/app/admin/leads/testing/page.tsx", "Verify no-answer and voicemail stay unowned");
 assertContains("src/app/admin/leads/testing/page.tsx", "Verify My Workspace dashboard");
 assertContains("src/app/admin/leads/testing/page.tsx", "Verify GHL opportunity hardening");
 assertContains("src/app/admin/leads/replies/page.tsx", "Warm reply triage");
