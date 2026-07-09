@@ -5,7 +5,7 @@ import { db } from "@/lib/db";
 import { features } from "@/lib/features";
 
 type CountRow = { count: number };
-type ReadinessCard = { label: string; value: string | number; href: string; reportHref?: string; exportHref?: string; detail: string };
+type ReadinessCard = { label: string; value: string | number; href: string; commandHref?: string; reportHref?: string; exportHref?: string; detail: string };
 type AcceptanceModule = {
   key: "LEADS" | "SERVICING" | "COMMISSIONS";
   label: string;
@@ -13,6 +13,7 @@ type AcceptanceModule = {
   entityType: string;
   totalSteps: number;
   href: string;
+  commandHref?: string;
   reportHref?: string;
   exportHref?: string;
   gateEnabled: boolean;
@@ -27,6 +28,7 @@ const acceptanceModules: AcceptanceModule[] = [
     entityType: "LeadProductionAcceptanceStep",
     totalSteps: 18,
     href: "/admin/leads/testing",
+    commandHref: "/admin/leads/acceptance-command-center",
     reportHref: "/admin/leads/acceptance-report",
     exportHref: "/api/admin/leads/acceptance-report.csv",
     gateEnabled: features.leads,
@@ -79,7 +81,7 @@ export default async function ReadinessBoardPage() {
   });
 
   const cards: ReadinessCard[] = [
-    ...acceptanceCards.map((card): ReadinessCard => ({ label: card.label, value: `${card.passed} / ${card.totalSteps}`, href: card.href, reportHref: card.reportHref, exportHref: card.exportHref, detail: `${card.gateEnabled ? "Controlled test enabled" : "Staged / locked"} · ${card.failed ? `${card.failed} failed` : "No failed steps"}${card.deferred ? ` · ${card.deferred} deferred` : ""}. ${card.detail}` })),
+    ...acceptanceCards.map((card): ReadinessCard => ({ label: card.label, value: `${card.passed} / ${card.totalSteps}`, href: card.href, commandHref: card.commandHref, reportHref: card.reportHref, exportHref: card.exportHref, detail: `${card.gateEnabled ? "Controlled test enabled" : "Staged / locked"} · ${card.failed ? `${card.failed} failed` : "No failed steps"}${card.deferred ? ` · ${card.deferred} deferred` : ""}. ${card.detail}` })),
     { label: "Pending Lead review", value: pendingLeads, href: "/admin/leads", detail: "Review source, duplicates, and suppression before pool assignment." },
     { label: "Demo-booked handoffs", value: demoBooked, href: "/admin/leads/handoff", detail: "Send eligible demo-booked Leads to GHL through the controlled handoff queue." },
     { label: "Won Leads awaiting onboarding", value: closedWonUnonboarded, href: "/admin/servicing/onboarding", detail: "Create the Client Service account, then document client launch." },
@@ -88,7 +90,7 @@ export default async function ReadinessBoardPage() {
     { label: "Unresolved integrations", value: integrationErrors, href: "/admin/integrations", detail: "Review webhook and backend integration failures before normal rollout." },
   ];
 
-  return <main className="mx-auto min-h-screen max-w-7xl px-6 py-12"><div className="flex flex-wrap items-start justify-between gap-4"><div><p className="text-sm font-medium uppercase tracking-widest text-brand-400">Mercury Call Desk</p><h1 className="mt-2 text-3xl font-semibold text-white">Readiness board</h1><p className="mt-2 max-w-4xl text-gray-400">Live operational counts and the latest recorded acceptance evidence. Evidence does not enable a feature; gates remain independent and require an intentional owner decision.</p></div><div className="flex flex-wrap gap-2"><Link className="rounded-lg border border-ink-700 px-3 py-2 text-sm text-gray-200" href="/admin/operating-status">Operating status</Link><Link className="rounded-lg border border-brand-500 px-3 py-2 text-sm text-brand-200" href="/admin/leads/acceptance-report">Lead acceptance report</Link></div></div><section className="mt-8 grid gap-5 md:grid-cols-2 xl:grid-cols-3">{cards.map((card) => <article className="rounded-2xl border border-ink-700 bg-ink-900 p-6 transition hover:border-brand-500" key={card.label}><Link href={card.href}><p className="text-sm text-gray-400">{card.label}</p><p className="mt-2 text-4xl font-semibold text-white">{card.value}</p><p className="mt-4 text-sm leading-6 text-gray-300">{card.detail}</p></Link>{(card.reportHref || card.exportHref) && <div className="mt-5 flex flex-wrap gap-2 border-t border-ink-700 pt-4">{card.reportHref && <Link className="rounded-lg border border-brand-500 px-3 py-2 text-sm text-brand-200" href={card.reportHref}>Open report</Link>}{card.exportHref && <Link className="rounded-lg border border-ink-700 px-3 py-2 text-sm text-gray-200" href={card.exportHref}>CSV export</Link>}</div>}</article>)}</section><section className="mt-8 rounded-2xl border border-ink-700 bg-ink-900 p-6"><h2 className="font-semibold text-white">Feature gate state</h2><div className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-4"><Gate name="Leads" enabled={features.leads} /><Gate name="Servicing" enabled={features.servicing} /><Gate name="Commissions" enabled={features.commissions} /><Gate name="Finance" enabled={features.finance} /></div></section></main>;
+  return <main className="mx-auto min-h-screen max-w-7xl px-6 py-12"><div className="flex flex-wrap items-start justify-between gap-4"><div><p className="text-sm font-medium uppercase tracking-widest text-brand-400">Mercury Call Desk</p><h1 className="mt-2 text-3xl font-semibold text-white">Readiness board</h1><p className="mt-2 max-w-4xl text-gray-400">Live operational counts and the latest recorded acceptance evidence. Evidence does not enable a feature; gates remain independent and require an intentional owner decision.</p></div><div className="flex flex-wrap gap-2"><Link className="rounded-lg border border-ink-700 px-3 py-2 text-sm text-gray-200" href="/admin/operating-status">Operating status</Link><Link className="rounded-lg border border-brand-500 px-3 py-2 text-sm text-brand-200" href="/admin/leads/acceptance-command-center">Lead command center</Link><Link className="rounded-lg border border-brand-500 px-3 py-2 text-sm text-brand-200" href="/admin/leads/acceptance-report">Lead acceptance report</Link></div></div><section className="mt-8 grid gap-5 md:grid-cols-2 xl:grid-cols-3">{cards.map((card) => <article className="rounded-2xl border border-ink-700 bg-ink-900 p-6 transition hover:border-brand-500" key={card.label}><Link href={card.href}><p className="text-sm text-gray-400">{card.label}</p><p className="mt-2 text-4xl font-semibold text-white">{card.value}</p><p className="mt-4 text-sm leading-6 text-gray-300">{card.detail}</p></Link>{(card.commandHref || card.reportHref || card.exportHref) && <div className="mt-5 flex flex-wrap gap-2 border-t border-ink-700 pt-4">{card.commandHref && <Link className="rounded-lg border border-brand-500 px-3 py-2 text-sm text-brand-200" href={card.commandHref}>Command center</Link>}{card.reportHref && <Link className="rounded-lg border border-brand-500 px-3 py-2 text-sm text-brand-200" href={card.reportHref}>Open report</Link>}{card.exportHref && <Link className="rounded-lg border border-ink-700 px-3 py-2 text-sm text-gray-200" href={card.exportHref}>CSV export</Link>}</div>}</article>)}</section><section className="mt-8 rounded-2xl border border-ink-700 bg-ink-900 p-6"><h2 className="font-semibold text-white">Feature gate state</h2><div className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-4"><Gate name="Leads" enabled={features.leads} /><Gate name="Servicing" enabled={features.servicing} /><Gate name="Commissions" enabled={features.commissions} /><Gate name="Finance" enabled={features.finance} /></div></section></main>;
 }
 
 function Gate({ name, enabled }: { name: string; enabled: boolean }) {
