@@ -38,6 +38,10 @@ assertContains("src/app/admin/readiness/page.tsx", "LeadProductionAcceptanceStep
 assertContains("src/app/admin/readiness/page.tsx", "totalSteps: 18");
 assertContains("src/app/admin/audit/page.tsx", "LEAD_PRODUCTION_ACCEPTANCE_RECORDED");
 assertContains("src/app/admin/audit/page.tsx", "production Lead Flow acceptance");
+assertContains("src/app/admin/audit/page.tsx", "AcceptanceOutcome");
+assertContains("src/app/admin/audit/page.tsx", "readAcceptanceMetadata");
+assertContains("src/app/admin/audit/page.tsx", "outcomeClass");
+assertContains("src/app/admin/audit/page.tsx", "statusBaselineCommit");
 assertContains("src/app/admin/operating-status/page.tsx", "Production Lead Flow acceptance");
 assertContains("src/app/admin/operating-status/page.tsx", "Custom-domain smoke passed");
 assertContains("src/app/admin/operating-status/page.tsx", "Record the controlled production Lead Flow acceptance results");
