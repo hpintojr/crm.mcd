@@ -18,7 +18,7 @@ export type GhlOpportunityRelayInput = {
 
 export async function relayGhlOpportunity(input: GhlOpportunityRelayInput) {
   const event = await recordInboundEvent({ ghlEventId: input.ghlEventId, locationId: input.locationId, type: "opportunities.changed", payload: input.rawPayload });
-  if (!event.firstTime) return { duplicate: true, leadMatched: false, leadGated: false };
+  if (!event.firstTime) return { duplicate: true, leadMatched: false, leadGated: false, leadIgnored: false, preservedClosedWon: false, callbacksCancelled: 0 };
 
   const attribution = await attributeOpportunityToLead({
     eventType: input.eventType,
@@ -33,8 +33,8 @@ export async function relayGhlOpportunity(input: GhlOpportunityRelayInput) {
       entityType: "WebhookEvent",
       entityId: input.ghlEventId,
       ipAddress: input.ipAddress ?? null,
-      metadata: { leadMatched: attribution.matched, leadGated: attribution.gated, eventType: input.eventType, ghlOpportunityId: input.ghlOpportunityId },
+      metadata: { leadMatched: attribution.matched, leadGated: attribution.gated, leadIgnored: attribution.ignored, preservedClosedWon: attribution.preservedClosedWon, callbacksCancelled: attribution.callbacksCancelled, eventType: input.eventType, ghlOpportunityId: input.ghlOpportunityId },
     },
   });
-  return { duplicate: false, leadMatched: attribution.matched, leadGated: attribution.gated };
+  return { duplicate: false, leadMatched: attribution.matched, leadGated: attribution.gated, leadIgnored: attribution.ignored, preservedClosedWon: attribution.preservedClosedWon, callbacksCancelled: attribution.callbacksCancelled };
 }
