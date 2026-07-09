@@ -66,6 +66,7 @@ export default async function LeadAcceptanceTestingPage() {
       },
     });
     revalidatePath("/admin/leads/testing");
+    revalidatePath("/admin/leads/acceptance-command-center");
     revalidatePath("/admin/leads/acceptance-report");
     revalidatePath("/admin/readiness");
     revalidatePath("/admin/audit");
@@ -84,6 +85,9 @@ export default async function LeadAcceptanceTestingPage() {
         <div className="flex flex-wrap gap-2">
           <Link className="rounded-lg border border-ink-700 px-3 py-2 text-sm text-gray-200" href="/api/status">
             Status endpoint
+          </Link>
+          <Link className="rounded-lg border border-brand-500 px-3 py-2 text-sm text-brand-200" href="/admin/leads/acceptance-command-center">
+            Command center
           </Link>
           <Link className="rounded-lg border border-brand-500 px-3 py-2 text-sm text-brand-200" href="/admin/leads/acceptance-report">
             Acceptance report
