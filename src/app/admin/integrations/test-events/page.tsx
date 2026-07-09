@@ -85,6 +85,7 @@ export default async function ControlledGhlTestEventsPage({ searchParams }: Page
       note: parsed.data.note,
     });
     revalidatePath("/admin/integrations/test-events");
+    revalidatePath("/admin/leads/acceptance-command-center");
     revalidatePath("/admin/integrations");
     revalidatePath("/admin/audit");
     revalidatePath("/portal/leads");
@@ -100,6 +101,7 @@ export default async function ControlledGhlTestEventsPage({ searchParams }: Page
           <p className="mt-2 max-w-3xl text-gray-400">Preview and apply simulated appointment or opportunity events against controlled test Leads only. This harness does not call GHL, activate workflows, or accept live customer records.</p>
         </div>
         <div className="flex flex-wrap gap-2">
+          <Link className="rounded-lg border border-brand-500 px-3 py-2 text-sm text-brand-200" href="/admin/leads/acceptance-command-center">Command center</Link>
           <Link className="rounded-lg border border-brand-500 px-3 py-2 text-sm text-brand-200" href="/admin/leads/controlled-test-data">Controlled test data</Link>
           <Link className="rounded-lg border border-ink-700 px-3 py-2 text-sm text-gray-200" href="/api/admin/leads/controlled-test-data">Test data JSON</Link>
           <Link className="rounded-lg border border-ink-700 px-3 py-2 text-sm text-gray-200" href="/admin/integrations">Integration monitor</Link>

@@ -127,6 +127,7 @@ export default async function ControlledTestDataPage() {
     });
 
     revalidatePath("/admin/leads/controlled-test-data");
+    revalidatePath("/admin/leads/acceptance-command-center");
     revalidatePath("/portal/leads");
     revalidatePath(`/admin/leads/${lead.id}`);
   }
@@ -185,6 +186,7 @@ export default async function ControlledTestDataPage() {
     });
 
     revalidatePath("/admin/leads/controlled-test-data");
+    revalidatePath("/admin/leads/acceptance-command-center");
     revalidatePath("/portal/leads");
     revalidatePath(`/admin/leads/${lead.id}`);
     revalidatePath("/admin/audit");
@@ -201,6 +203,9 @@ export default async function ControlledTestDataPage() {
           </p>
         </div>
         <div className="flex flex-wrap gap-2">
+          <Link className="rounded-lg border border-brand-500 px-3 py-2 text-sm text-brand-200" href="/admin/leads/acceptance-command-center">
+            Command center
+          </Link>
           <Link className="rounded-lg border border-brand-500 px-3 py-2 text-sm text-brand-200" href="/portal/leads">
             Open agent workspace
           </Link>
