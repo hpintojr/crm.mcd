@@ -68,9 +68,14 @@ export default async function AuditPage() {
           <h1 className="mt-2 text-3xl font-semibold text-white">Audit history</h1>
           <p className="mt-2 text-gray-400">Recent sensitive and operational actions recorded by the Mini CRM.</p>
         </div>
-        <Link className="rounded-lg border border-ink-700 px-3 py-2 text-sm text-gray-200" href="/admin/readiness">
-          Readiness board
-        </Link>
+        <div className="flex flex-wrap gap-2">
+          <Link className="rounded-lg border border-ink-700 px-3 py-2 text-sm text-gray-200" href="/admin/readiness">
+            Readiness board
+          </Link>
+          <Link className="rounded-lg border border-brand-500 px-3 py-2 text-sm text-brand-200" href="/admin/leads/acceptance-report">
+            Lead acceptance report
+          </Link>
+        </div>
       </div>
 
       <section className="mt-8 overflow-hidden rounded-2xl border border-ink-700 bg-ink-900">
@@ -79,9 +84,15 @@ export default async function AuditPage() {
             <h2 className="font-semibold text-white">Rollout acceptance evidence</h2>
             <p className="mt-1 text-sm text-gray-400">Recorded Pass, Fail, and Deferred results from production Lead Flow acceptance and controlled Servicing/Commission testing.</p>
           </div>
-          <div className="flex gap-2">
+          <div className="flex flex-wrap gap-2">
             <Link className="rounded-lg border border-brand-500 px-3 py-2 text-sm text-brand-200" href="/admin/leads/testing">
-              Leads
+              Leads board
+            </Link>
+            <Link className="rounded-lg border border-brand-500 px-3 py-2 text-sm text-brand-200" href="/admin/leads/acceptance-report">
+              Leads report
+            </Link>
+            <Link className="rounded-lg border border-ink-700 px-3 py-2 text-sm text-gray-200" href="/api/admin/leads/acceptance-report.csv">
+              Leads CSV
             </Link>
             <Link className="rounded-lg border border-brand-500 px-3 py-2 text-sm text-brand-200" href="/admin/servicing/testing">
               Servicing
