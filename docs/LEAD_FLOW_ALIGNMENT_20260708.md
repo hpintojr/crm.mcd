@@ -134,6 +134,16 @@ When claim succeeds:
 - Closed Won Leads are not rolled back by later recovery events;
 - ignored, callback-created, callback-expedited, and preserved-Closed-Won outcomes are recorded in audit metadata.
 
+### GHL opportunity relay hardening
+
+`/api/ghl/opportunities` now returns attribution outcomes and its Lead attribution layer enforces:
+
+- suppressed or DNC Leads are not changed by opportunity events;
+- Opportunity Won moves the Lead to `CLOSED_WON` and cancels scheduled callbacks;
+- Opportunity Lost moves an open Lead to `CLOSED_LOST` and cancels scheduled callbacks;
+- late Opportunity Lost cannot roll back an already `CLOSED_WON` Lead;
+- ignored, preserved-Closed-Won, and callback-cancel outcomes are recorded in audit metadata.
+
 ### Aging sweep
 
 A secured cron endpoint was added:
@@ -172,7 +182,7 @@ A build guard was added:
 scripts/check-lead-flow-alignment.ts
 ```
 
-It verifies that the code still contains the key Cold Lead, no-claim-before-contact, warm-reply assignment, GHL appointment suppression, aging-sweep, and cron safeguards.
+It verifies that the code still contains the key Cold Lead, no-claim-before-contact, warm-reply assignment, GHL appointment suppression, GHL opportunity terminal cleanup, aging-sweep, and cron safeguards.
 
 ## Still gated / not completed in this branch
 
@@ -192,5 +202,7 @@ It verifies that the code still contains the key Cold Lead, no-claim-before-cont
 - DNC suppresses and cancels callbacks.
 - GHL appointment events do not mutate suppressed/DNC Leads.
 - GHL appointment cancellation/no-show creates or expedites one owner callback.
+- GHL Opportunity Won/Lost cancels scheduled callbacks on terminal outcomes.
+- GHL Opportunity Lost does not roll back Closed Won.
 - Aging sweep returns expired owned leads to Open Pool.
 - Aging sweep moves 21-day stale Open Pool leads to Shark Tank.
