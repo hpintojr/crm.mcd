@@ -62,18 +62,25 @@ lead-flow-alignment-20260708
 
 - Lists `COLD / AVAILABLE` unowned records.
 - Opens an unowned lead detail panel with research fields.
-- Provides a dial link and explicit call-start logging.
+- Provides click-to-call logging that records activity before opening the dialer.
 - Logs call attempts as activity only.
 - Provides a post-call disposition gate for Cold Leads.
 
 ### Call attempt rule
 
-Cold Lead call-start logging writes:
+Cold Lead click-to-call uses:
+
+```text
+/api/portal/leads/call-start
+```
+
+The API records activity with:
 
 - `LeadActivity.type = CALL_INITIATED`
 - `AuditLog.actionType = COLD_LEAD_CALL_INITIATED`
+- response metadata: `claimCreated = false`, `rule = ACTIVITY_ONLY_NO_SOFT_LOCK`
 
-It does not set:
+The client button opens the device dialer only after the activity logging API succeeds. It does not set:
 
 - `ownerAgentId`
 - `claimedAt`
@@ -182,18 +189,18 @@ A build guard was added:
 scripts/check-lead-flow-alignment.ts
 ```
 
-It verifies that the code still contains the key Cold Lead, no-claim-before-contact, warm-reply assignment, GHL appointment suppression, GHL opportunity terminal cleanup, aging-sweep, and cron safeguards.
+It verifies that the code still contains the key Cold Lead, click-to-call logging, no-claim-before-contact, warm-reply assignment, GHL appointment suppression, GHL opportunity terminal cleanup, aging-sweep, and cron safeguards.
 
 ## Still gated / not completed in this branch
 
-- Full client-side `tel:` interception is not yet implemented; the current branch uses a dial link plus explicit call-start logging.
 - Commission and Finance remain gated and intentionally untouched.
 - Merge/production activation still requires owner decision.
 
 ## Acceptance checks to run next
 
 - Cold Lead appears after production correction.
-- Clicking/logging call start does not claim the lead.
+- Click-to-call logs call activity before opening the dialer.
+- Click-to-call does not claim, soft-lock, or reserve the Lead.
 - No-answer disposition keeps lead unowned.
 - Callback disposition creates claim eligibility but does not auto-claim.
 - Claim succeeds only after two-way contact.
