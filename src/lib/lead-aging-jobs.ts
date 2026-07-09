@@ -6,14 +6,53 @@ import { requireFeature } from "@/lib/features";
 const DEFAULT_LIMIT = 100;
 const SHARK_TANK_STALL_DAYS = 21;
 
+type LeadAgingSweepOptions = {
+  now?: Date;
+  limit?: number;
+  dryRun?: boolean;
+};
+
 function daysAgo(now: Date, days: number) {
   return new Date(now.getTime() - days * 24 * 60 * 60 * 1000);
 }
 
-export async function runLeadAgingSweep(options: { now?: Date; limit?: number } = {}) {
+function readLimit(limit?: number) {
+  return Math.max(1, Math.min(limit ?? DEFAULT_LIMIT, 500));
+}
+
+function previewReturnedToOpenPool(lead: { id: string; ownerAgentId: string | null; pool: string; lifecycle: string; openPoolReleaseAt: Date | null }) {
+  return {
+    leadId: lead.id,
+    currentOwnerAgentId: lead.ownerAgentId,
+    currentPool: lead.pool,
+    currentLifecycle: lead.lifecycle,
+    currentOpenPoolReleaseAt: lead.openPoolReleaseAt?.toISOString() ?? null,
+    wouldSetOwnerAgentId: null,
+    wouldSetPool: "OPEN",
+    wouldSetLifecycle: "AVAILABLE",
+    wouldSetClaimedAt: null,
+    wouldSetNextActionAt: null,
+    wouldWriteAuditAction: "LEAD_AUTO_RETURNED_TO_OPEN_POOL",
+  };
+}
+
+function previewPromotedToSharkTank(lead: { id: string; pool: string; lifecycle: string; openPoolReleaseAt: Date | null }) {
+  return {
+    leadId: lead.id,
+    currentPool: lead.pool,
+    currentLifecycle: lead.lifecycle,
+    currentOpenPoolReleaseAt: lead.openPoolReleaseAt?.toISOString() ?? null,
+    wouldSetPool: "SHARK_TANK",
+    wouldSetNextActionAt: null,
+    wouldWriteAuditAction: "LEAD_PROMOTED_TO_SHARK_TANK",
+  };
+}
+
+export async function runLeadAgingSweep(options: LeadAgingSweepOptions = {}) {
   requireFeature("leads");
   const now = options.now ?? new Date();
-  const limit = Math.max(1, Math.min(options.limit ?? DEFAULT_LIMIT, 500));
+  const limit = readLimit(options.limit);
+  const dryRun = options.dryRun === true;
   const sharkTankCutoff = daysAgo(now, SHARK_TANK_STALL_DAYS);
 
   const expiredClaimedLeads = await db.lead.findMany({
@@ -48,6 +87,27 @@ export async function runLeadAgingSweep(options: { now?: Date; limit?: number } 
       select: { id: true, pool: true, lifecycle: true, openPoolReleaseAt: true },
     })
     : [];
+
+  const preview = {
+    returnedToOpenPool: expiredClaimedLeads.map(previewReturnedToOpenPool),
+    promotedToSharkTank: stalledOpenPoolLeads.map(previewPromotedToSharkTank),
+  };
+
+  if (dryRun) {
+    return {
+      ok: true,
+      dryRun: true,
+      processed: 0,
+      wouldProcess: expiredClaimedLeads.length + stalledOpenPoolLeads.length,
+      returnedToOpenPool: 0,
+      promotedToSharkTank: 0,
+      wouldReturnToOpenPool: expiredClaimedLeads.length,
+      wouldPromoteToSharkTank: stalledOpenPoolLeads.length,
+      limit,
+      cutoff: sharkTankCutoff.toISOString(),
+      preview,
+    };
+  }
 
   await db.$transaction(async (tx) => {
     for (const lead of expiredClaimedLeads) {
@@ -84,9 +144,15 @@ export async function runLeadAgingSweep(options: { now?: Date; limit?: number } 
 
   return {
     ok: true,
+    dryRun: false,
     processed: expiredClaimedLeads.length + stalledOpenPoolLeads.length,
     returnedToOpenPool: expiredClaimedLeads.length,
     promotedToSharkTank: stalledOpenPoolLeads.length,
+    wouldProcess: 0,
+    wouldReturnToOpenPool: 0,
+    wouldPromoteToSharkTank: 0,
+    limit,
     cutoff: sharkTankCutoff.toISOString(),
+    preview: { returnedToOpenPool: [], promotedToSharkTank: [] },
   };
 }

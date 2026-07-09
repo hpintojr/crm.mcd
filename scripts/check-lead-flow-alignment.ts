@@ -62,6 +62,8 @@ assertContains("src/lib/lead-production-acceptance.ts", "Verify dialer blocks if
 assertContains("src/lib/lead-production-acceptance.ts", "Verify no-answer and voicemail stay unowned");
 assertContains("src/lib/lead-production-acceptance.ts", "Verify My Workspace dashboard");
 assertContains("src/lib/lead-production-acceptance.ts", "Verify GHL opportunity hardening");
+assertContains("src/lib/lead-production-acceptance.ts", "/api/admin/leads/aging-preview");
+assertContains("src/lib/lead-production-acceptance.ts", "mutationPerformed:false");
 assertContains("src/app/api/admin/leads/acceptance-report/route.ts", "lead-production-acceptance");
 assertContains("src/app/api/admin/leads/acceptance-report/route.ts", "readyForOwnerDecision");
 assertContains("src/app/api/admin/leads/acceptance-report.csv/route.ts", "LEAD_PRODUCTION_ACCEPTANCE_EXPORT_CREATED");
@@ -87,9 +89,16 @@ assertContains("src/lib/lead-opportunity-attribution.ts", "callbacksCancelled");
 assertContains("src/lib/lead-opportunity-attribution.ts", "GHL_OPPORTUNITY_LOST_PRESERVED");
 assertContains("src/app/api/ghl/opportunities/route.ts", "preservedClosedWon");
 assertContains("src/app/api/ghl/opportunities/route.ts", "callbacksCancelled");
+assertContains("src/lib/lead-aging-jobs.ts", "dryRun?: boolean");
+assertContains("src/lib/lead-aging-jobs.ts", "if (dryRun)");
+assertContains("src/lib/lead-aging-jobs.ts", "wouldReturnToOpenPool");
+assertContains("src/lib/lead-aging-jobs.ts", "wouldPromoteToSharkTank");
 assertContains("src/lib/lead-aging-jobs.ts", "LEAD_AUTO_RETURNED_TO_OPEN_POOL");
 assertContains("src/lib/lead-aging-jobs.ts", "LEAD_PROMOTED_TO_SHARK_TANK");
+assertContains("src/app/api/admin/leads/aging-preview/route.ts", "dryRun: true");
+assertContains("src/app/api/admin/leads/aging-preview/route.ts", "mutationPerformed: false");
 assertContains("src/app/api/cron/leads/aging/route.ts", "CRON_SECRET");
-assertContains("src/app/api/cron/leads/aging/route.ts", "runLeadAgingSweep");
+assertContains("src/app/api/cron/leads/aging/route.ts", "readDryRun");
+assertContains("src/app/api/cron/leads/aging/route.ts", "runLeadAgingSweep({ dryRun");
 
 console.log("Lead flow alignment guard passed.");
