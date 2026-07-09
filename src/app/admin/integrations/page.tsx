@@ -52,6 +52,7 @@ export default async function IntegrationMonitorPage() {
           <p className="mt-2 max-w-3xl text-gray-400">Inbound webhook and integration-failure visibility. Duplicate event IDs are idempotent and do not create new work. Resolve an error only after investigation; resolution does not replay the event.</p>
         </div>
         <div className="flex flex-wrap items-center gap-2">
+          <Link className="rounded-lg border border-brand-500 px-3 py-2 text-sm text-brand-200" href="/admin/leads/acceptance-command-center">Lead command center</Link>
           <Link className="rounded-lg border border-brand-500 px-3 py-2 text-sm text-brand-200" href="/admin/integrations/test-events">Controlled GHL harness</Link>
           <Link className="rounded-lg border border-brand-500 px-3 py-2 text-sm text-brand-200" href="/admin/integrations/replies">Reply relay setup</Link>
           <Link className="rounded-lg border border-brand-500 px-3 py-2 text-sm text-brand-200" href="/admin/integrations/opportunities">Opportunity relay setup</Link>
@@ -70,9 +71,9 @@ export default async function IntegrationMonitorPage() {
           <Link className="mt-4 inline-block text-sm font-medium text-brand-200" href="/admin/integrations/test-events">Open harness →</Link>
         </article>
         <article className="rounded-2xl border border-ink-700 bg-ink-900 p-5">
-          <h2 className="font-semibold text-white">Appointment relay contract</h2>
-          <p className="mt-2 text-sm leading-6 text-gray-300">Send appointment workflow events to <code className="text-brand-200">/api/ghl/appointments</code>. Each event needs a unique event ID, approved location ID, appointment ID, valid ISO appointment time, and timezone. Include the GHL contact ID and the MiniCRM Lead ID when available.</p>
-          <p className="mt-3 text-xs text-gray-500">Accepted events: Booked, Confirmed, Rescheduled, Cancelled, No-show, and Completed. Booked events retain ownership; cancelled and no-show events create same-owner follow-up work.</p>
+          <h2 className="font-semibold text-white">Lead acceptance command center</h2>
+          <p className="mt-2 text-sm leading-6 text-gray-300">Use the command center to review acceptance progress before activating live GHL workflow behavior or expanding normal Lead Flow use.</p>
+          <Link className="mt-4 inline-block text-sm font-medium text-brand-200" href="/admin/leads/acceptance-command-center">Open command center →</Link>
         </article>
         <article className="rounded-2xl border border-ink-700 bg-ink-900 p-5">
           <h2 className="font-semibold text-white">Opportunity result relay contract</h2>
