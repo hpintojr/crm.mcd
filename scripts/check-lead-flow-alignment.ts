@@ -88,6 +88,11 @@ assertContains("src/app/admin/leads/acceptance-report/page.tsx", "Owner decision
 assertContains("src/app/admin/leads/acceptance-report/page.tsx", "CSV export");
 assertContains("src/app/admin/leads/acceptance-report/page.tsx", "Controlled acceptance evidence");
 assertContains("src/app/admin/leads/acceptance-report/page.tsx", "Controlled Leads");
+assertContains("src/app/admin/leads/acceptance-command-center/page.tsx", "Lead acceptance command center");
+assertContains("src/app/admin/leads/acceptance-command-center/page.tsx", "data-acceptance-command-center=\"lead-flow\"");
+assertContains("src/app/admin/leads/acceptance-command-center/page.tsx", "Next safe action");
+assertContains("src/app/admin/leads/acceptance-command-center/page.tsx", "Gates that remain closed");
+assertContains("src/app/admin/leads/acceptance-command-center/page.tsx", "This command center is intentionally non-mutating");
 assertContains("src/lib/acceptance-evidence-summary.ts", "getAcceptanceEvidenceSummary");
 assertContains("src/lib/acceptance-evidence-summary.ts", "CONTROLLED_GHL_TEST_EVENT_APPLIED_ACTION");
 assertContains("src/lib/acceptance-evidence-summary.ts", "LEAD_CONTROLLED_TEST_CREATED_ACTION");
