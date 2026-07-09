@@ -21,6 +21,9 @@ assertContains("src/app/portal/leads/page.tsx", "Business rules are unchanged");
 assertContains("src/app/portal/workspace/page.tsx", "My Workspace");
 assertContains("src/app/portal/workspace/page.tsx", "Claim timer");
 
+assertContains("src/app/admin/command-center/page.tsx", "/admin/leads/acceptance-command-center");
+assertContains("src/app/admin/command-center/page.tsx", "Lead command center");
+assertContains("src/app/admin/command-center/page.tsx", "production acceptance entrypoints");
 assertContains("src/app/admin/leads/page.tsx", "/admin/leads/acceptance-command-center");
 assertContains("src/app/admin/leads/page.tsx", "Lead command center");
 assertContains("src/app/admin/leads/page.tsx", "Lead review");
