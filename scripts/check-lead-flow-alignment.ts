@@ -33,6 +33,8 @@ assertContains("src/app/admin/leads/testing/page.tsx", "Command center");
 assertContains("src/app/admin/leads/testing/page.tsx", "revalidatePath(\"/admin/leads/acceptance-command-center\")");
 assertContains("src/app/admin/leads/testing/page.tsx", "revalidatePath(\"/admin/leads/acceptance-report\")");
 assertContains("src/app/admin/leads/acceptance-report/page.tsx", "Lead Production Acceptance Report");
+assertContains("src/app/admin/leads/acceptance-report/page.tsx", "/admin/leads/acceptance-command-center");
+assertContains("src/app/admin/leads/acceptance-report/page.tsx", "Command center");
 assertContains("src/app/admin/leads/acceptance-report/page.tsx", "Owner decision readiness");
 assertContains("src/app/admin/leads/acceptance-report/page.tsx", "Controlled acceptance evidence");
 assertContains("src/app/api/admin/leads/acceptance-report/route.ts", "readyForOwnerDecision");
