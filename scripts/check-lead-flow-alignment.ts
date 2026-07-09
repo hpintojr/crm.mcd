@@ -21,6 +21,9 @@ assertContains("src/app/portal/leads/page.tsx", "Business rules are unchanged");
 assertContains("src/app/portal/workspace/page.tsx", "My Workspace");
 assertContains("src/app/portal/workspace/page.tsx", "Claim timer");
 
+assertContains("src/app/admin/leads/page.tsx", "/admin/leads/acceptance-command-center");
+assertContains("src/app/admin/leads/page.tsx", "Lead command center");
+assertContains("src/app/admin/leads/page.tsx", "Lead review");
 assertContains("src/lib/lead-production-acceptance.ts", "LEAD_PRODUCTION_ACCEPTANCE_ACTION");
 assertContains("src/lib/lead-production-acceptance.ts", "leadProductionAcceptanceGroups");
 assertContains("src/lib/lead-production-acceptance.ts", "leadProductionAcceptanceSteps");
