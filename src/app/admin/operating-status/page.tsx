@@ -20,7 +20,15 @@ function state(enabled: boolean) {
 export default async function OperatingStatusPage() {
   const user = await requireRole(ADMIN_ROLES);
   const phases: Phase[] = [
-    { name: "Lead MVP", gate: features.leads, status: state(features.leads), detail: "Production schema and gated application workflow are deployed. GHL appointment relay has passed Booked, Confirmed, Rescheduled, Cancelled, No-show, and Completed event tests. Import review, Open Pool controls, DNC, callbacks, and ownership boundaries remain in the dedicated Lead acceptance run.", next: "Run the controlled Lead MVP acceptance board before normal agent access.", href: "/admin/leads/testing" },
+    {
+      name: "Production Lead Flow acceptance",
+      gate: features.leads,
+      status: state(features.leads),
+      detail:
+        "PR #34, PR #35, and PR #36 are deployed. Custom-domain smoke passed. The next gate is authenticated production acceptance for activity-first Cold Leads, two-way-contact claim rules, 45-day timers, DNC blackout, Warm Reply timer alignment, GHL relay hardening, and controlled aging sweep evidence.",
+      next: "Record the controlled production Lead Flow acceptance results before expanding normal agent use or external GHL workflow activation.",
+      href: "/admin/leads/testing",
+    },
     { name: "Client Servicing Health", gate: features.servicing, status: state(features.servicing), detail: "Production schema and gated admin/agent workspaces are deployed. Service work is trigger-driven; healthy current-paying accounts are not reassigned because they are quiet.", next: "Run the controlled Client Servicing acceptance board before normal client-account use.", href: "/admin/servicing/testing" },
     { name: "Commission Eligibility & Ledger", gate: features.commissions, status: state(features.commissions), detail: "Gated dashboard, ledger controls, policy checks, and an isolated commission-only schema migration are prepared. No payout action exists in this phase.", next: "Validate the isolated Neon branch, approve the separate commission schema migration, then run the controlled Commission acceptance board.", href: "/admin/commissions/testing" },
     { name: "Finance & Payout Readiness", gate: features.finance, status: state(features.finance), detail: "A gated readiness boundary is built. It blocks manual review until eligibility, clearance, no active holds, finance approval, and an externally verified destination are all present; it never moves funds.", next: "Begin controlled review only after Commission Eligibility & Ledger stabilizes and receives owner approval.", href: "/admin/finance" },
