@@ -103,4 +103,11 @@ assertContains("src/app/admin/leads/acceptance-runbook/page.tsx", "mutationPerfo
 assertContains("src/app/admin/leads/acceptance-command-center/page.tsx", "/admin/leads/acceptance-runbook");
 assertContains("src/app/admin/leads/acceptance-command-center/page.tsx", "Acceptance runbook");
 
+assertContains("src/app/admin/command-center/page.tsx", "/admin/leads/acceptance-runbook");
+assertContains("src/app/admin/command-center/page.tsx", "Lead acceptance runbook");
+assertContains("src/app/admin/readiness/page.tsx", "/admin/leads/acceptance-runbook");
+assertContains("src/app/admin/readiness/page.tsx", "Lead acceptance runbook");
+assertContains("src/app/admin/readiness/page.tsx", "Acceptance runbook");
+assertContains("src/app/admin/readiness/page.tsx", "runbookHref: \"/admin/leads/acceptance-runbook\"");
+
 console.log("Lead flow alignment guard passed.");
