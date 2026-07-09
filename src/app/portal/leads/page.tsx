@@ -4,7 +4,8 @@ import { ADMIN_ROLES, requireRole } from "@/lib/authz";
 import { claimAvailableLead } from "@/lib/claims";
 import { db } from "@/lib/db";
 import { features } from "@/lib/features";
-import { logColdLeadCallInitiated, logColdLeadDisposition, logLeadInteraction, suppressLeadForDnc } from "@/lib/lead-workspace";
+import { logColdLeadDisposition, logLeadInteraction, suppressLeadForDnc } from "@/lib/lead-workspace";
+import { ColdLeadDialButton } from "@/components/cold-lead-dial-button";
 import { LeadResearchFields } from "@/components/lead-research-fields";
 import { PortalFeaturePage } from "@/components/portal-feature-page";
 import { getPortalContext } from "@/lib/portal-context";
@@ -79,12 +80,6 @@ export default async function LeadsPage({ searchParams }: LeadsPageProps) {
     revalidatePath("/portal/leads");
   }
 
-  async function recordColdCallStarted(formData: FormData) {
-    "use server";
-    await logColdLeadCallInitiated({ leadId: String(formData.get("leadId") ?? "") });
-    revalidatePath("/portal/leads");
-  }
-
   async function recordColdDisposition(formData: FormData) {
     "use server";
     await logColdLeadDisposition({
@@ -135,8 +130,7 @@ export default async function LeadsPage({ searchParams }: LeadsPageProps) {
           <div className="mt-5 grid gap-3 text-sm sm:grid-cols-2"><div><p className="portal-muted">Source</p><p className="portal-heading mt-1">{selectedColdLead.originalSource ? label(selectedColdLead.originalSource) : selectedColdLead.source || "Not recorded"}</p></div><div><p className="portal-muted">Location</p><p className="portal-heading mt-1">{[selectedColdLead.city, selectedColdLead.state].filter(Boolean).join(", ") || "Not recorded"}</p></div><div><p className="portal-muted">Website</p><p className="portal-heading mt-1 break-all">{selectedColdLead.website || "Not recorded"}</p></div><div><p className="portal-muted">Two-way contact</p><p className="portal-heading mt-1">{selectedColdLead.twoWayContactAt ? pacific(selectedColdLead.twoWayContactAt) : "Not yet verified"}</p></div></div>
           <div className="mt-6"><LeadResearchFields leadId={selectedColdLead.id} /></div>
           <div className="mt-7 grid gap-3 border-t pt-6 portal-border sm:grid-cols-2">
-            <a className="rounded-lg bg-brand-500 px-4 py-2 text-center text-sm font-medium text-ink-950 hover:bg-brand-400" href={`tel:${selectedColdLead.normalizedPhone || selectedColdLead.businessPhone}`}>Dial lead</a>
-            <form action={recordColdCallStarted}><input name="leadId" type="hidden" value={selectedColdLead.id} /><button className="w-full rounded-lg border px-4 py-2 text-sm font-medium portal-border hover:bg-black/5" type="submit">Log call started</button></form>
+            <ColdLeadDialButton leadId={selectedColdLead.id} phone={selectedColdLead.normalizedPhone || selectedColdLead.businessPhone} />
           </div>
           <form action={recordColdDisposition} className="mt-6 space-y-4 rounded-xl border p-4 portal-border"><input name="leadId" type="hidden" value={selectedColdLead.id} /><div><label className="portal-heading text-sm font-medium" htmlFor="coldDisposition">Disposition after call</label><select className="mt-1 w-full rounded-lg border bg-transparent px-3 py-2 text-sm portal-border" defaultValue="NO_ANSWER" id="coldDisposition" name="disposition"><option value="NO_ANSWER">No answer</option><option value="VOICEMAIL">Voicemail</option><option value="CALLBACK_REQUESTED">Callback requested</option><option value="QUALIFIED">Qualified / spoke with decision maker</option><option value="FOLLOW_UP">Follow up / interested</option><option value="NOT_INTERESTED">Not interested</option><option value="WRONG_NUMBER">Wrong number</option><option value="OUT_OF_BUSINESS">Out of business</option></select><p className="portal-copy mt-1 text-xs">Only callback requested, qualified, or follow-up/interested outcomes unlock claiming.</p></div><div><label className="portal-heading text-sm font-medium" htmlFor="coldNote">Call notes</label><textarea className="mt-1 w-full rounded-lg border bg-transparent px-3 py-2 text-sm portal-border" id="coldNote" name="note" placeholder="Document the meaningful result. No-answer and voicemail do not reserve this lead." rows={4} /></div><div><label className="portal-heading text-sm font-medium" htmlFor="coldCallbackAtPacific">Follow-up time, Pacific</label><input className="mt-1 w-full rounded-lg border bg-transparent px-3 py-2 text-sm portal-border" id="coldCallbackAtPacific" name="callbackAtPacific" type="datetime-local" /><p className="portal-copy mt-1 text-xs">Callback before claim creates a task only; it does not reserve ownership.</p></div><button className="rounded-lg bg-brand-500 px-4 py-2 text-sm font-medium text-ink-950 hover:bg-brand-400" type="submit">Save disposition</button></form>
           {selectedColdClaimEligible && <form action={claim} className="mt-4 rounded-xl border border-brand-500/50 bg-brand-500/10 p-4"><input name="leadId" type="hidden" value={selectedColdLead.id} /><h3 className="portal-heading text-sm font-semibold">Claim unlocked</h3><p className="portal-copy mt-1 text-xs">Two-way contact is verified. Claiming starts the 45-day responsibility timer.</p><button className="mt-3 rounded-lg bg-brand-500 px-4 py-2 text-sm font-medium text-ink-950 hover:bg-brand-400" type="submit">Claim this lead</button></form>}
