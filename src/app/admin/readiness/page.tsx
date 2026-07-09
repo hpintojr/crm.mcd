@@ -17,7 +17,16 @@ type AcceptanceModule = {
 };
 
 const acceptanceModules: AcceptanceModule[] = [
-  { key: "LEADS", label: "Lead MVP acceptance", actionType: "LEAD_ACCEPTANCE_RECORDED", entityType: "LeadAcceptanceStep", totalSteps: 10, href: "/admin/leads/testing", gateEnabled: features.leads, detail: "Review-first imports, ownership, DNC, Open Pool controls, and GHL attribution." },
+  {
+    key: "LEADS",
+    label: "Production Lead Flow acceptance",
+    actionType: "LEAD_PRODUCTION_ACCEPTANCE_RECORDED",
+    entityType: "LeadProductionAcceptanceStep",
+    totalSteps: 18,
+    href: "/admin/leads/testing",
+    gateEnabled: features.leads,
+    detail: "Custom-domain deployment smoke, activity-first Cold Leads, two-way-contact claim gate, 45-day timer, DNC blackout, Warm Reply timer, GHL relay hardening, and owner decision gates.",
+  },
   { key: "SERVICING", label: "Client Servicing acceptance", actionType: "SERVICING_ACCEPTANCE_RECORDED", entityType: "ServicingAcceptanceStep", totalSteps: 9, href: "/admin/servicing/testing", gateEnabled: features.servicing, detail: "Onboarding, launch, trigger-based service work, healthy-account protection, and House handling." },
   { key: "COMMISSIONS", label: "Commission acceptance", actionType: "COMMISSION_ACCEPTANCE_RECORDED", entityType: "CommissionAcceptanceStep", totalSteps: 8, href: "/admin/commissions/testing", gateEnabled: features.commissions, detail: "Eligibility, holds, retirement and termination policy, audit evidence, and no-money-movement boundaries." },
 ];
