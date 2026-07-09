@@ -37,6 +37,7 @@ assertContains("src/app/admin/leads/testing/page.tsx", "readLeadProductionAccept
 assertContains("src/app/admin/leads/testing/page.tsx", "Deployment status baseline");
 assertContains("src/app/admin/leads/testing/page.tsx", "current commit may be newer than this baseline");
 assertContains("src/app/admin/leads/testing/page.tsx", "/admin/leads/acceptance-report");
+assertContains("src/app/admin/leads/testing/page.tsx", "/admin/leads/controlled-test-data");
 assertContains("src/app/admin/leads/testing/page.tsx", "/api/admin/leads/acceptance-report.csv");
 assertContains("src/app/admin/leads/testing/page.tsx", "revalidatePath(\"/admin/leads/acceptance-report\")");
 assertContains("src/app/admin/readiness/page.tsx", "Production Lead Flow acceptance");
@@ -100,5 +101,18 @@ assertContains("src/app/api/admin/leads/aging-preview/route.ts", "mutationPerfor
 assertContains("src/app/api/cron/leads/aging/route.ts", "CRON_SECRET");
 assertContains("src/app/api/cron/leads/aging/route.ts", "readDryRun");
 assertContains("src/app/api/cron/leads/aging/route.ts", "runLeadAgingSweep({ dryRun");
+assertContains("src/lib/controlled-test-leads.ts", "CONTROLLED_TEST_LEAD_SOURCE");
+assertContains("src/lib/controlled-test-leads.ts", "MCD_CONTROLLED_TEST_DATA");
+assertContains("src/lib/controlled-test-leads.ts", "CONTROLLED_TEST_GHL_EXPORT_BLOCK");
+assertContains("src/lib/controlled-test-leads.ts", "isControlledTestLead");
+assertContains("src/lib/controlled-test-leads.ts", "ghlExportBlockedByDefault");
+assertContains("src/app/admin/leads/controlled-test-data/page.tsx", "Controlled test data");
+assertContains("src/app/admin/leads/controlled-test-data/page.tsx", "LEAD_CONTROLLED_TEST_CREATED");
+assertContains("src/app/admin/leads/controlled-test-data/page.tsx", "LEAD_CONTROLLED_TEST_ARCHIVED");
+assertContains("src/app/admin/leads/controlled-test-data/page.tsx", "GHL export blocked by default");
+assertContains("src/app/admin/leads/controlled-test-data/page.tsx", "Create COLD / AVAILABLE test Lead");
+assertContains("src/app/api/admin/leads/controlled-test-data/route.ts", "lead-controlled-test-data");
+assertContains("src/app/api/admin/leads/controlled-test-data/route.ts", "schemaMigrationRequired: false");
+assertContains("src/app/api/admin/leads/controlled-test-data/route.ts", "ghlExportBlockedByDefault: true");
 
 console.log("Lead flow alignment guard passed.");
