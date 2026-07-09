@@ -7,6 +7,7 @@ import {
   controlledAppointmentEventTypes,
   controlledOpportunityEventTypes,
   previewControlledGhlTestEvent,
+  type ControlledGhlTestEventType,
 } from "@/lib/controlled-ghl-test-events";
 
 export const dynamic = "force-dynamic";
@@ -19,10 +20,10 @@ const schema = z.object({
   note: z.string().trim().max(1000).optional(),
 });
 
-function normalizeEventType(family: "appointment" | "opportunity", eventType: string) {
+function normalizeEventType(family: "appointment" | "opportunity", eventType: string): ControlledGhlTestEventType {
   const normalized = eventType.trim().toUpperCase();
-  if (family === "appointment" && controlledAppointmentEventTypes.includes(normalized as (typeof controlledAppointmentEventTypes)[number])) return normalized;
-  if (family === "opportunity" && controlledOpportunityEventTypes.includes(normalized as (typeof controlledOpportunityEventTypes)[number])) return normalized;
+  if (family === "appointment" && controlledAppointmentEventTypes.includes(normalized as (typeof controlledAppointmentEventTypes)[number])) return normalized as ControlledGhlTestEventType;
+  if (family === "opportunity" && controlledOpportunityEventTypes.includes(normalized as (typeof controlledOpportunityEventTypes)[number])) return normalized as ControlledGhlTestEventType;
   throw new Error("Unsupported controlled GHL test event type.");
 }
 
