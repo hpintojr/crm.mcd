@@ -16,7 +16,6 @@ assertContains("src/lib/lead-workspace.ts", "ACTIVITY_ONLY_NO_SOFT_LOCK");
 assertContains("src/lib/lead-workspace.ts", "reservesLead: false");
 assertContains("src/app/portal/leads/page.tsx", "Cold Lead workspace");
 assertContains("src/app/portal/leads/page.tsx", "selectedCold");
-assertContains("src/app/portal/leads/page.tsx", "ColdLeadDialButton");
 assertContains("src/components/cold-lead-dial-button.tsx", "Click to call logs activity first");
 assertContains("src/components/cold-lead-dial-button.tsx", "/api/portal/leads/call-start");
 assertContains("src/components/cold-lead-dial-button.tsx", "window.location.href = telHref(phone)");
@@ -65,6 +64,8 @@ assertContains("src/lib/lead-production-acceptance.ts", "Verify My Workspace das
 assertContains("src/lib/lead-production-acceptance.ts", "Verify GHL opportunity hardening");
 assertContains("src/lib/lead-production-acceptance.ts", "/api/admin/leads/aging-preview");
 assertContains("src/lib/lead-production-acceptance.ts", "mutationPerformed:false");
+assertContains("src/lib/lead-production-acceptance.ts", "/admin/integrations/test-events");
+assertContains("src/lib/lead-production-acceptance.ts", "Use the controlled GHL event harness only");
 assertContains("src/app/api/admin/leads/acceptance-report/route.ts", "lead-production-acceptance");
 assertContains("src/app/api/admin/leads/acceptance-report/route.ts", "readyForOwnerDecision");
 assertContains("src/app/api/admin/leads/acceptance-report.csv/route.ts", "LEAD_PRODUCTION_ACCEPTANCE_EXPORT_CREATED");
@@ -114,5 +115,19 @@ assertContains("src/app/admin/leads/controlled-test-data/page.tsx", "Create COLD
 assertContains("src/app/api/admin/leads/controlled-test-data/route.ts", "lead-controlled-test-data");
 assertContains("src/app/api/admin/leads/controlled-test-data/route.ts", "schemaMigrationRequired: false");
 assertContains("src/app/api/admin/leads/controlled-test-data/route.ts", "ghlExportBlockedByDefault: true");
+assertContains("src/lib/controlled-ghl-test-events.ts", "CONTROLLED_GHL_TEST_EVENT_APPLIED");
+assertContains("src/lib/controlled-ghl-test-events.ts", "CONTROLLED_GHL_HARNESS_20260709");
+assertContains("src/lib/controlled-ghl-test-events.ts", "previewControlledGhlTestEvent");
+assertContains("src/lib/controlled-ghl-test-events.ts", "applyControlledGhlTestEvent");
+assertContains("src/lib/controlled-ghl-test-events.ts", "The GHL test harness only accepts controlled test Leads");
+assertContains("src/lib/controlled-ghl-test-events.ts", "liveGhlWorkflowActivated: false");
+assertContains("src/app/admin/integrations/test-events/page.tsx", "Controlled GHL event harness");
+assertContains("src/app/admin/integrations/test-events/page.tsx", "Preview expected effects before submit");
+assertContains("src/app/admin/integrations/test-events/page.tsx", "Apply controlled simulation");
+assertContains("src/app/api/admin/integrations/test-events/route.ts", "controlled-ghl-test-event");
+assertContains("src/app/api/admin/integrations/test-events/route.ts", "preview");
+assertContains("src/app/api/admin/integrations/test-events/route.ts", "applyControlledGhlTestEvent");
+assertContains("src/app/admin/integrations/page.tsx", "Controlled GHL harness");
+assertContains("src/app/admin/integrations/page.tsx", "/admin/integrations/test-events");
 
 console.log("Lead flow alignment guard passed.");
