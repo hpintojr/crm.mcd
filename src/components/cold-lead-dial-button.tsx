@@ -35,17 +35,16 @@ export function ColdLeadDialButton({ leadId, phone }: ColdLeadDialButtonProps) {
       window.location.href = telHref(phone);
     } catch (error) {
       setState("error");
-      setMessage(error instanceof Error ? error.message : "Unable to log call activity.");
+      setMessage(error instanceof Error ? error.message : "Unable to log call activity. Dialer was not opened because activity must be logged first.");
     }
   }
 
   return (
     <div className="space-y-2 sm:col-span-2">
       <button className="w-full rounded-lg bg-brand-500 px-4 py-2 text-center text-sm font-medium text-ink-950 hover:bg-brand-400 disabled:cursor-not-allowed disabled:opacity-70" disabled={state === "logging"} onClick={startCall} type="button">
-        {state === "logging" ? "Logging activity…" : "Click to call lead"}
+        {state === "logging" ? "Logging activity…" : state === "logged" ? "Activity logged — dialer opened" : "Click to call lead"}
       </button>
       <p className={`text-xs ${state === "error" ? "text-red-300" : "portal-copy"}`}>{message}</p>
-      {state === "error" && <a className="inline-flex text-xs font-medium text-brand-300 underline" href={telHref(phone)}>Open dialer without logging</a>}
     </div>
   );
 }
