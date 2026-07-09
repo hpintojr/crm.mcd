@@ -32,6 +32,11 @@ assertContains("src/lib/lead-appointment-attribution.ts", "Suppressed Lead was n
 assertContains("src/lib/lead-appointment-attribution.ts", "callbackExpedited");
 assertContains("src/lib/lead-appointment-attribution.ts", "twoWayContactRecorded");
 assertContains("src/app/api/ghl/appointments/route.ts", "leadIgnored");
+assertContains("src/lib/lead-opportunity-attribution.ts", "GHL_OPPORTUNITY_IGNORED");
+assertContains("src/lib/lead-opportunity-attribution.ts", "callbacksCancelled");
+assertContains("src/lib/lead-opportunity-attribution.ts", "GHL_OPPORTUNITY_LOST_PRESERVED");
+assertContains("src/app/api/ghl/opportunities/route.ts", "preservedClosedWon");
+assertContains("src/app/api/ghl/opportunities/route.ts", "callbacksCancelled");
 assertContains("src/lib/lead-aging-jobs.ts", "LEAD_AUTO_RETURNED_TO_OPEN_POOL");
 assertContains("src/lib/lead-aging-jobs.ts", "LEAD_PROMOTED_TO_SHARK_TANK");
 assertContains("src/app/api/cron/leads/aging/route.ts", "CRON_SECRET");
