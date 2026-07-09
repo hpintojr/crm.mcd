@@ -70,6 +70,9 @@ assertContains("src/app/admin/leads/controlled-test-data/page.tsx", "revalidateP
 assertContains("src/app/admin/integrations/test-events/page.tsx", "/admin/leads/acceptance-command-center");
 assertContains("src/app/admin/integrations/test-events/page.tsx", "Command center");
 assertContains("src/app/admin/integrations/test-events/page.tsx", "revalidatePath(\"/admin/leads/acceptance-command-center\")");
+assertContains("src/app/admin/integrations/page.tsx", "/admin/leads/acceptance-command-center");
+assertContains("src/app/admin/integrations/page.tsx", "Lead command center");
+assertContains("src/app/admin/integrations/page.tsx", "Open command center");
 assertContains("src/app/admin/leads/replies/page.tsx", "Warm reply triage");
 assertContains("src/app/admin/leads/replies/page.tsx", "starts the 45-day responsibility timer");
 assertContains("src/lib/lead-appointment-attribution.ts", "GHL_APPOINTMENT_IGNORED");
