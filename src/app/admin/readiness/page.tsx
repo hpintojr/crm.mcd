@@ -5,6 +5,7 @@ import { db } from "@/lib/db";
 import { features } from "@/lib/features";
 
 type CountRow = { count: number };
+type ReadinessCard = { label: string; value: string | number; href: string; reportHref?: string; exportHref?: string; detail: string };
 type AcceptanceModule = {
   key: "LEADS" | "SERVICING" | "COMMISSIONS";
   label: string;
@@ -77,8 +78,8 @@ export default async function ReadinessBoardPage() {
     return { ...module, passed, failed, deferred, outstanding: module.totalSteps - passed };
   });
 
-  const cards = [
-    ...acceptanceCards.map((card) => ({ label: card.label, value: `${card.passed} / ${card.totalSteps}`, href: card.href, reportHref: card.reportHref, exportHref: card.exportHref, detail: `${card.gateEnabled ? "Controlled test enabled" : "Staged / locked"} · ${card.failed ? `${card.failed} failed` : "No failed steps"}${card.deferred ? ` · ${card.deferred} deferred` : ""}. ${card.detail}` })),
+  const cards: ReadinessCard[] = [
+    ...acceptanceCards.map((card): ReadinessCard => ({ label: card.label, value: `${card.passed} / ${card.totalSteps}`, href: card.href, reportHref: card.reportHref, exportHref: card.exportHref, detail: `${card.gateEnabled ? "Controlled test enabled" : "Staged / locked"} · ${card.failed ? `${card.failed} failed` : "No failed steps"}${card.deferred ? ` · ${card.deferred} deferred` : ""}. ${card.detail}` })),
     { label: "Pending Lead review", value: pendingLeads, href: "/admin/leads", detail: "Review source, duplicates, and suppression before pool assignment." },
     { label: "Demo-booked handoffs", value: demoBooked, href: "/admin/leads/handoff", detail: "Send eligible demo-booked Leads to GHL through the controlled handoff queue." },
     { label: "Won Leads awaiting onboarding", value: closedWonUnonboarded, href: "/admin/servicing/onboarding", detail: "Create the Client Service account, then document client launch." },
