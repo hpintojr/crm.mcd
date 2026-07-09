@@ -23,6 +23,10 @@ assertContains("src/app/admin/leads/testing/page.tsx", "Lead Flow Alignment acce
 assertContains("src/app/admin/leads/testing/page.tsx", "PR_34_LEAD_FLOW_ALIGNMENT");
 assertContains("src/app/admin/leads/testing/page.tsx", "Verify call start is activity only");
 assertContains("src/app/admin/leads/testing/page.tsx", "Verify My Workspace dashboard");
+assertContains("src/app/admin/leads/replies/page.tsx", "Warm reply triage");
+assertContains("src/app/admin/leads/replies/page.tsx", "openPoolReleaseAt: releaseAt");
+assertContains("src/app/admin/leads/replies/page.tsx", "Warm-reply assignment requires a recorded two-way contact");
+assertContains("src/app/admin/leads/replies/page.tsx", "starts the 45-day responsibility timer");
 assertContains("src/lib/lead-aging-jobs.ts", "LEAD_AUTO_RETURNED_TO_OPEN_POOL");
 assertContains("src/lib/lead-aging-jobs.ts", "LEAD_PROMOTED_TO_SHARK_TANK");
 assertContains("src/app/api/cron/leads/aging/route.ts", "CRON_SECRET");
