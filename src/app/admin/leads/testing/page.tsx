@@ -88,6 +88,9 @@ export default async function LeadAcceptanceTestingPage() {
           <Link className="rounded-lg border border-brand-500 px-3 py-2 text-sm text-brand-200" href="/admin/leads/acceptance-report">
             Acceptance report
           </Link>
+          <Link className="rounded-lg border border-brand-500 px-3 py-2 text-sm text-brand-200" href="/admin/leads/controlled-test-data">
+            Controlled test data
+          </Link>
           <Link className="rounded-lg border border-ink-700 px-3 py-2 text-sm text-gray-200" href="/api/admin/leads/acceptance-report.csv">
             CSV export
           </Link>
