@@ -9,7 +9,7 @@ export const dynamic = "force-dynamic";
 const ACCEPTANCE_ACTION = "LEAD_PRODUCTION_ACCEPTANCE_RECORDED";
 const ACCEPTANCE_ENTITY = "LeadProductionAcceptanceStep";
 const ACCEPTANCE_PHASE = "PRODUCTION_ACCEPTANCE_20260709";
-const EXPECTED_COMMIT = "85241b306e9799983226450a6876e71e52665995";
+const STATUS_BASELINE_COMMIT = "85241b306e9799983226450a6876e71e52665995";
 
 type Outcome = "PASS" | "FAIL" | "DEFERRED";
 type Step = {
@@ -25,14 +25,14 @@ type StepGroup = { title: string; detail: string; steps: Step[] };
 const stepGroups: StepGroup[] = [
   {
     title: "Release and domain readiness",
-    detail: "Non-mutating production checks that prove the public hostname is on the expected build and protected routes are healthy.",
+    detail: "Non-mutating production checks that prove the public hostname is on the deployment-status baseline or a newer main build and protected routes are healthy.",
     steps: [
       {
         id: "custom-domain-status-smoke",
         title: "1. Confirm custom-domain deployment status",
         detail:
-          "Open /api/status on crm.mercurycalldesk.com and confirm production, branch main, and the expected PR #35 merge commit. This proves the public hostname is not serving a stale deployment.",
-        evidence: `Expected commit: ${EXPECTED_COMMIT}. Record the response timestamp and commit SHA.`,
+          "Open /api/status on crm.mercurycalldesk.com and confirm production, branch main, and a commit at or newer than the deployment-status baseline. This proves the public hostname is not serving a stale pre-status deployment.",
+        evidence: `Status baseline commit: ${STATUS_BASELINE_COMMIT}. Record the current response timestamp and current commit SHA from /api/status.`,
         href: "/api/status",
         action: "Open status",
       },
@@ -260,7 +260,7 @@ export default async function LeadAcceptanceTestingPage() {
         metadata: {
           module: "LEADS",
           phase: ACCEPTANCE_PHASE,
-          expectedCommit: EXPECTED_COMMIT,
+          statusBaselineCommit: STATUS_BASELINE_COMMIT,
           outcome,
           stepId: step.id,
           stepTitle: step.title,
@@ -279,7 +279,7 @@ export default async function LeadAcceptanceTestingPage() {
           <p className="text-sm font-medium uppercase tracking-widest text-brand-400">Mercury Call Desk</p>
           <h1 className="mt-2 text-3xl font-semibold text-white">Production Lead Flow acceptance</h1>
           <p className="mt-2 max-w-3xl text-gray-400">
-            Controlled production acceptance for the deployed PR #34 and PR #35 scope on the custom domain. Each result writes a new immutable production-acceptance audit event.
+            Controlled production acceptance for the deployed Lead Flow scope on the custom domain. Each result writes a new immutable production-acceptance audit event.
           </p>
         </div>
         <div className="flex flex-wrap gap-2">
@@ -301,9 +301,9 @@ export default async function LeadAcceptanceTestingPage() {
           <p className="mt-2 text-sm text-gray-400">This board records acceptance only. It does not change feature flags.</p>
         </div>
         <div className="rounded-2xl border border-ink-700 bg-ink-900 p-5">
-          <p className="text-sm text-gray-400">Expected production commit</p>
-          <p className="mt-2 break-all text-sm font-semibold text-white">{EXPECTED_COMMIT}</p>
-          <p className="mt-2 text-sm text-gray-400">/api/status on the custom domain must report this commit.</p>
+          <p className="text-sm text-gray-400">Deployment status baseline</p>
+          <p className="mt-2 break-all text-sm font-semibold text-white">{STATUS_BASELINE_COMMIT}</p>
+          <p className="mt-2 text-sm text-gray-400">/api/status on the custom domain must report production/main. The current commit may be newer than this baseline.</p>
         </div>
         <div className="rounded-2xl border border-ink-700 bg-ink-900 p-5">
           <p className="text-sm text-gray-400">Production acceptance progress</p>
