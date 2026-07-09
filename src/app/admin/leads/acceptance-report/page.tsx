@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { ADMIN_ROLES, requireRole } from "@/lib/authz";
 import { db } from "@/lib/db";
+import { getAcceptanceEvidenceSummary } from "@/lib/acceptance-evidence-summary";
 import {
   LEAD_PRODUCTION_ACCEPTANCE_ACTION,
   LEAD_PRODUCTION_ACCEPTANCE_ENTITY,
@@ -25,13 +26,20 @@ function statusLabel(outcome: LeadProductionAcceptanceOutcome | null) {
   return outcome ? outcome[0] + outcome.slice(1).toLowerCase() : "Not recorded";
 }
 
+function pacific(value: string) {
+  return new Date(value).toLocaleString("en-US", { dateStyle: "medium", timeStyle: "short", timeZone: "America/Los_Angeles" });
+}
+
 export default async function LeadProductionAcceptanceReportPage() {
   await requireRole(ADMIN_ROLES);
-  const records = await db.auditLog.findMany({
-    where: { actionType: LEAD_PRODUCTION_ACCEPTANCE_ACTION, entityType: LEAD_PRODUCTION_ACCEPTANCE_ENTITY },
-    orderBy: { createdAt: "desc" },
-    take: 1_000,
-  });
+  const [records, controlledEvidence] = await Promise.all([
+    db.auditLog.findMany({
+      where: { actionType: LEAD_PRODUCTION_ACCEPTANCE_ACTION, entityType: LEAD_PRODUCTION_ACCEPTANCE_ENTITY },
+      orderBy: { createdAt: "desc" },
+      take: 1_000,
+    }),
+    getAcceptanceEvidenceSummary(),
+  ]);
   const latestByStep = new Map<string, (typeof records)[number]>();
   for (const record of records) {
     if (record.entityId && !latestByStep.has(record.entityId)) latestByStep.set(record.entityId, record);
@@ -65,7 +73,7 @@ export default async function LeadProductionAcceptanceReportPage() {
           <p className="text-sm font-medium uppercase tracking-widest text-brand-400">Mercury Call Desk</p>
           <h1 className="mt-2 text-3xl font-semibold text-white">Lead Production Acceptance Report</h1>
           <p className="mt-2 max-w-4xl text-gray-400">
-            Live read-only report for the {LEAD_PRODUCTION_ACCEPTANCE_PHASE} acceptance lane. This page summarizes acceptance evidence and export readiness; it does not change feature flags or mutate Leads.
+            Live read-only report for the {LEAD_PRODUCTION_ACCEPTANCE_PHASE} acceptance lane. This page summarizes acceptance evidence, controlled test data, and controlled GHL harness activity; it does not change feature flags or mutate Leads.
           </p>
         </div>
         <div className="flex flex-wrap gap-2">
@@ -105,6 +113,37 @@ export default async function LeadProductionAcceptanceReportPage() {
           </span>
         </div>
         <p className="mt-4 break-all text-xs text-gray-500">Deployment status baseline: {LEAD_STATUS_BASELINE_COMMIT}</p>
+      </section>
+
+      <section className="mt-6 rounded-2xl border border-brand-900 bg-ink-900 p-6">
+        <div className="flex flex-wrap items-start justify-between gap-4">
+          <div>
+            <h2 className="font-semibold text-white">Controlled acceptance evidence</h2>
+            <p className="mt-2 text-sm leading-6 text-gray-300">Evidence from PR #45 controlled test data and PR #46 controlled GHL harness is summarized here for acceptance review and CSV export.</p>
+          </div>
+          <div className="flex flex-wrap gap-2">
+            <Link className="rounded-lg border border-brand-500 px-3 py-2 text-sm text-brand-200" href={controlledEvidence.links.controlledTestDataHref}>Controlled data</Link>
+            <Link className="rounded-lg border border-brand-500 px-3 py-2 text-sm text-brand-200" href={controlledEvidence.links.controlledGhlHarnessHref}>GHL harness</Link>
+          </div>
+        </div>
+        <div className="mt-5 grid gap-3 md:grid-cols-3">
+          <Metric label="Controlled Leads" value={controlledEvidence.counts.controlledLeadCount} detail={`${controlledEvidence.counts.activeControlledLeadCount} active · ${controlledEvidence.counts.archivedControlledLeadCount} archived`} tone="text-white" />
+          <Metric label="Recent data audits" value={controlledEvidence.counts.recentControlledCreateAuditCount + controlledEvidence.counts.recentControlledArchiveAuditCount} detail="Create/archive evidence" tone="text-white" />
+          <Metric label="Harness runs" value={controlledEvidence.counts.recentHarnessAppliedCount} detail="Recent controlled simulations" tone="text-white" />
+        </div>
+        {controlledEvidence.recentEvidence.length === 0 ? (
+          <p className="mt-5 rounded-xl border border-ink-700 bg-ink-950 p-4 text-sm text-gray-400">No controlled data or harness evidence has been recorded yet.</p>
+        ) : (
+          <div className="mt-5 divide-y divide-ink-700 rounded-xl border border-ink-700 bg-ink-950">
+            {controlledEvidence.recentEvidence.slice(0, 6).map((evidence) => (
+              <div className="px-4 py-3" key={evidence.id}>
+                <p className="text-sm font-medium text-white">{evidence.actionType}</p>
+                <p className="mt-1 text-xs text-gray-500">{evidence.kind} · {evidence.entityId || "No entity"} · {pacific(evidence.createdAt)}</p>
+                {evidence.reason && <p className="mt-1 text-sm text-gray-300">{evidence.reason}</p>}
+              </div>
+            ))}
+          </div>
+        )}
       </section>
 
       <section className="mt-8 grid gap-5 lg:grid-cols-3">
