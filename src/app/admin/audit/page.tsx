@@ -124,6 +124,7 @@ export default async function AuditPage({ searchParams }: AuditPageProps) {
         </div>
         <div className="flex flex-wrap gap-2">
           <Link className="rounded-lg border border-ink-700 px-3 py-2 text-sm text-gray-200" href="/admin/readiness">Readiness board</Link>
+          <Link className="rounded-lg border border-brand-500 px-3 py-2 text-sm text-brand-200" href="/admin/leads/acceptance-command-center">Lead command center</Link>
           <Link className="rounded-lg border border-brand-500 px-3 py-2 text-sm text-brand-200" href="/admin/leads/acceptance-report">Lead acceptance report</Link>
           <Link className="rounded-lg border border-ink-700 px-3 py-2 text-sm text-gray-200" href="/api/admin/audit/export">Export audit</Link>
         </div>
@@ -150,6 +151,7 @@ export default async function AuditPage({ searchParams }: AuditPageProps) {
             <p className="mt-1 text-sm text-gray-400">Recorded Pass, Fail, and Deferred results from production Lead Flow acceptance and controlled Servicing/Commission testing.</p>
           </div>
           <div className="flex flex-wrap gap-2">
+            <Link className="rounded-lg border border-brand-500 px-3 py-2 text-sm text-brand-200" href="/admin/leads/acceptance-command-center">Lead command center</Link>
             <Link className="rounded-lg border border-brand-500 px-3 py-2 text-sm text-brand-200" href="/admin/leads/testing">Leads board</Link>
             <Link className="rounded-lg border border-brand-500 px-3 py-2 text-sm text-brand-200" href="/admin/leads/acceptance-report">Leads report</Link>
             <Link className="rounded-lg border border-ink-700 px-3 py-2 text-sm text-gray-200" href="/api/admin/leads/acceptance-report.csv">Leads CSV</Link>
@@ -168,11 +170,7 @@ export default async function AuditPage({ searchParams }: AuditPageProps) {
                 <article className="px-6 py-4" data-audit-ux="acceptance-row" key={entry.id}>
                   <div className="flex flex-wrap items-start justify-between gap-4">
                     <div className="max-w-4xl">
-                      <div className="flex flex-wrap items-center gap-2">
-                        <p className="font-medium text-white">{metadata.stepTitle || formatAction(entry.actionType)}</p>
-                        <span className={`rounded-full border px-2.5 py-1 text-xs font-medium ${outcomeClass(metadata.outcome)}`}>{outcomeLabel(metadata.outcome)}</span>
-                        {metadata.module && <span className="rounded-full border border-ink-700 px-2.5 py-1 text-xs text-gray-300">{metadata.module}</span>}
-                      </div>
+                      <div className="flex flex-wrap items-center gap-2"><p className="font-medium text-white">{metadata.stepTitle || formatAction(entry.actionType)}</p><span className={`rounded-full border px-2.5 py-1 text-xs font-medium ${outcomeClass(metadata.outcome)}`}>{outcomeLabel(metadata.outcome)}</span>{metadata.module && <span className="rounded-full border border-ink-700 px-2.5 py-1 text-xs text-gray-300">{metadata.module}</span>}</div>
                       <p className="mt-1 text-sm text-gray-400">{entry.entityType}{entry.entityId ? ` · ${entry.entityId}` : ""}{metadata.phase ? ` · ${metadata.phase}` : ""}</p>
                       {entry.reason && <p className="mt-2 text-sm leading-6 text-gray-300">{entry.reason}</p>}
                       {commitEvidence && <p className="mt-2 break-all text-xs text-gray-500">{metadata.statusBaselineCommit ? "Status baseline" : "Expected commit"}: {commitEvidence}</p>}
