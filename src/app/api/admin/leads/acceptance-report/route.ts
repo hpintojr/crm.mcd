@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { ADMIN_ROLES, requireRole } from "@/lib/authz";
 import { db } from "@/lib/db";
+import { getAcceptanceEvidenceSummary } from "@/lib/acceptance-evidence-summary";
 import {
   LEAD_PRODUCTION_ACCEPTANCE_ACTION,
   LEAD_PRODUCTION_ACCEPTANCE_ENTITY,
@@ -34,7 +35,10 @@ function latestByStep(records: AcceptanceRecord[]) {
 
 export async function GET() {
   const actor = await requireRole(ADMIN_ROLES);
-  const records = await getAcceptanceRecords();
+  const [records, controlledEvidence] = await Promise.all([
+    getAcceptanceRecords(),
+    getAcceptanceEvidenceSummary(),
+  ]);
   const latest = latestByStep(records);
   const steps = leadProductionAcceptanceSteps.map((step) => {
     const record = latest.get(step.id) ?? null;
@@ -80,6 +84,7 @@ export async function GET() {
         readyForOwnerDecision,
         fullyPassed,
       },
+      controlledEvidence,
       groups: leadProductionAcceptanceGroups.map((group) => ({
         title: group.title,
         detail: group.detail,
