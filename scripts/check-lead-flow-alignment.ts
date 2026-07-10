@@ -120,4 +120,11 @@ assertContains("src/app/admin/leads/acceptance-runbook/checklist/page.tsx", "Sig
 assertContains("src/app/admin/leads/acceptance-runbook/page.tsx", "/admin/leads/acceptance-runbook/checklist");
 assertContains("src/app/admin/leads/acceptance-runbook/page.tsx", "Printable checklist");
 
+assertContains("src/app/admin/operating-status/page.tsx", "/admin/leads/acceptance-runbook");
+assertContains("src/app/admin/operating-status/page.tsx", "Lead acceptance runbook");
+assertContains("src/app/admin/audit/page.tsx", "/admin/leads/acceptance-runbook");
+assertContains("src/app/admin/audit/page.tsx", "Lead acceptance runbook");
+assertContains("src/app/admin/leads/page.tsx", "/admin/leads/acceptance-runbook");
+assertContains("src/app/admin/leads/page.tsx", "Lead acceptance runbook");
+
 console.log("Lead flow alignment guard passed.");
