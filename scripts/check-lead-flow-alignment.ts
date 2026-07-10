@@ -277,6 +277,15 @@ const guards: [string, string][] = [
   ["src/app/admin/leads/testing/page.tsx", "scroll-mt-6"],
   ["src/lib/lead-acceptance-overview.ts", "deferred-steps"],
   ["src/lib/lead-acceptance-overview.ts", "/admin/leads/acceptance-runbook/deferred"],
+
+  ["src/app/admin/leads/acceptance-summary.csv/route.ts", "getLeadAcceptanceOverview"],
+  ["src/app/admin/leads/acceptance-summary.csv/route.ts", "Read-only acceptance overview CSV export only"],
+  ["src/app/admin/leads/acceptance-summary.csv/route.ts", "flattenCsv"],
+  ["src/app/admin/leads/acceptance-summary.csv/route.ts", "mcd-lead-acceptance-summary"],
+  ["src/app/admin/leads/acceptance-overview/page.tsx", "/admin/leads/acceptance-summary.csv"],
+  ["src/app/admin/leads/acceptance-overview/page.tsx", "CSV summary"],
+  ["src/lib/lead-acceptance-overview.ts", "acceptance-summary-csv"],
+  ["src/lib/lead-acceptance-overview.ts", "/admin/leads/acceptance-summary.csv"],
 ];
 
 for (const [path, expected] of guards) {
