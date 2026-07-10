@@ -92,6 +92,9 @@ export default async function LeadAcceptanceTestingPage() {
           <Link className="rounded-lg border border-brand-500 px-3 py-2 text-sm text-brand-200" href="/admin/leads/acceptance-report">
             Acceptance report
           </Link>
+          <Link className="rounded-lg border border-brand-500 px-3 py-2 text-sm text-brand-200" href="/admin/leads/acceptance-runbook">
+            Acceptance runbook
+          </Link>
           <Link className="rounded-lg border border-brand-500 px-3 py-2 text-sm text-brand-200" href="/admin/leads/controlled-test-data">
             Controlled test data
           </Link>

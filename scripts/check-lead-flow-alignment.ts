@@ -110,4 +110,7 @@ assertContains("src/app/admin/readiness/page.tsx", "Lead acceptance runbook");
 assertContains("src/app/admin/readiness/page.tsx", "Acceptance runbook");
 assertContains("src/app/admin/readiness/page.tsx", "runbookHref: \"/admin/leads/acceptance-runbook\"");
 
+assertContains("src/app/admin/leads/testing/page.tsx", "/admin/leads/acceptance-runbook");
+assertContains("src/app/admin/leads/testing/page.tsx", "Acceptance runbook");
+
 console.log("Lead flow alignment guard passed.");
