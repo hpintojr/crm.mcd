@@ -52,7 +52,7 @@ export default async function IntegrationMonitorPage() {
           <p className="mt-2 max-w-3xl text-gray-400">Inbound webhook and integration-failure visibility. Duplicate event IDs are idempotent and do not create new work. Resolve an error only after investigation; resolution does not replay the event.</p>
         </div>
         <div className="flex flex-wrap items-center gap-2">
-          <Link className="rounded-lg border border-brand-500 px-3 py-2 text-sm text-brand-200" href="/admin/leads/acceptance-command-center">Lead command center</Link>
+          <Link className="rounded-lg border border-brand-500 px-3 py-2 text-sm text-brand-200" href="/admin/leads/acceptance-command-center">Lead command center</Link><Link className="rounded-lg border border-brand-500 px-3 py-2 text-sm text-brand-200" href="/admin/leads/acceptance-runbook">Lead acceptance runbook</Link>
           <Link className="rounded-lg border border-brand-500 px-3 py-2 text-sm text-brand-200" href="/admin/integrations/test-events">Controlled GHL harness</Link>
           <Link className="rounded-lg border border-brand-500 px-3 py-2 text-sm text-brand-200" href="/admin/integrations/replies">Reply relay setup</Link>
           <Link className="rounded-lg border border-brand-500 px-3 py-2 text-sm text-brand-200" href="/admin/integrations/opportunities">Opportunity relay setup</Link>
