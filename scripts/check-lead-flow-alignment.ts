@@ -196,4 +196,16 @@ assertContains("src/app/api/admin/leads/acceptance-gaps/route.ts", "Read-only ac
 assertContains("src/app/admin/leads/acceptance-handoff/page.tsx", "/admin/leads/acceptance-gaps");
 assertContains("src/app/admin/leads/acceptance-handoff/page.tsx", "View evidence gaps");
 
+assertContains("src/lib/lead-acceptance-matrix.ts", "LEAD_ACCEPTANCE_MATRIX_VERSION");
+assertContains("src/lib/lead-acceptance-matrix.ts", "getLeadAcceptanceEvidenceMatrix");
+assertContains("src/lib/lead-acceptance-matrix.ts", "recordHref");
+assertContains("src/app/admin/leads/acceptance-matrix/page.tsx", "data-acceptance-matrix=\"lead-flow\"");
+assertContains("src/app/admin/leads/acceptance-matrix/page.tsx", "Lead acceptance evidence matrix");
+assertContains("src/app/admin/leads/acceptance-matrix/page.tsx", "All acceptance evidence rows");
+assertContains("src/app/api/admin/leads/acceptance-matrix/route.ts", "getLeadAcceptanceEvidenceMatrix");
+assertContains("src/app/api/admin/leads/acceptance-matrix/route.ts", "Read-only acceptance evidence matrix only");
+assertContains("src/app/admin/leads/acceptance-handoff/page.tsx", "/admin/leads/acceptance-matrix");
+assertContains("src/app/admin/leads/acceptance-handoff/page.tsx", "View evidence matrix");
+assertContains("src/app/admin/leads/acceptance-gaps/page.tsx", "/admin/leads/acceptance-matrix");
+
 console.log("Lead flow alignment guard passed.");
