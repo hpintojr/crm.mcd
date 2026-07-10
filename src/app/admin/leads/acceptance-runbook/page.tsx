@@ -202,6 +202,76 @@ export default async function LeadAcceptanceRunbookPage() {
         </div>
       </section>
 
+      <section
+        aria-label="Where to record each acceptance step"
+        className="mt-8 rounded-2xl border border-ink-700 bg-ink-900 p-6"
+        data-acceptance-runbook-matrix="lead-flow"
+      >
+        <h2 className="font-semibold text-white">Where to record each step</h2>
+        <p className="mt-2 text-sm leading-6 text-gray-300">
+          Every acceptance result is recorded on the acceptance board, which writes
+          an immutable{" "}
+          <code className="rounded bg-ink-950 px-1.5 py-0.5 text-xs text-brand-200">
+            LEAD_PRODUCTION_ACCEPTANCE_RECORDED
+          </code>{" "}
+          audit event. The matrix below maps each step to the surface where you
+          run the check and reminds you that the outcome always goes back on the
+          acceptance board.
+        </p>
+        <div className="mt-4 overflow-hidden rounded-xl border border-ink-700">
+          <table className="w-full border-collapse text-left text-sm">
+            <thead className="bg-ink-950/60 text-xs uppercase tracking-widest text-gray-400">
+              <tr>
+                <th className="border-b border-ink-700 px-4 py-3 font-medium">Step</th>
+                <th className="border-b border-ink-700 px-4 py-3 font-medium">Perform on</th>
+                <th className="border-b border-ink-700 px-4 py-3 font-medium">Record on</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-ink-700 text-gray-200">
+              {RUNBOOK_STEPS.map((step) => {
+                const primary = step.actions[0];
+                return (
+                  <tr
+                    className="align-top"
+                    data-acceptance-runbook-matrix-step={step.id}
+                    key={`matrix-${step.id}`}
+                  >
+                    <td className="px-4 py-3">
+                      <p className="font-medium text-white">{step.title}</p>
+                    </td>
+                    <td className="px-4 py-3">
+                      {primary ? (
+                        <Link
+                          className="text-brand-200 underline"
+                          href={primary.href}
+                        >
+                          {primary.label}
+                        </Link>
+                      ) : (
+                        <span className="text-gray-500">—</span>
+                      )}
+                    </td>
+                    <td className="px-4 py-3">
+                      <Link
+                        className="text-brand-200 underline"
+                        href="/admin/leads/testing"
+                      >
+                        Acceptance board
+                      </Link>
+                    </td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        </div>
+        <p className="mt-4 text-xs leading-5 text-gray-500">
+          Recorded evidence is also mirrored on the acceptance report and command
+          center. The audit action-type is intentionally the same across all
+          steps so filters remain simple.
+        </p>
+      </section>
+
       <section className="mt-8 space-y-4">
         {RUNBOOK_STEPS.map((step) => (
           <article
