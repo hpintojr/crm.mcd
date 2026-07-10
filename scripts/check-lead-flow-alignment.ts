@@ -235,6 +235,8 @@ assertContains("src/app/admin/leads/acceptance-matrix/page.tsx", "/admin/leads/a
 assertContains("src/app/admin/leads/acceptance-gates/page.tsx", "/admin/leads/acceptance-overview");
 assertContains("src/app/admin/leads/acceptance-history/page.tsx", "/admin/leads/acceptance-overview");
 assertContains("src/app/admin/leads/acceptance-findings/page.tsx", "/admin/leads/acceptance-overview");
+assertContains("src/app/admin/leads/acceptance-command-center/page.tsx", "/admin/leads/acceptance-overview");
+assertContains("src/app/admin/leads/acceptance-report/page.tsx", "/admin/leads/acceptance-overview");
 assertContains("src/app/admin/leads/acceptance/page.tsx", "requireRole(ADMIN_ROLES)");
 assertContains("src/app/admin/leads/acceptance/page.tsx", "redirect(\"/admin/leads/acceptance-overview\")");
 assertContains("src/app/admin/leads/page.tsx", "/admin/leads/acceptance-overview");
