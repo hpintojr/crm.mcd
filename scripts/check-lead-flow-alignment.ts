@@ -136,4 +136,10 @@ assertContains("src/app/admin/integrations/test-events/page.tsx", "Acceptance ru
 assertContains("src/app/admin/integrations/page.tsx", "/admin/leads/acceptance-runbook");
 assertContains("src/app/admin/integrations/page.tsx", "Lead acceptance runbook");
 
+assertContains("src/app/admin/leads/acceptance-runbook/page.tsx", "Where to record each step");
+assertContains("src/app/admin/leads/acceptance-runbook/page.tsx", "data-acceptance-runbook-matrix=\"lead-flow\"");
+assertContains("src/app/admin/leads/acceptance-runbook/page.tsx", "LEAD_PRODUCTION_ACCEPTANCE_RECORDED");
+assertContains("src/app/admin/leads/acceptance-runbook/page.tsx", "Perform on");
+assertContains("src/app/admin/leads/acceptance-runbook/page.tsx", "Record on");
+
 console.log("Lead flow alignment guard passed.");
