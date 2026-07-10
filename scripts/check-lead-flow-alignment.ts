@@ -244,4 +244,11 @@ assertContains("src/app/admin/leads/acceptance/page.tsx", "redirect(\"/admin/lea
 assertContains("src/app/admin/leads/page.tsx", "/admin/leads/acceptance-overview");
 assertContains("src/app/admin/leads/page.tsx", "Lead acceptance overview");
 
+assertContains("src/lib/lead-workspace.ts", "ADMIN_ROLES");
+assertContains("src/lib/lead-workspace.ts", "isControlledTestLead");
+assertContains("src/lib/lead-workspace.ts", "Admins may only act on controlled test Leads");
+assertContains("src/lib/lead-workspace.ts", "Auto-provisioned acceptance operator");
+assertContains("src/app/portal/leads/page.tsx", "id=\"cold-lead-review\"");
+assertContains("src/app/portal/leads/page.tsx", "#cold-lead-review");
+
 console.log("Lead flow alignment guard passed.");
