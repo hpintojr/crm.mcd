@@ -38,6 +38,7 @@ export default async function LeadAcceptanceOverviewPage() {
           <Link className="rounded-lg border border-brand-500 px-3 py-2 text-sm text-brand-200" href="/admin/leads/acceptance-matrix">Evidence matrix</Link>
           <Link className="rounded-lg border border-brand-500 px-3 py-2 text-sm text-brand-200" href="/admin/leads/acceptance-gates">Closed gates</Link>
           <Link className="rounded-lg border border-brand-500 px-3 py-2 text-sm text-brand-200" href="/api/admin/leads/acceptance-overview">JSON overview</Link>
+          <Link className="rounded-lg border border-ink-700 px-3 py-2 text-sm text-gray-200" href="/admin/leads/acceptance-summary.csv">CSV summary</Link>
           <Link className="rounded-lg border border-ink-700 px-3 py-2 text-sm text-gray-200" href="/admin/leads/testing">Acceptance board</Link>
         </div>
       </div>
@@ -62,6 +63,7 @@ export default async function LeadAcceptanceOverviewPage() {
           <div className="flex flex-wrap gap-2">
             {overview.evidence.nextStep?.href && <Link className="rounded-lg border border-brand-500 px-3 py-2 text-sm text-brand-200" href={overview.evidence.nextStep.href}>{overview.evidence.nextStep.action || "Open next step"}</Link>}
             {overview.evidence.nextStep?.runbookHref && <Link className="rounded-lg border border-brand-500 px-3 py-2 text-sm text-brand-200" href={overview.evidence.nextStep.runbookHref}>Runbook step</Link>}
+            <Link className="rounded-lg border border-ink-700 px-3 py-2 text-sm text-gray-200" href="/admin/leads/acceptance-summary.csv">Download CSV summary</Link>
             <Link className="rounded-lg border border-ink-700 px-3 py-2 text-sm text-gray-200" href="/admin/leads/testing">Record evidence</Link>
           </div>
         </div>
