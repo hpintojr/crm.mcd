@@ -286,6 +286,13 @@ const guards: [string, string][] = [
   ["src/app/admin/leads/acceptance-overview/page.tsx", "CSV summary"],
   ["src/lib/lead-acceptance-overview.ts", "acceptance-summary-csv"],
   ["src/lib/lead-acceptance-overview.ts", "/admin/leads/acceptance-summary.csv"],
+
+  ["src/app/admin/leads/acceptance-runbook/print/page.tsx", "data-acceptance-runbook-print=\"lead-flow\""],
+  ["src/app/admin/leads/acceptance-runbook/print/page.tsx", "Lead acceptance runbook — print view"],
+  ["src/app/admin/leads/acceptance-runbook/print/page.tsx", "Print-friendly read-only operator reference"],
+  ["src/app/admin/leads/acceptance-runbook/print/page.tsx", "acceptanceRunbookHref(step.id)"],
+  ["src/lib/lead-acceptance-overview.ts", "print-runbook"],
+  ["src/lib/lead-acceptance-overview.ts", "/admin/leads/acceptance-runbook/print"],
 ];
 
 for (const [path, expected] of guards) {
