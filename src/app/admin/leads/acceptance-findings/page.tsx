@@ -40,6 +40,7 @@ export default async function LeadAcceptanceFindingsPage() {
         </div>
         <div className="flex flex-wrap gap-2">
           <Link className="rounded-lg border border-brand-500 px-3 py-2 text-sm text-brand-200" href="/admin/leads/acceptance-command-center">Command center</Link>
+          <Link className="rounded-lg border border-brand-500 px-3 py-2 text-sm text-brand-200" href="/admin/leads/acceptance-handoff">Handoff packet</Link>
           <Link className="rounded-lg border border-brand-500 px-3 py-2 text-sm text-brand-200" href="/admin/leads/acceptance-report">Acceptance report</Link>
           <Link className="rounded-lg border border-brand-500 px-3 py-2 text-sm text-brand-200" href="/admin/leads/acceptance-history">Acceptance history</Link>
           <Link className="rounded-lg border border-brand-500 px-3 py-2 text-sm text-brand-200" href="/api/admin/leads/acceptance-findings">JSON findings</Link>
@@ -55,13 +56,18 @@ export default async function LeadAcceptanceFindingsPage() {
       </section>
 
       <section className="mt-6 rounded-2xl border border-ink-700 bg-ink-900 p-6">
-        <h2 className="font-semibold text-white">Catalog baseline</h2>
-        <p className="mt-2 text-sm leading-6 text-gray-300">
-          Version {LEAD_ACCEPTANCE_FINDINGS_CATALOG_VERSION}. Latest production commit observed by this catalog: <span className="break-all text-gray-500">{LEAD_ACCEPTANCE_FINDINGS_LATEST_PRODUCTION_COMMIT}</span>.
-        </p>
-        <p className="mt-2 text-xs leading-5 text-gray-500">
-          This page is static/read-only application content plus the current admin session. It does not read Leads, mutate audit records, change feature flags, call GHL, or submit exports.
-        </p>
+        <div className="flex flex-wrap items-start justify-between gap-4">
+          <div>
+            <h2 className="font-semibold text-white">Catalog baseline</h2>
+            <p className="mt-2 text-sm leading-6 text-gray-300">
+              Version {LEAD_ACCEPTANCE_FINDINGS_CATALOG_VERSION}. Latest production commit observed by this catalog: <span className="break-all text-gray-500">{LEAD_ACCEPTANCE_FINDINGS_LATEST_PRODUCTION_COMMIT}</span>.
+            </p>
+            <p className="mt-2 text-xs leading-5 text-gray-500">
+              This page is static/read-only application content plus the current admin session. It does not read Leads, mutate audit records, change feature flags, call GHL, or submit exports.
+            </p>
+          </div>
+          <Link className="h-fit rounded-lg border border-brand-500 px-3 py-2 text-sm text-brand-200" href="/admin/leads/acceptance-handoff">Open handoff packet</Link>
+        </div>
       </section>
 
       <section className="mt-8 space-y-4">
