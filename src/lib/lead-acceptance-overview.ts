@@ -1,7 +1,7 @@
 import { getLeadAcceptanceClosedGates } from "@/lib/lead-acceptance-gates";
 import { getLeadAcceptanceHandoffPacket } from "@/lib/lead-acceptance-handoff";
 
-export const LEAD_ACCEPTANCE_OVERVIEW_VERSION = "2026-07-10-pr80";
+export const LEAD_ACCEPTANCE_OVERVIEW_VERSION = "2026-07-10-pr81";
 
 export type LeadAcceptanceOverviewEntry = {
   id: string;
@@ -59,6 +59,13 @@ export const leadAcceptanceOverviewEntries: LeadAcceptanceOverviewEntry[] = [
     title: "Acceptance report",
     description: "Review the acceptance report, readiness summary, and controlled evidence sections.",
     href: "/admin/leads/acceptance-report",
+    priority: "AUDIT",
+  },
+  {
+    id: "acceptance-summary-csv",
+    title: "Acceptance summary CSV",
+    description: "Download a read-only CSV flattening of the acceptance overview JSON for stakeholder handoff.",
+    href: "/admin/leads/acceptance-summary.csv",
     priority: "AUDIT",
   },
   {
