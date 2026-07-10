@@ -185,4 +185,15 @@ assertContains("src/app/api/admin/leads/acceptance-handoff/route.ts", "getLeadAc
 assertContains("src/app/api/admin/leads/acceptance-handoff/route.ts", "Read-only acceptance handoff packet only");
 assertContains("src/app/admin/leads/acceptance-findings/page.tsx", "/admin/leads/acceptance-handoff");
 
+assertContains("src/lib/lead-acceptance-gaps.ts", "LEAD_ACCEPTANCE_GAPS_VERSION");
+assertContains("src/lib/lead-acceptance-gaps.ts", "getLeadAcceptanceEvidenceGaps");
+assertContains("src/lib/lead-acceptance-gaps.ts", "recordHref");
+assertContains("src/app/admin/leads/acceptance-gaps/page.tsx", "data-acceptance-gaps=\"lead-flow\"");
+assertContains("src/app/admin/leads/acceptance-gaps/page.tsx", "Lead acceptance evidence gaps");
+assertContains("src/app/admin/leads/acceptance-gaps/page.tsx", "Next evidence gap");
+assertContains("src/app/api/admin/leads/acceptance-gaps/route.ts", "getLeadAcceptanceEvidenceGaps");
+assertContains("src/app/api/admin/leads/acceptance-gaps/route.ts", "Read-only acceptance evidence gaps only");
+assertContains("src/app/admin/leads/acceptance-handoff/page.tsx", "/admin/leads/acceptance-gaps");
+assertContains("src/app/admin/leads/acceptance-handoff/page.tsx", "View evidence gaps");
+
 console.log("Lead flow alignment guard passed.");
