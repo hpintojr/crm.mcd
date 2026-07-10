@@ -113,4 +113,11 @@ assertContains("src/app/admin/readiness/page.tsx", "runbookHref: \"/admin/leads/
 assertContains("src/app/admin/leads/testing/page.tsx", "/admin/leads/acceptance-runbook");
 assertContains("src/app/admin/leads/testing/page.tsx", "Acceptance runbook");
 
+assertContains("src/app/admin/leads/acceptance-runbook/checklist/page.tsx", "Lead acceptance runbook — printable checklist");
+assertContains("src/app/admin/leads/acceptance-runbook/checklist/page.tsx", "data-acceptance-runbook-checklist=\"lead-flow\"");
+assertContains("src/app/admin/leads/acceptance-runbook/checklist/page.tsx", "Gates that remain closed");
+assertContains("src/app/admin/leads/acceptance-runbook/checklist/page.tsx", "Sign-off");
+assertContains("src/app/admin/leads/acceptance-runbook/page.tsx", "/admin/leads/acceptance-runbook/checklist");
+assertContains("src/app/admin/leads/acceptance-runbook/page.tsx", "Printable checklist");
+
 console.log("Lead flow alignment guard passed.");
