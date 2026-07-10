@@ -175,4 +175,14 @@ assertContains("src/app/admin/leads/acceptance-command-center/page.tsx", "Findin
 assertContains("src/app/admin/leads/acceptance-report/page.tsx", "/admin/leads/acceptance-findings");
 assertContains("src/app/admin/leads/acceptance-history/page.tsx", "/admin/leads/acceptance-findings");
 
+assertContains("src/lib/lead-acceptance-handoff.ts", "LEAD_ACCEPTANCE_HANDOFF_PACKET_VERSION");
+assertContains("src/lib/lead-acceptance-handoff.ts", "getLeadAcceptanceHandoffPacket");
+assertContains("src/lib/lead-acceptance-handoff.ts", "leadAcceptanceClosedGates");
+assertContains("src/app/admin/leads/acceptance-handoff/page.tsx", "data-acceptance-handoff=\"lead-flow\"");
+assertContains("src/app/admin/leads/acceptance-handoff/page.tsx", "Lead acceptance handoff packet");
+assertContains("src/app/admin/leads/acceptance-handoff/page.tsx", "Handoff recommendation");
+assertContains("src/app/api/admin/leads/acceptance-handoff/route.ts", "getLeadAcceptanceHandoffPacket");
+assertContains("src/app/api/admin/leads/acceptance-handoff/route.ts", "Read-only acceptance handoff packet only");
+assertContains("src/app/admin/leads/acceptance-findings/page.tsx", "/admin/leads/acceptance-handoff");
+
 console.log("Lead flow alignment guard passed.");
