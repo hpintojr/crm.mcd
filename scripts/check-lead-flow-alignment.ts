@@ -251,4 +251,8 @@ assertContains("src/lib/lead-workspace.ts", "Auto-provisioned acceptance operato
 assertContains("src/app/portal/leads/page.tsx", "id=\"cold-lead-review\"");
 assertContains("src/app/portal/leads/page.tsx", "#cold-lead-review");
 
+assertContains("src/lib/claims.ts", "isControlledTestLead");
+assertContains("src/lib/claims.ts", "Admins may only claim controlled test Leads");
+assertContains("src/lib/claims.ts", "acceptance-operator path");
+
 console.log("Lead flow alignment guard passed.");

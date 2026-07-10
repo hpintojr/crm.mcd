@@ -1,6 +1,7 @@
 import "server-only";
 
 import { UserRole } from "@prisma/client";
+import { isControlledTestLead } from "@/lib/controlled-test-leads";
 import { db } from "@/lib/db";
 import { requireFeature } from "@/lib/features";
 
@@ -11,7 +12,24 @@ const CLAIM_RELEASE_DAYS = 45;
 
 export async function claimAvailableLead(actor: { userId: string; role: UserRole }, leadId: string) {
   requireFeature("leads");
-  if (ADMIN.includes(actor.role)) throw new Error("Use reassignment controls for manager lead assignment.");
+
+  // Admins may only claim controlled test Leads (acceptance-operator path, PR #78/#79).
+  // Real production Leads still require an AGENT-role user; managers must use reassignment.
+  if (ADMIN.includes(actor.role)) {
+    const targetLead = await db.lead.findUnique({
+      where: { id: leadId },
+      select: { id: true, source: true, sourceReference: true, campaignName: true, campaignExternalId: true, sourceDetail: true },
+    });
+    if (!isControlledTestLead(targetLead)) {
+      throw new Error("Use reassignment controls for manager lead assignment.");
+    }
+    // Fall through: the admin\'s acceptance-operator Agent is expected to exist
+    // (auto-provisioned by activeAgent() when the admin recorded the two-way
+    // contact disposition). If it does not, the canClaimLeads check below
+    // will throw the same "pending manager certification" error and Hamilton
+    // will know to seed a disposition first.
+  }
+
   const agent = await db.agent.findUnique({ where: { userId: actor.userId } });
   if (!agent?.canClaimLeads) throw new Error("Lead access is pending manager certification.");
   const capacity = Math.max(1, Number.parseInt(process.env.LEAD_CLAIM_CAPACITY ?? "50", 10) || 50);
