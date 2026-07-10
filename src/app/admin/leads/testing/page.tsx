@@ -91,6 +91,7 @@ export default async function LeadAcceptanceTestingPage() {
           <Link className="rounded-lg border border-brand-500 px-3 py-2 text-sm text-brand-200" href="/admin/leads/acceptance-report">Acceptance report</Link>
           <Link className="rounded-lg border border-brand-500 px-3 py-2 text-sm text-brand-200" href="/admin/leads/acceptance-history">Acceptance history</Link>
           <Link className="rounded-lg border border-brand-500 px-3 py-2 text-sm text-brand-200" href="/admin/leads/acceptance-runbook">Acceptance runbook</Link>
+          <Link className="rounded-lg border border-brand-500 px-3 py-2 text-sm text-brand-200" href="/admin/leads/acceptance-runbook/deferred">Deferred steps</Link>
           <Link className="rounded-lg border border-brand-500 px-3 py-2 text-sm text-brand-200" href="/admin/leads/controlled-test-data">Controlled test data</Link>
           <Link className="rounded-lg border border-ink-700 px-3 py-2 text-sm text-gray-200" href="/api/admin/leads/acceptance-report.csv">CSV export</Link>
           <Link className="rounded-lg border border-ink-700 px-3 py-2 text-sm text-gray-200" href="/admin/readiness">Readiness board</Link>
@@ -128,7 +129,7 @@ export default async function LeadAcceptanceTestingPage() {
               const record = latestByStep.get(step.id) ?? null;
               const outcome = readLeadProductionAcceptanceOutcome(record?.metadata);
               return (
-                <article className="rounded-2xl border border-ink-700 bg-ink-900 p-5" key={step.id} id={step.id}>
+                <article className="scroll-mt-6 rounded-2xl border border-ink-700 bg-ink-900 p-5" data-acceptance-board-step-id={step.id} key={step.id} id={step.id}>
                   <div className="flex flex-col justify-between gap-4 lg:flex-row lg:items-start">
                     <div>
                       <div className="flex flex-wrap items-center gap-3"><h3 className="font-semibold text-white">{step.title}</h3><span className={`rounded-full border px-2.5 py-1 text-xs font-medium ${statusClass(outcome)}`}>{statusLabel(outcome)}</span></div>

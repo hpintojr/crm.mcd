@@ -178,6 +178,12 @@ export default async function LeadAcceptanceRunbookPage() {
           </Link>
           <Link
             className="rounded-lg border border-brand-500 px-3 py-2 text-sm text-brand-200"
+            href="/admin/leads/acceptance-runbook/deferred"
+          >
+            Deferred steps
+          </Link>
+          <Link
+            className="rounded-lg border border-brand-500 px-3 py-2 text-sm text-brand-200"
             href="/admin/leads/acceptance-runbook/checklist"
           >
             Printable checklist
