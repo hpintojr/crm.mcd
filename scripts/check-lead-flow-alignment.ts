@@ -221,4 +221,17 @@ assertContains("src/app/admin/leads/acceptance-handoff/page.tsx", "View closed g
 assertContains("src/app/admin/leads/acceptance-gaps/page.tsx", "/admin/leads/acceptance-gates");
 assertContains("src/app/admin/leads/acceptance-matrix/page.tsx", "/admin/leads/acceptance-gates");
 
+assertContains("src/lib/lead-acceptance-overview.ts", "LEAD_ACCEPTANCE_OVERVIEW_VERSION");
+assertContains("src/lib/lead-acceptance-overview.ts", "getLeadAcceptanceOverview");
+assertContains("src/lib/lead-acceptance-overview.ts", "leadAcceptanceOverviewEntries");
+assertContains("src/app/admin/leads/acceptance-overview/page.tsx", "data-acceptance-overview=\"lead-flow\"");
+assertContains("src/app/admin/leads/acceptance-overview/page.tsx", "Lead acceptance overview");
+assertContains("src/app/admin/leads/acceptance-overview/page.tsx", "Overview recommendation");
+assertContains("src/app/api/admin/leads/acceptance-overview/route.ts", "getLeadAcceptanceOverview");
+assertContains("src/app/api/admin/leads/acceptance-overview/route.ts", "Read-only Lead acceptance overview only");
+assertContains("src/app/admin/leads/acceptance-handoff/page.tsx", "/admin/leads/acceptance-overview");
+assertContains("src/app/admin/leads/acceptance-gaps/page.tsx", "/admin/leads/acceptance-overview");
+assertContains("src/app/admin/leads/acceptance-matrix/page.tsx", "/admin/leads/acceptance-overview");
+assertContains("src/app/admin/leads/acceptance-gates/page.tsx", "/admin/leads/acceptance-overview");
+
 console.log("Lead flow alignment guard passed.");
