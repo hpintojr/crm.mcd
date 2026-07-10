@@ -100,6 +100,7 @@ assertContains("src/app/admin/leads/acceptance-runbook/page.tsx", "Verify the Wa
 assertContains("src/app/admin/leads/acceptance-runbook/page.tsx", "Verify DNC suppresses and cancels callbacks");
 assertContains("src/app/admin/leads/acceptance-runbook/page.tsx", "Only use the controlled GHL event harness");
 assertContains("src/app/admin/leads/acceptance-runbook/page.tsx", "mutationPerformed:false");
+assertContains("src/app/admin/leads/acceptance-runbook/page.tsx", "id={step.id}");
 assertContains("src/app/admin/leads/acceptance-command-center/page.tsx", "/admin/leads/acceptance-runbook");
 assertContains("src/app/admin/leads/acceptance-command-center/page.tsx", "Acceptance runbook");
 
