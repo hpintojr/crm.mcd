@@ -233,5 +233,9 @@ assertContains("src/app/admin/leads/acceptance-handoff/page.tsx", "/admin/leads/
 assertContains("src/app/admin/leads/acceptance-gaps/page.tsx", "/admin/leads/acceptance-overview");
 assertContains("src/app/admin/leads/acceptance-matrix/page.tsx", "/admin/leads/acceptance-overview");
 assertContains("src/app/admin/leads/acceptance-gates/page.tsx", "/admin/leads/acceptance-overview");
+assertContains("src/app/admin/leads/acceptance/page.tsx", "requireRole(ADMIN_ROLES)");
+assertContains("src/app/admin/leads/acceptance/page.tsx", "redirect(\"/admin/leads/acceptance-overview\")");
+assertContains("src/app/admin/leads/page.tsx", "/admin/leads/acceptance-overview");
+assertContains("src/app/admin/leads/page.tsx", "Lead acceptance overview");
 
 console.log("Lead flow alignment guard passed.");
