@@ -277,6 +277,7 @@ export default async function LeadAcceptanceRunbookPage() {
           <article
             className="rounded-2xl border border-ink-700 bg-ink-900 p-6"
             data-acceptance-runbook-step={step.id}
+            id={step.id}
             key={step.id}
           >
             <h2 className="font-semibold text-white">{step.title}</h2>
