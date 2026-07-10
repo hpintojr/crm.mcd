@@ -184,6 +184,12 @@ export default async function LeadAcceptanceRunbookPage() {
           </Link>
           <Link
             className="rounded-lg border border-brand-500 px-3 py-2 text-sm text-brand-200"
+            href="/admin/leads/acceptance-runbook/print"
+          >
+            Print runbook
+          </Link>
+          <Link
+            className="rounded-lg border border-brand-500 px-3 py-2 text-sm text-brand-200"
             href="/admin/leads/acceptance-runbook/checklist"
           >
             Printable checklist
@@ -319,7 +325,7 @@ export default async function LeadAcceptanceRunbookPage() {
       <section className="mt-8 rounded-2xl border border-ink-700 bg-ink-900 p-6">
         <h2 className="font-semibold text-white">Runbook session</h2>
         <p className="mt-2 text-sm text-gray-400">
-          Viewed by {actor.email}. Deployment status baseline:{" "}
+          Viewed by {actor.email}. Deployment status baseline: {" "}
           <span className="break-all text-gray-500">
             {LEAD_STATUS_BASELINE_COMMIT}
           </span>

@@ -1,7 +1,7 @@
 import { getLeadAcceptanceClosedGates } from "@/lib/lead-acceptance-gates";
 import { getLeadAcceptanceHandoffPacket } from "@/lib/lead-acceptance-handoff";
 
-export const LEAD_ACCEPTANCE_OVERVIEW_VERSION = "2026-07-10-pr81";
+export const LEAD_ACCEPTANCE_OVERVIEW_VERSION = "2026-07-10-pr82";
 
 export type LeadAcceptanceOverviewEntry = {
   id: string;
@@ -87,6 +87,13 @@ export const leadAcceptanceOverviewEntries: LeadAcceptanceOverviewEntry[] = [
     title: "Acceptance runbook",
     description: "Follow the operator runbook with mapped sections for each evidence step.",
     href: "/admin/leads/acceptance-runbook",
+    priority: "REFERENCE",
+  },
+  {
+    id: "print-runbook",
+    title: "Print runbook",
+    description: "Open the compact print-friendly acceptance runbook for paper or PDF handoff.",
+    href: "/admin/leads/acceptance-runbook/print",
     priority: "REFERENCE",
   },
   {
