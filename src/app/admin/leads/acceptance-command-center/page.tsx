@@ -4,6 +4,7 @@ import { ADMIN_ROLES, requireRole } from "@/lib/authz";
 import { db } from "@/lib/db";
 import { features } from "@/lib/features";
 import { getAcceptanceEvidenceSummary } from "@/lib/acceptance-evidence-summary";
+import { acceptanceRunbookHref } from "@/lib/acceptance-runbook-links";
 import {
   LEAD_PRODUCTION_ACCEPTANCE_ACTION,
   LEAD_PRODUCTION_ACCEPTANCE_ENTITY,
@@ -102,6 +103,7 @@ export default async function LeadAcceptanceCommandCenterPage() {
         <div className="flex flex-wrap gap-2">
           <Link className="rounded-lg border border-brand-500 px-3 py-2 text-sm text-brand-200" href="/admin/leads/testing">Record evidence</Link>
           <Link className="rounded-lg border border-brand-500 px-3 py-2 text-sm text-brand-200" href="/admin/leads/acceptance-report">Acceptance report</Link>
+          <Link className="rounded-lg border border-brand-500 px-3 py-2 text-sm text-brand-200" href="/admin/leads/acceptance-history">Acceptance history</Link>
           <Link className="rounded-lg border border-brand-500 px-3 py-2 text-sm text-brand-200" href="/admin/leads/acceptance-runbook">Acceptance runbook</Link>
           <Link className="rounded-lg border border-ink-700 px-3 py-2 text-sm text-gray-200" href="/admin/audit?action=acceptance">Audit timeline</Link>
         </div>
@@ -132,6 +134,7 @@ export default async function LeadAcceptanceCommandCenterPage() {
           </div>
           <div className="flex flex-wrap gap-2">
             {nextStep?.href && <Link className="rounded-lg border border-brand-500 px-3 py-2 text-sm text-brand-200" href={nextStep.href}>{nextStep.action || "Open next step"}</Link>}
+            {nextStep && <Link className="rounded-lg border border-brand-500 px-3 py-2 text-sm text-brand-200" href={acceptanceRunbookHref(nextStep.id)}>How to test this step</Link>}
             <Link className="rounded-lg border border-ink-700 px-3 py-2 text-sm text-gray-200" href="/api/status">Status endpoint</Link>
           </div>
         </div>
@@ -141,6 +144,7 @@ export default async function LeadAcceptanceCommandCenterPage() {
         <article className="rounded-2xl border border-ink-700 bg-ink-900 p-6">
           <h2 className="font-semibold text-white">Acceptance assets</h2>
           <div className="mt-4 grid gap-3">
+            <Asset href="/admin/leads/acceptance-history" title="Acceptance history" detail="Chronological timeline of the latest immutable acceptance records." />
             <Asset href="/admin/leads/controlled-test-data" title="Controlled test data" detail={`${controlledEvidence.counts.controlledLeadCount} controlled Leads · ${controlledEvidence.counts.activeControlledLeadCount} active`} />
             <Asset href="/admin/integrations/test-events" title="Controlled GHL event harness" detail={`${controlledEvidence.counts.recentHarnessAppliedCount} recent applied simulations`} />
             <Asset href="/api/admin/leads/aging-preview" title="Aging dry-run preview" detail="Read-only dry-run endpoint; mutationPerformed:false must remain true for preview checks." />
@@ -187,8 +191,9 @@ export default async function LeadAcceptanceCommandCenterPage() {
                       {step.note && <p className="mt-2 text-sm leading-6 text-gray-300">{step.note}</p>}
                       <p className="mt-2 text-xs text-gray-500">Recorded: {pacific(step.recordedAt)}</p>
                     </div>
-                    <div className="flex items-start gap-2">
+                    <div className="flex flex-wrap items-start gap-2">
                       {step.href && <Link className="rounded-lg border border-brand-500 px-3 py-2 text-sm text-brand-200" href={step.href}>{step.action || "Open"}</Link>}
+                      <Link className="rounded-lg border border-brand-500 px-3 py-2 text-sm text-brand-200" href={acceptanceRunbookHref(step.id)}>How to test this step</Link>
                       <Link className="rounded-lg border border-ink-700 px-3 py-2 text-sm text-gray-200" href={`/admin/leads/testing#${step.id}`}>Record</Link>
                     </div>
                   </div>
