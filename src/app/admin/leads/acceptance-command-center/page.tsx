@@ -104,6 +104,7 @@ export default async function LeadAcceptanceCommandCenterPage() {
           <Link className="rounded-lg border border-brand-500 px-3 py-2 text-sm text-brand-200" href="/admin/leads/testing">Record evidence</Link>
           <Link className="rounded-lg border border-brand-500 px-3 py-2 text-sm text-brand-200" href="/admin/leads/acceptance-report">Acceptance report</Link>
           <Link className="rounded-lg border border-brand-500 px-3 py-2 text-sm text-brand-200" href="/admin/leads/acceptance-history">Acceptance history</Link>
+          <Link className="rounded-lg border border-brand-500 px-3 py-2 text-sm text-brand-200" href="/admin/leads/acceptance-findings">Findings catalog</Link>
           <Link className="rounded-lg border border-brand-500 px-3 py-2 text-sm text-brand-200" href="/admin/leads/acceptance-runbook">Acceptance runbook</Link>
           <Link className="rounded-lg border border-ink-700 px-3 py-2 text-sm text-gray-200" href="/admin/audit?action=acceptance">Audit timeline</Link>
         </div>
@@ -144,6 +145,7 @@ export default async function LeadAcceptanceCommandCenterPage() {
         <article className="rounded-2xl border border-ink-700 bg-ink-900 p-6">
           <h2 className="font-semibold text-white">Acceptance assets</h2>
           <div className="mt-4 grid gap-3">
+            <Asset href="/admin/leads/acceptance-findings" title="Findings catalog" detail="Known acceptance findings, guarded contracts, and remaining gates." />
             <Asset href="/admin/leads/acceptance-history" title="Acceptance history" detail="Chronological timeline of the latest immutable acceptance records." />
             <Asset href="/admin/leads/controlled-test-data" title="Controlled test data" detail={`${controlledEvidence.counts.controlledLeadCount} controlled Leads · ${controlledEvidence.counts.activeControlledLeadCount} active`} />
             <Asset href="/admin/integrations/test-events" title="Controlled GHL event harness" detail={`${controlledEvidence.counts.recentHarnessAppliedCount} recent applied simulations`} />
