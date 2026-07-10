@@ -1,7 +1,7 @@
 import { getLeadAcceptanceClosedGates } from "@/lib/lead-acceptance-gates";
 import { getLeadAcceptanceHandoffPacket } from "@/lib/lead-acceptance-handoff";
 
-export const LEAD_ACCEPTANCE_OVERVIEW_VERSION = "2026-07-10-pr82";
+export const LEAD_ACCEPTANCE_OVERVIEW_VERSION = "2026-07-10-pr84";
 
 export type LeadAcceptanceOverviewEntry = {
   id: string;
@@ -24,6 +24,13 @@ export const leadAcceptanceOverviewEntries: LeadAcceptanceOverviewEntry[] = [
     title: "Evidence matrix",
     description: "Review all 18 acceptance steps in one read-only table with status, timestamps, notes, and links.",
     href: "/admin/leads/acceptance-matrix",
+    priority: "REVIEW",
+  },
+  {
+    id: "acceptance-diff",
+    title: "Acceptance diff",
+    description: "Compare required acceptance evidence against the latest recorded outcomes and deployment/catalog markers.",
+    href: "/admin/leads/acceptance-diff",
     priority: "REVIEW",
   },
   {
