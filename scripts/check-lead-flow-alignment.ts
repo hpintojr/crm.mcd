@@ -143,4 +143,23 @@ assertContains("src/app/admin/leads/acceptance-runbook/page.tsx", "LEAD_PRODUCTI
 assertContains("src/app/admin/leads/acceptance-runbook/page.tsx", "Perform on");
 assertContains("src/app/admin/leads/acceptance-runbook/page.tsx", "Record on");
 
+assertContains("src/lib/acceptance-runbook-links.ts", "ACCEPTANCE_RUNBOOK_SECTION_BY_STEP");
+assertContains("src/lib/acceptance-runbook-links.ts", "\"click-to-call-logs-first\": \"click-to-call\"");
+assertContains("src/lib/acceptance-runbook-links.ts", "acceptanceRunbookHref");
+assertContains("src/app/admin/leads/acceptance-command-center/page.tsx", "How to test this step");
+assertContains("src/app/admin/leads/acceptance-command-center/page.tsx", "/admin/leads/acceptance-history");
+assertContains("src/app/admin/leads/acceptance-report/page.tsx", "Acceptance history");
+assertContains("src/app/admin/leads/acceptance-report/page.tsx", "acceptanceRunbookHref(step.id)");
+assertContains("src/app/admin/leads/acceptance-report/page.tsx", "Runbook");
+assertContains("src/app/admin/leads/testing/page.tsx", "Runbook step");
+assertContains("src/app/admin/leads/testing/page.tsx", "id={step.id}");
+assertContains("src/app/admin/leads/testing/page.tsx", "revalidatePath(\"/admin/leads/acceptance-history\")");
+assertContains("src/app/admin/leads/acceptance-history/page.tsx", "data-acceptance-history=\"lead-flow\"");
+assertContains("src/app/admin/leads/acceptance-history/page.tsx", "200 most recent immutable Lead production acceptance records");
+assertContains("src/app/admin/leads/acceptance-history/page.tsx", "/api/admin/leads/acceptance-history.csv");
+assertContains("src/app/admin/leads/acceptance-history/page.tsx", "acceptanceRunbookHref(stepId)");
+assertContains("src/app/api/admin/leads/acceptance-history.csv/route.ts", "LEAD_PRODUCTION_ACCEPTANCE_HISTORY_EXPORT_CREATED");
+assertContains("src/app/api/admin/leads/acceptance-history.csv/route.ts", "sourceLimit: 200");
+assertContains("src/app/api/admin/leads/acceptance-history.csv/route.ts", "acceptanceRunbookHref(stepId)");
+
 console.log("Lead flow alignment guard passed.");
