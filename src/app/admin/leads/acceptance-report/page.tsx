@@ -2,6 +2,7 @@ import Link from "next/link";
 import { ADMIN_ROLES, requireRole } from "@/lib/authz";
 import { db } from "@/lib/db";
 import { getAcceptanceEvidenceSummary } from "@/lib/acceptance-evidence-summary";
+import { acceptanceRunbookHref } from "@/lib/acceptance-runbook-links";
 import {
   LEAD_PRODUCTION_ACCEPTANCE_ACTION,
   LEAD_PRODUCTION_ACCEPTANCE_ENTITY,
@@ -77,21 +78,12 @@ export default async function LeadProductionAcceptanceReportPage() {
           </p>
         </div>
         <div className="flex flex-wrap gap-2">
-          <Link className="rounded-lg border border-brand-500 px-3 py-2 text-sm text-brand-200" href="/admin/leads/acceptance-command-center">
-            Command center
-          </Link>
-          <Link className="rounded-lg border border-brand-500 px-3 py-2 text-sm text-brand-200" href="/admin/leads/acceptance-runbook">
-            Acceptance runbook
-          </Link>
-          <Link className="rounded-lg border border-brand-500 px-3 py-2 text-sm text-brand-200" href="/api/admin/leads/acceptance-report">
-            JSON report
-          </Link>
-          <Link className="rounded-lg border border-brand-500 px-3 py-2 text-sm text-brand-200" href="/api/admin/leads/acceptance-report.csv">
-            CSV export
-          </Link>
-          <Link className="rounded-lg border border-ink-700 px-3 py-2 text-sm text-gray-200" href="/admin/leads/testing">
-            Acceptance board
-          </Link>
+          <Link className="rounded-lg border border-brand-500 px-3 py-2 text-sm text-brand-200" href="/admin/leads/acceptance-command-center">Command center</Link>
+          <Link className="rounded-lg border border-brand-500 px-3 py-2 text-sm text-brand-200" href="/admin/leads/acceptance-runbook">Acceptance runbook</Link>
+          <Link className="rounded-lg border border-brand-500 px-3 py-2 text-sm text-brand-200" href="/admin/leads/acceptance-history">Acceptance history</Link>
+          <Link className="rounded-lg border border-brand-500 px-3 py-2 text-sm text-brand-200" href="/api/admin/leads/acceptance-report">JSON report</Link>
+          <Link className="rounded-lg border border-brand-500 px-3 py-2 text-sm text-brand-200" href="/api/admin/leads/acceptance-report.csv">CSV export</Link>
+          <Link className="rounded-lg border border-ink-700 px-3 py-2 text-sm text-gray-200" href="/admin/leads/testing">Acceptance board</Link>
         </div>
       </div>
 
@@ -197,11 +189,10 @@ export default async function LeadProductionAcceptanceReportPage() {
                         <p className="mt-3 rounded-xl border border-amber-800 bg-ink-950 p-3 text-sm text-amber-200">No acceptance evidence recorded yet.</p>
                       )}
                     </div>
-                    {step.href && (
-                      <Link className="rounded-lg border border-brand-500 px-3 py-2 text-sm text-brand-200" href={step.href}>
-                        {step.action || "Open"}
-                      </Link>
-                    )}
+                    <div className="flex flex-wrap gap-2">
+                      {step.href && <Link className="rounded-lg border border-brand-500 px-3 py-2 text-sm text-brand-200" href={step.href}>{step.action || "Open"}</Link>}
+                      <Link className="rounded-lg border border-brand-500 px-3 py-2 text-sm text-brand-200" href={acceptanceRunbookHref(step.id)}>Runbook</Link>
+                    </div>
                   </div>
                 </article>
               );

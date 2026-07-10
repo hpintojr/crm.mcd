@@ -3,6 +3,7 @@ import { revalidatePath } from "next/cache";
 import { ADMIN_ROLES, requireRole } from "@/lib/authz";
 import { db } from "@/lib/db";
 import { features } from "@/lib/features";
+import { acceptanceRunbookHref } from "@/lib/acceptance-runbook-links";
 import {
   LEAD_PRODUCTION_ACCEPTANCE_ACTION,
   LEAD_PRODUCTION_ACCEPTANCE_ENTITY,
@@ -68,6 +69,7 @@ export default async function LeadAcceptanceTestingPage() {
     revalidatePath("/admin/leads/testing");
     revalidatePath("/admin/leads/acceptance-command-center");
     revalidatePath("/admin/leads/acceptance-report");
+    revalidatePath("/admin/leads/acceptance-history");
     revalidatePath("/admin/readiness");
     revalidatePath("/admin/audit");
   }
@@ -83,27 +85,14 @@ export default async function LeadAcceptanceTestingPage() {
           </p>
         </div>
         <div className="flex flex-wrap gap-2">
-          <Link className="rounded-lg border border-ink-700 px-3 py-2 text-sm text-gray-200" href="/api/status">
-            Status endpoint
-          </Link>
-          <Link className="rounded-lg border border-brand-500 px-3 py-2 text-sm text-brand-200" href="/admin/leads/acceptance-command-center">
-            Command center
-          </Link>
-          <Link className="rounded-lg border border-brand-500 px-3 py-2 text-sm text-brand-200" href="/admin/leads/acceptance-report">
-            Acceptance report
-          </Link>
-          <Link className="rounded-lg border border-brand-500 px-3 py-2 text-sm text-brand-200" href="/admin/leads/acceptance-runbook">
-            Acceptance runbook
-          </Link>
-          <Link className="rounded-lg border border-brand-500 px-3 py-2 text-sm text-brand-200" href="/admin/leads/controlled-test-data">
-            Controlled test data
-          </Link>
-          <Link className="rounded-lg border border-ink-700 px-3 py-2 text-sm text-gray-200" href="/api/admin/leads/acceptance-report.csv">
-            CSV export
-          </Link>
-          <Link className="rounded-lg border border-ink-700 px-3 py-2 text-sm text-gray-200" href="/admin/readiness">
-            Readiness board
-          </Link>
+          <Link className="rounded-lg border border-ink-700 px-3 py-2 text-sm text-gray-200" href="/api/status">Status endpoint</Link>
+          <Link className="rounded-lg border border-brand-500 px-3 py-2 text-sm text-brand-200" href="/admin/leads/acceptance-command-center">Command center</Link>
+          <Link className="rounded-lg border border-brand-500 px-3 py-2 text-sm text-brand-200" href="/admin/leads/acceptance-report">Acceptance report</Link>
+          <Link className="rounded-lg border border-brand-500 px-3 py-2 text-sm text-brand-200" href="/admin/leads/acceptance-history">Acceptance history</Link>
+          <Link className="rounded-lg border border-brand-500 px-3 py-2 text-sm text-brand-200" href="/admin/leads/acceptance-runbook">Acceptance runbook</Link>
+          <Link className="rounded-lg border border-brand-500 px-3 py-2 text-sm text-brand-200" href="/admin/leads/controlled-test-data">Controlled test data</Link>
+          <Link className="rounded-lg border border-ink-700 px-3 py-2 text-sm text-gray-200" href="/api/admin/leads/acceptance-report.csv">CSV export</Link>
+          <Link className="rounded-lg border border-ink-700 px-3 py-2 text-sm text-gray-200" href="/admin/readiness">Readiness board</Link>
         </div>
       </div>
 
@@ -122,9 +111,7 @@ export default async function LeadAcceptanceTestingPage() {
         </div>
         <div className="rounded-2xl border border-ink-700 bg-ink-900 p-5">
           <p className="text-sm text-gray-400">Production acceptance progress</p>
-          <p className="mt-2 text-xl font-semibold text-white">
-            {passCount} of {leadProductionAcceptanceSteps.length} passed
-          </p>
+          <p className="mt-2 text-xl font-semibold text-white">{passCount} of {leadProductionAcceptanceSteps.length} passed</p>
           <p className="mt-2 text-sm text-gray-400">
             {unresolvedCount === 0 ? "All steps are marked pass. Owner decision is still required before expanding normal use." : `${unresolvedCount} step${unresolvedCount === 1 ? " remains" : "s remain"} without a passing result.`}
           </p>
@@ -140,7 +127,7 @@ export default async function LeadAcceptanceTestingPage() {
               const record = latestByStep.get(step.id) ?? null;
               const outcome = readLeadProductionAcceptanceOutcome(record?.metadata);
               return (
-                <article className="rounded-2xl border border-ink-700 bg-ink-900 p-5" key={step.id}>
+                <article className="rounded-2xl border border-ink-700 bg-ink-900 p-5" key={step.id} id={step.id}>
                   <div className="flex flex-col justify-between gap-4 lg:flex-row lg:items-start">
                     <div>
                       <div className="flex flex-wrap items-center gap-3"><h3 className="font-semibold text-white">{step.title}</h3><span className={`rounded-full border px-2.5 py-1 text-xs font-medium ${statusClass(outcome)}`}>{statusLabel(outcome)}</span></div>
@@ -148,7 +135,10 @@ export default async function LeadAcceptanceTestingPage() {
                       <p className="mt-2 text-xs leading-5 text-gray-500">Evidence: {step.evidence}</p>
                       {record && <div className="mt-3 rounded-xl border border-ink-700 bg-ink-950 px-3 py-3 text-sm"><p className="text-gray-300">{record.reason}</p><p className="mt-2 text-xs text-gray-500">Recorded {record.createdAt.toLocaleString("en-US", { dateStyle: "medium", timeStyle: "short", timeZone: "America/Los_Angeles" })}</p></div>}
                     </div>
-                    {step.href && <Link className="shrink-0 rounded-lg border border-brand-500 px-3 py-2 text-sm text-brand-200" href={step.href}>{step.action || "Open"}</Link>}
+                    <div className="flex shrink-0 flex-wrap gap-2">
+                      {step.href && <Link className="rounded-lg border border-brand-500 px-3 py-2 text-sm text-brand-200" href={step.href}>{step.action || "Open"}</Link>}
+                      <Link className="rounded-lg border border-brand-500 px-3 py-2 text-sm text-brand-200" href={acceptanceRunbookHref(step.id)}>Runbook step</Link>
+                    </div>
                   </div>
                   <form action={recordAcceptance} className="mt-5 grid gap-3 border-t border-ink-700 pt-5">
                     <input name="stepId" type="hidden" value={step.id} />
