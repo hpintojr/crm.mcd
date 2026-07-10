@@ -209,6 +209,9 @@ export default async function ControlledTestDataPage() {
           <Link className="rounded-lg border border-brand-500 px-3 py-2 text-sm text-brand-200" href="/admin/leads/acceptance-runbook">
             Acceptance runbook
           </Link>
+          <Link className="rounded-lg border border-brand-500 px-3 py-2 text-sm text-brand-200" href="/admin/leads/controlled-test-data/history">
+            History
+          </Link>
           <Link className="rounded-lg border border-brand-500 px-3 py-2 text-sm text-brand-200" href="/portal/leads">
             Open agent workspace
           </Link>
