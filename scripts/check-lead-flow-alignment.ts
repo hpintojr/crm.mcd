@@ -127,4 +127,13 @@ assertContains("src/app/admin/audit/page.tsx", "Lead acceptance runbook");
 assertContains("src/app/admin/leads/page.tsx", "/admin/leads/acceptance-runbook");
 assertContains("src/app/admin/leads/page.tsx", "Lead acceptance runbook");
 
+assertContains("src/app/admin/leads/acceptance-report/page.tsx", "/admin/leads/acceptance-runbook");
+assertContains("src/app/admin/leads/acceptance-report/page.tsx", "Acceptance runbook");
+assertContains("src/app/admin/leads/controlled-test-data/page.tsx", "/admin/leads/acceptance-runbook");
+assertContains("src/app/admin/leads/controlled-test-data/page.tsx", "Acceptance runbook");
+assertContains("src/app/admin/integrations/test-events/page.tsx", "/admin/leads/acceptance-runbook");
+assertContains("src/app/admin/integrations/test-events/page.tsx", "Acceptance runbook");
+assertContains("src/app/admin/integrations/page.tsx", "/admin/leads/acceptance-runbook");
+assertContains("src/app/admin/integrations/page.tsx", "Lead acceptance runbook");
+
 console.log("Lead flow alignment guard passed.");
