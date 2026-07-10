@@ -24,6 +24,7 @@ export default async function LeadAcceptanceGatesPage() {
           </p>
         </div>
         <div className="flex flex-wrap gap-2">
+          <Link className="rounded-lg border border-brand-500 px-3 py-2 text-sm text-brand-200" href="/admin/leads/acceptance-overview">Acceptance overview</Link>
           <Link className="rounded-lg border border-brand-500 px-3 py-2 text-sm text-brand-200" href="/admin/leads/acceptance-handoff">Handoff packet</Link>
           <Link className="rounded-lg border border-brand-500 px-3 py-2 text-sm text-brand-200" href="/admin/leads/acceptance-matrix">Evidence matrix</Link>
           <Link className="rounded-lg border border-brand-500 px-3 py-2 text-sm text-brand-200" href="/admin/leads/acceptance-gaps">Evidence gaps</Link>
@@ -44,7 +45,7 @@ export default async function LeadAcceptanceGatesPage() {
       <section className="mt-6 rounded-2xl border border-amber-900 bg-amber-950/20 p-6">
         <h2 className="font-semibold text-amber-100">Closed-gates recommendation</h2>
         <p className="mt-2 text-sm leading-6 text-amber-100/80">
-          Keep every listed gate closed unless Hamilton separately approves opening it outside this read-only acceptance tooling lane. Use the evidence matrix and handoff packet for review; do not treat this page as authorization to activate anything.
+          Keep every listed gate closed unless Hamilton separately approves opening it outside this read-only acceptance tooling lane. Use the acceptance overview, evidence matrix, and handoff packet for review; do not treat this page as authorization to activate anything.
         </p>
         <p className="mt-3 break-all text-xs text-amber-100/70">Latest production commit: {gates.latestProductionCommit}</p>
         <p className="mt-1 break-all text-xs text-amber-100/70">Status baseline commit: {gates.statusBaselineCommit}</p>
@@ -64,6 +65,7 @@ export default async function LeadAcceptanceGatesPage() {
                 <p className="mt-2 text-xs text-gray-500">Authorization required: {gate.authorizationRequired}</p>
               </div>
               <div className="flex flex-wrap gap-2">
+                <Link className="h-fit rounded-lg border border-brand-500 px-3 py-2 text-sm text-brand-200" href="/admin/leads/acceptance-overview">Overview</Link>
                 <Link className="h-fit rounded-lg border border-brand-500 px-3 py-2 text-sm text-brand-200" href={gate.handoffHref}>Handoff</Link>
                 <Link className="h-fit rounded-lg border border-brand-500 px-3 py-2 text-sm text-brand-200" href={gate.evidenceMatrixHref}>Matrix</Link>
               </div>
