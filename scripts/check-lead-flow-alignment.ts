@@ -162,4 +162,17 @@ assertContains("src/app/api/admin/leads/acceptance-history.csv/route.ts", "LEAD_
 assertContains("src/app/api/admin/leads/acceptance-history.csv/route.ts", "sourceLimit: 200");
 assertContains("src/app/api/admin/leads/acceptance-history.csv/route.ts", "acceptanceRunbookHref(stepId)");
 
+assertContains("src/lib/lead-acceptance-findings.ts", "LEAD_ACCEPTANCE_FINDINGS_CATALOG_VERSION");
+assertContains("src/lib/lead-acceptance-findings.ts", "eighteen-steps-eleven-sections");
+assertContains("src/lib/lead-acceptance-findings.ts", "owner-acceptance-remains-hamilton-only");
+assertContains("src/app/admin/leads/acceptance-findings/page.tsx", "data-acceptance-findings=\"lead-flow\"");
+assertContains("src/app/admin/leads/acceptance-findings/page.tsx", "Lead acceptance findings catalog");
+assertContains("src/app/admin/leads/acceptance-findings/page.tsx", "Findings session");
+assertContains("src/app/api/admin/leads/acceptance-findings/route.ts", "leadAcceptanceFindings");
+assertContains("src/app/api/admin/leads/acceptance-findings/route.ts", "Read-only findings catalog only");
+assertContains("src/app/admin/leads/acceptance-command-center/page.tsx", "/admin/leads/acceptance-findings");
+assertContains("src/app/admin/leads/acceptance-command-center/page.tsx", "Findings catalog");
+assertContains("src/app/admin/leads/acceptance-report/page.tsx", "/admin/leads/acceptance-findings");
+assertContains("src/app/admin/leads/acceptance-history/page.tsx", "/admin/leads/acceptance-findings");
+
 console.log("Lead flow alignment guard passed.");
