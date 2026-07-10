@@ -33,6 +33,7 @@ export default async function LeadAcceptanceHandoffPage() {
         <div className="flex flex-wrap gap-2">
           <Link className="rounded-lg border border-brand-500 px-3 py-2 text-sm text-brand-200" href="/admin/leads/acceptance-command-center">Command center</Link>
           <Link className="rounded-lg border border-brand-500 px-3 py-2 text-sm text-brand-200" href="/admin/leads/acceptance-matrix">Evidence matrix</Link>
+          <Link className="rounded-lg border border-brand-500 px-3 py-2 text-sm text-brand-200" href="/admin/leads/acceptance-gates">Closed gates</Link>
           <Link className="rounded-lg border border-brand-500 px-3 py-2 text-sm text-brand-200" href="/admin/leads/acceptance-gaps">Evidence gaps</Link>
           <Link className="rounded-lg border border-brand-500 px-3 py-2 text-sm text-brand-200" href="/admin/leads/acceptance-report">Acceptance report</Link>
           <Link className="rounded-lg border border-brand-500 px-3 py-2 text-sm text-brand-200" href="/admin/leads/acceptance-history">Acceptance history</Link>
@@ -70,6 +71,7 @@ export default async function LeadAcceptanceHandoffPage() {
             {nextStep?.href && <Link className="rounded-lg border border-brand-500 px-3 py-2 text-sm text-brand-200" href={nextStep.href}>{nextStep.action || "Open next step"}</Link>}
             {nextStep?.runbookHref && <Link className="rounded-lg border border-brand-500 px-3 py-2 text-sm text-brand-200" href={nextStep.runbookHref}>Runbook step</Link>}
             <Link className="rounded-lg border border-brand-500 px-3 py-2 text-sm text-brand-200" href="/admin/leads/acceptance-matrix">View evidence matrix</Link>
+            <Link className="rounded-lg border border-brand-500 px-3 py-2 text-sm text-brand-200" href="/admin/leads/acceptance-gates">View closed gates</Link>
             <Link className="rounded-lg border border-brand-500 px-3 py-2 text-sm text-brand-200" href="/admin/leads/acceptance-gaps">View evidence gaps</Link>
             <Link className="rounded-lg border border-ink-700 px-3 py-2 text-sm text-gray-200" href="/admin/leads/testing">Record evidence</Link>
           </div>
@@ -102,7 +104,10 @@ export default async function LeadAcceptanceHandoffPage() {
         </article>
 
         <article className="rounded-2xl border border-amber-900 bg-amber-950/20 p-6">
-          <h2 className="font-semibold text-amber-100">Closed gates</h2>
+          <div className="flex flex-wrap items-start justify-between gap-3">
+            <h2 className="font-semibold text-amber-100">Closed gates</h2>
+            <Link className="rounded-lg border border-amber-700 px-3 py-2 text-sm text-amber-100" href="/admin/leads/acceptance-gates">Open closed-gates view</Link>
+          </div>
           <div className="mt-4 grid gap-3 text-sm text-amber-100/80">
             {packet.remainingClosedGates.map((gate) => <Gate label={gate} key={gate} />)}
           </div>
