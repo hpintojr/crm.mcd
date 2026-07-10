@@ -2,7 +2,8 @@ import "server-only";
 
 import { LeadDisposition, type LeadLifecycle, type LeadPool } from "@prisma/client";
 import { z } from "zod";
-import { requireRole } from "@/lib/authz";
+import { ADMIN_ROLES, requireRole } from "@/lib/authz";
+import { isControlledTestLead } from "@/lib/controlled-test-leads";
 import { db } from "@/lib/db";
 import { requireFeature } from "@/lib/features";
 
@@ -84,17 +85,56 @@ function pacificDateTime(value?: string) {
   return result;
 }
 
-async function activeAgent() {
+async function activeAgent(options?: { leadId?: string }) {
   requireFeature("leads");
-  const user = await requireRole(["AGENT"]);
-  const agent = await db.agent.findUnique({ where: { userId: user.id } });
-  if (!agent?.canClaimLeads) throw new Error("Lead access is pending manager certification.");
+  // AGENT path is unchanged. Admins are only permitted to act on Leads that are
+  // marked as controlled test data \u2014 real production Leads still require an
+  // AGENT-role user with canClaimLeads: true.
+  const user = await requireRole(["AGENT", ...ADMIN_ROLES]);
+
+  if (user.role === "AGENT") {
+    const agent = await db.agent.findUnique({ where: { userId: user.id } });
+    if (!agent?.canClaimLeads) throw new Error("Lead access is pending manager certification.");
+    return { user, agent };
+  }
+
+  // Admin acceptance-operator path (PR #78). Requires an explicit leadId that
+  // resolves to a controlled test Lead. This is only used for controlled
+  // acceptance testing and does not open any authorization on real Leads.
+  if (!options?.leadId) {
+    throw new Error("Admins may only act on controlled test Leads. leadId is required for admin acceptance actions.");
+  }
+  const targetLead = await db.lead.findUnique({
+    where: { id: options.leadId },
+    select: { id: true, source: true, sourceReference: true, campaignName: true, campaignExternalId: true, sourceDetail: true },
+  });
+  if (!targetLead) {
+    throw new Error("Admins may only act on controlled test Leads. Target Lead was not found.");
+  }
+  if (!isControlledTestLead(targetLead)) {
+    throw new Error("Admins may only act on controlled test Leads. This Lead is not marked as controlled test data.");
+  }
+
+  let agent = await db.agent.findUnique({ where: { userId: user.id } });
+  if (!agent) {
+    agent = await db.agent.create({
+      data: {
+        userId: user.id,
+        legalName: `Acceptance Operator (${user.role})`,
+        personalEmail: user.email,
+        mobile: "555-010-0000",
+        status: "APPROVED",
+        canClaimLeads: true,
+        reviewNote: "Auto-provisioned acceptance operator for controlled test Lead actions. Real production Leads still require an AGENT-role user; see PR #78.",
+      },
+    });
+  }
   return { user, agent };
 }
 
 export async function logColdLeadCallInitiated(input: { leadId: string }) {
   const parsed = leadIdSchema.parse(input);
-  const { user, agent } = await activeAgent();
+  const { user, agent } = await activeAgent({ leadId: parsed.leadId });
   const lead = await db.lead.findFirst({
     where: {
       id: parsed.leadId,
@@ -119,7 +159,7 @@ export async function logColdLeadCallInitiated(input: { leadId: string }) {
 export async function logColdLeadDisposition(input: { leadId: string; disposition: string; note?: string; callbackAtPacific?: string }) {
   const parsed = interactionSchema.parse(input);
   if (parsed.disposition === LeadDisposition.DO_NOT_CONTACT) throw new Error("Use the DNC action to suppress a contact.");
-  const { user, agent } = await activeAgent();
+  const { user, agent } = await activeAgent({ leadId: parsed.leadId });
   const lead = await db.lead.findFirst({
     where: {
       id: parsed.leadId,
@@ -210,7 +250,7 @@ export async function logLeadInteraction(input: { leadId: string; disposition: s
 
 export async function suppressLeadForDnc(input: { leadId: string; reason?: string }) {
   const parsed = dncSchema.parse(input);
-  const { user, agent } = await activeAgent();
+  const { user, agent } = await activeAgent({ leadId: parsed.leadId });
   const lead = await db.lead.findFirst({
     where: {
       id: parsed.leadId,
