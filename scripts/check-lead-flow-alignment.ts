@@ -208,4 +208,17 @@ assertContains("src/app/admin/leads/acceptance-handoff/page.tsx", "/admin/leads/
 assertContains("src/app/admin/leads/acceptance-handoff/page.tsx", "View evidence matrix");
 assertContains("src/app/admin/leads/acceptance-gaps/page.tsx", "/admin/leads/acceptance-matrix");
 
+assertContains("src/lib/lead-acceptance-gates.ts", "LEAD_ACCEPTANCE_GATES_VERSION");
+assertContains("src/lib/lead-acceptance-gates.ts", "getLeadAcceptanceClosedGates");
+assertContains("src/lib/lead-acceptance-gates.ts", "leadAcceptanceClosedGates");
+assertContains("src/app/admin/leads/acceptance-gates/page.tsx", "data-acceptance-gates=\"lead-flow\"");
+assertContains("src/app/admin/leads/acceptance-gates/page.tsx", "Lead acceptance closed gates");
+assertContains("src/app/admin/leads/acceptance-gates/page.tsx", "Closed-gates recommendation");
+assertContains("src/app/api/admin/leads/acceptance-gates/route.ts", "getLeadAcceptanceClosedGates");
+assertContains("src/app/api/admin/leads/acceptance-gates/route.ts", "Read-only closed acceptance gates only");
+assertContains("src/app/admin/leads/acceptance-handoff/page.tsx", "/admin/leads/acceptance-gates");
+assertContains("src/app/admin/leads/acceptance-handoff/page.tsx", "View closed gates");
+assertContains("src/app/admin/leads/acceptance-gaps/page.tsx", "/admin/leads/acceptance-gates");
+assertContains("src/app/admin/leads/acceptance-matrix/page.tsx", "/admin/leads/acceptance-gates");
+
 console.log("Lead flow alignment guard passed.");
