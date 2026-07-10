@@ -45,6 +45,7 @@ export default async function LeadAcceptanceGapsPage() {
         <div className="flex flex-wrap gap-2">
           <Link className="rounded-lg border border-brand-500 px-3 py-2 text-sm text-brand-200" href="/admin/leads/acceptance-handoff">Handoff packet</Link>
           <Link className="rounded-lg border border-brand-500 px-3 py-2 text-sm text-brand-200" href="/admin/leads/acceptance-matrix">Evidence matrix</Link>
+          <Link className="rounded-lg border border-brand-500 px-3 py-2 text-sm text-brand-200" href="/admin/leads/acceptance-gates">Closed gates</Link>
           <Link className="rounded-lg border border-brand-500 px-3 py-2 text-sm text-brand-200" href="/admin/leads/acceptance-command-center">Command center</Link>
           <Link className="rounded-lg border border-brand-500 px-3 py-2 text-sm text-brand-200" href="/admin/leads/acceptance-report">Acceptance report</Link>
           <Link className="rounded-lg border border-brand-500 px-3 py-2 text-sm text-brand-200" href="/api/admin/leads/acceptance-gaps">JSON gaps</Link>
@@ -86,7 +87,7 @@ export default async function LeadAcceptanceGapsPage() {
         {gaps.allClear ? (
           <article className="rounded-2xl border border-emerald-800 bg-emerald-950/20 p-6">
             <h2 className="font-semibold text-emerald-100">All acceptance evidence is pass-recorded</h2>
-            <p className="mt-2 text-sm leading-6 text-emerald-100/80">Use the handoff packet, evidence matrix, and command center for final review. This gaps page remains read-only.</p>
+            <p className="mt-2 text-sm leading-6 text-emerald-100/80">Use the handoff packet, evidence matrix, closed-gates view, and command center for final review. This gaps page remains read-only.</p>
           </article>
         ) : (
           gaps.gaps.map((gap) => (
