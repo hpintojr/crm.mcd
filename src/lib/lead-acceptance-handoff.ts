@@ -1,10 +1,10 @@
 import { acceptanceRunbookHref } from "@/lib/acceptance-runbook-links";
 import { db } from "@/lib/db";
 import {
-  LEAD_ACCEPTANCE_FINDINGS_LATEST_PRODUCTION_COMMIT,
   leadAcceptanceFindingCounts,
   leadAcceptanceFindings,
 } from "@/lib/lead-acceptance-findings";
+import { getLeadDeploymentVerificationSnapshot } from "@/lib/lead-deployment-verification";
 import {
   LEAD_PRODUCTION_ACCEPTANCE_ACTION,
   LEAD_PRODUCTION_ACCEPTANCE_ENTITY,
@@ -15,7 +15,7 @@ import {
   readLeadProductionAcceptanceOutcome,
 } from "@/lib/lead-production-acceptance";
 
-export const LEAD_ACCEPTANCE_HANDOFF_PACKET_VERSION = "2026-07-10-pr69";
+export const LEAD_ACCEPTANCE_HANDOFF_PACKET_VERSION = "2026-07-11-pr97";
 
 export const leadAcceptanceClosedGates = [
   "Live GHL workflow activation",
@@ -71,7 +71,7 @@ export async function getLeadAcceptanceHandoffPacket() {
     ok: true,
     packetVersion: LEAD_ACCEPTANCE_HANDOFF_PACKET_VERSION,
     phase: LEAD_PRODUCTION_ACCEPTANCE_PHASE,
-    latestProductionCommit: LEAD_ACCEPTANCE_FINDINGS_LATEST_PRODUCTION_COMMIT,
+    latestProductionCommit: getLeadDeploymentVerificationSnapshot().commitSha,
     statusBaselineCommit: LEAD_STATUS_BASELINE_COMMIT,
     evidence: {
       totalSteps: steps.length,
