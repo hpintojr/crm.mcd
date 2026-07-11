@@ -1,0 +1,30 @@
+import { readFileSync } from "node:fs";
+
+function assertContains(path: string, expected: string) {
+  const content = readFileSync(path, "utf8");
+  if (!content.includes(expected)) {
+    throw new Error(`${path} is missing required deployment verification API guard: ${expected}`);
+  }
+}
+
+const guards: [string, string][] = [
+  ["src/lib/lead-deployment-verification.ts", "LEAD_DEPLOYMENT_VERIFICATION_VERSION"],
+  ["src/lib/lead-deployment-verification.ts", "EXPECTED_LEAD_FLOW_GUARD_LINES"],
+  ["src/lib/lead-deployment-verification.ts", "getLeadDeploymentVerificationSnapshot"],
+  ["src/lib/lead-deployment-verification.ts", "Read-only Lead deployment verification snapshot only"],
+  ["src/app/admin/leads/deployment-verification/page.tsx", "getLeadDeploymentVerificationSnapshot"],
+  ["src/app/admin/leads/deployment-verification/page.tsx", "/api/admin/leads/deployment-verification"],
+  ["src/app/api/admin/leads/deployment-verification/route.ts", "NextResponse.json"],
+  ["src/app/api/admin/leads/deployment-verification/route.ts", "requireRole(ADMIN_ROLES)"],
+  ["src/app/api/admin/leads/deployment-verification/route.ts", "getLeadDeploymentVerificationSnapshot"],
+  ["src/app/api/admin/leads/deployment-verification/route.ts", "Cache-Control"],
+  ["src/lib/lead-deployment-verification.ts", "Deployment verification API guard passed."],
+  ["scripts/check-deployment-verification-guard.ts", "Deployment verification API guard passed."],
+  ["package.json", "check-deployment-verification-api-guard.ts"],
+];
+
+for (const [path, expected] of guards) {
+  assertContains(path, expected);
+}
+
+console.log("Deployment verification API guard passed.");
