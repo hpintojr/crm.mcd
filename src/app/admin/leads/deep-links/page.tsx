@@ -2,86 +2,11 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { ADMIN_ROLES, requireRole } from "@/lib/authz";
 import { features } from "@/lib/features";
+import { leadAcceptanceDeepLinks, type LeadAcceptanceDeepLinkPriority } from "@/lib/lead-acceptance-deep-links";
 
 export const dynamic = "force-dynamic";
 
-type Priority = "OWNER" | "REVIEW" | "REFERENCE" | "BOARD";
-
-type DeepLinkEntry = {
-  id: string;
-  title: string;
-  description: string;
-  href: string;
-  priority: Priority;
-};
-
-const DEEP_LINK_ENTRIES: DeepLinkEntry[] = [
-  {
-    id: "owner-decision-prep",
-    title: "Owner decision prep",
-    description: "Read-only Hamilton owner-decision prep. Non-owner blockers, deferred steps, closed gates, and the acceptance-board owner row.",
-    href: "/admin/leads/owner-decision-prep",
-    priority: "OWNER",
-  },
-  {
-    id: "acceptance-diff",
-    title: "Acceptance diff",
-    description: "Read-only comparison between the required Lead Flow acceptance contract and the latest recorded production-acceptance evidence.",
-    href: "/admin/leads/acceptance-diff",
-    priority: "REVIEW",
-  },
-  {
-    id: "deferred-runbook",
-    title: "Deferred acceptance runbook",
-    description: "Read-only view of the five deferred production-acceptance steps with runbook-section links and record anchors.",
-    href: "/admin/leads/acceptance-runbook/deferred",
-    priority: "REVIEW",
-  },
-  {
-    id: "print-runbook",
-    title: "Print acceptance runbook",
-    description: "Compact print-friendly read-only operator reference for the 18 production-acceptance steps.",
-    href: "/admin/leads/acceptance-runbook/print",
-    priority: "REFERENCE",
-  },
-  {
-    id: "controlled-test-data-history",
-    title: "Controlled test data history",
-    description: "Read-only history of controlled test Leads: lifecycle end state, scenario notes, and audit event counts.",
-    href: "/admin/leads/controlled-test-data/history",
-    priority: "REFERENCE",
-  },
-  {
-    id: "acceptance-overview",
-    title: "Acceptance overview",
-    description: "Read-only landing page for Lead production acceptance. Start here for entrypoints, deferred blockers summary, and recommendations.",
-    href: "/admin/leads/acceptance-overview",
-    priority: "REVIEW",
-  },
-  {
-    id: "acceptance-handoff",
-    title: "Acceptance handoff packet",
-    description: "Read-only acceptance handoff packet with evidence counts, findings, and closed gates.",
-    href: "/admin/leads/acceptance-handoff",
-    priority: "REVIEW",
-  },
-  {
-    id: "deployment-verification",
-    title: "Deployment verification",
-    description: "Read-only Vercel deployment status snapshot with expected guard-pass lines.",
-    href: "/admin/leads/deployment-verification",
-    priority: "REFERENCE",
-  },
-  {
-    id: "acceptance-board",
-    title: "Acceptance board",
-    description: "Hamilton-only place to record authenticated production acceptance evidence.",
-    href: "/admin/leads/testing",
-    priority: "BOARD",
-  },
-];
-
-function priorityClass(p: Priority) {
+function priorityClass(p: LeadAcceptanceDeepLinkPriority) {
   if (p === "OWNER") return "border-brand-700 bg-brand-950/20 text-brand-200";
   if (p === "REVIEW") return "border-amber-700 bg-amber-950/20 text-amber-200";
   if (p === "REFERENCE") return "border-emerald-800 bg-emerald-950/20 text-emerald-200";
@@ -103,6 +28,7 @@ export default async function LeadAcceptanceDeepLinksPage() {
           </p>
         </div>
         <div className="flex flex-wrap gap-2">
+          <Link className="rounded-lg border border-brand-500 px-3 py-2 text-sm text-brand-200" href="/api/admin/leads/deep-links">JSON API</Link>
           <Link className="rounded-lg border border-brand-500 px-3 py-2 text-sm text-brand-200" href="/admin/leads/acceptance-overview">Overview</Link>
           <Link className="rounded-lg border border-brand-500 px-3 py-2 text-sm text-brand-200" href="/admin/leads/owner-decision-prep">Owner decision prep</Link>
           <Link className="rounded-lg border border-brand-500 px-3 py-2 text-sm text-brand-200" href="/admin/leads/deployment-verification">Deployment verification</Link>
@@ -114,7 +40,7 @@ export default async function LeadAcceptanceDeepLinksPage() {
         <h2 className="font-semibold text-white">Jump to</h2>
         <p className="mt-2 text-sm text-gray-500">Click any pill to jump to that section on this page. Each section itself links to the underlying read-only surface.</p>
         <div className="mt-4 flex flex-wrap gap-2">
-          {DEEP_LINK_ENTRIES.map((entry) => (
+          {leadAcceptanceDeepLinks.map((entry) => (
             <Link className={`rounded-full border px-3 py-1 text-xs font-medium ${priorityClass(entry.priority)}`} data-deep-links-index-pill={entry.id} href={`#${entry.id}`} key={entry.id}>
               {entry.title}
             </Link>
@@ -123,7 +49,7 @@ export default async function LeadAcceptanceDeepLinksPage() {
       </section>
 
       <section className="mt-8 grid gap-6 lg:grid-cols-2">
-        {DEEP_LINK_ENTRIES.map((entry) => (
+        {leadAcceptanceDeepLinks.map((entry) => (
           <article className="scroll-mt-6 rounded-2xl border border-ink-700 bg-ink-900 p-6" data-deep-links-section={entry.id} id={entry.id} key={entry.id}>
             <div className="flex flex-wrap items-center gap-2">
               <span className={`rounded-full border px-2.5 py-1 text-xs font-medium ${priorityClass(entry.priority)}`}>{entry.priority}</span>
