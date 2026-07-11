@@ -15,6 +15,8 @@ const guards: [string, string][] = [
   ["src/app/admin/leads/owner-decision-prep/page.tsx", "getLeadAcceptanceHandoffPacket"],
   ["src/app/admin/leads/owner-decision-prep/page.tsx", "getLeadAcceptanceDeferredRunbook"],
   ["src/app/admin/leads/owner-decision-prep/page.tsx", "getLeadAcceptanceClosedGates"],
+  ["src/app/admin/leads/owner-decision-prep/page.tsx", "/admin/leads/deep-links#owner-decision-prep"],
+  ["src/app/admin/leads/owner-decision-prep/page.tsx", "Deep link anchor"],
   ["src/app/admin/leads/acceptance-overview/page.tsx", "/admin/leads/owner-decision-prep"],
   ["src/app/admin/leads/acceptance-overview/page.tsx", "Owner decision prep"],
   ["src/app/admin/leads/acceptance-overview/page.tsx", "Open owner prep"],

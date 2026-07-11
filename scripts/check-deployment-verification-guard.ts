@@ -30,6 +30,8 @@ const guards: [string, string][] = [
   ["src/app/admin/leads/deployment-verification/page.tsx", "Open /api/status"],
   ["src/app/admin/leads/deployment-verification/page.tsx", "Expected guard-pass lines"],
   ["src/app/admin/leads/deployment-verification/page.tsx", "data-deployment-verification-row={row.id}"],
+  ["src/app/admin/leads/deployment-verification/page.tsx", "/admin/leads/deep-links#deployment-verification"],
+  ["src/app/admin/leads/deployment-verification/page.tsx", "Deep link anchor"],
   ["src/lib/lead-acceptance-overview.ts", "deployment-verification"],
   ["src/lib/lead-acceptance-overview.ts", "/admin/leads/deployment-verification"],
   ["src/app/admin/leads/acceptance-overview/page.tsx", "/admin/leads/deployment-verification"],
