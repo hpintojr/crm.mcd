@@ -6,6 +6,24 @@ import { leadAcceptanceDeepLinks, type LeadAcceptanceDeepLinkPriority } from "@/
 
 export const dynamic = "force-dynamic";
 
+const ACCEPTANCE_API_LINKS = [
+  {
+    label: "Status JSON",
+    href: "/api/status",
+    description: "Public deployment status contract: service, environment, branch, commit, deployment URL, and timestamp.",
+  },
+  {
+    label: "Deep links JSON",
+    href: "/api/admin/leads/deep-links",
+    description: "Protected read-only catalog for the nine stable Lead acceptance deep-link anchors.",
+  },
+  {
+    label: "Deployment verification JSON",
+    href: "/api/admin/leads/deployment-verification",
+    description: "Protected read-only Vercel runtime snapshot and expected guard-pass line contract.",
+  },
+];
+
 function priorityClass(p: LeadAcceptanceDeepLinkPriority) {
   if (p === "OWNER") return "border-brand-700 bg-brand-950/20 text-brand-200";
   if (p === "REVIEW") return "border-amber-700 bg-amber-950/20 text-amber-200";
@@ -43,6 +61,22 @@ export default async function LeadAcceptanceDeepLinksPage() {
           {leadAcceptanceDeepLinks.map((entry) => (
             <Link className={`rounded-full border px-3 py-1 text-xs font-medium ${priorityClass(entry.priority)}`} data-deep-links-index-pill={entry.id} href={`#${entry.id}`} key={entry.id}>
               {entry.title}
+            </Link>
+          ))}
+        </div>
+      </section>
+
+      <section className="mt-8 rounded-2xl border border-ink-700 bg-ink-900 p-6" data-deep-links-api-index="lead-flow">
+        <h2 className="font-semibold text-white">Read-only API links</h2>
+        <p className="mt-2 text-sm leading-6 text-gray-400">
+          Operator-facing JSON endpoints used during acceptance verification. Protected admin endpoints resolve to the sign-in boundary when viewed unauthenticated.
+        </p>
+        <div className="mt-5 grid gap-4 md:grid-cols-3">
+          {ACCEPTANCE_API_LINKS.map((api) => (
+            <Link className="rounded-xl border border-ink-700 bg-ink-950 p-4 transition hover:border-brand-600" data-deep-links-api-link={api.href} href={api.href} key={api.href}>
+              <p className="font-medium text-white">{api.label}</p>
+              <p className="mt-2 break-all font-mono text-xs text-brand-200">{api.href}</p>
+              <p className="mt-2 text-xs leading-5 text-gray-500">{api.description}</p>
             </Link>
           ))}
         </div>
