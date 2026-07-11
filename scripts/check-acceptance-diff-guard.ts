@@ -18,6 +18,8 @@ const guards: [string, string][] = [
   ["src/app/admin/leads/acceptance-diff/page.tsx", "LEAD_STATUS_BASELINE_COMMIT"],
   ["src/app/admin/leads/acceptance-diff/page.tsx", "data-acceptance-diff-row={row.id}"],
   ["src/app/admin/leads/acceptance-diff/page.tsx", "DEPLOYMENT_AHEAD_OF_CATALOG"],
+  ["src/app/admin/leads/acceptance-diff/page.tsx", "/admin/leads/deep-links#acceptance-diff"],
+  ["src/app/admin/leads/acceptance-diff/page.tsx", "Deep link anchor"],
   ["src/lib/lead-acceptance-overview.ts", "acceptance-diff"],
   ["src/lib/lead-acceptance-overview.ts", "/admin/leads/acceptance-diff"],
 ];
