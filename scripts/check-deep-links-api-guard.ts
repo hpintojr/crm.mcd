@@ -30,7 +30,7 @@ const guards: [string, string][] = [
   ["src/app/api/admin/leads/deep-links/route.ts", "requireRole(ADMIN_ROLES)"],
   ["src/app/api/admin/leads/deep-links/route.ts", "getLeadAcceptanceDeepLinks"],
   ["src/app/api/admin/leads/deep-links/route.ts", "Cache-Control"],
-  ["src/app/admin/leads/deployment-verification/page.tsx", "Deep links API guard passed."],
+  ["src/lib/lead-deployment-verification.ts", "Deep links API guard passed."],
   ["scripts/check-deployment-verification-guard.ts", "Deep links API guard passed."],
   ["package.json", "check-deep-links-api-guard.ts"],
   ...deepLinkSlugs.map((slug): [string, string] => ["src/lib/lead-acceptance-deep-links.ts", slug]),
