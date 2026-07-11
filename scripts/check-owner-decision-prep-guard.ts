@@ -10,8 +10,8 @@ function assertContains(path: string, expected: string) {
 const guards: [string, string][] = [
   ["src/app/admin/leads/owner-decision-prep/page.tsx", "data-owner-decision-prep=\"lead-flow\""],
   ["src/app/admin/leads/owner-decision-prep/page.tsx", "Owner decision prep"],
-  ["src/app/admin/leads/owner-decision-prep/page.tsx", "Read-only Hamilton decision preparation"],
-  ["src/app/admin/leads/owner-decision-prep/page.tsx", "does not record the owner production decision"],
+  ["src/app/admin/leads/owner-decision-prep/page.tsx", "Read-only Hamilton owner-decision prep"],
+  ["src/app/admin/leads/owner-decision-prep/page.tsx", "Do not record the owner production decision yet"],
   ["src/app/admin/leads/owner-decision-prep/page.tsx", "getLeadAcceptanceHandoffPacket"],
   ["src/app/admin/leads/owner-decision-prep/page.tsx", "getLeadAcceptanceDeferredRunbook"],
   ["src/app/admin/leads/owner-decision-prep/page.tsx", "getLeadAcceptanceClosedGates"],
