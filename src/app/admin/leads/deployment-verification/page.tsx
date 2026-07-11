@@ -16,6 +16,8 @@ const EXPECTED_GUARD_LINES = [
   "Controlled test data history guard passed.",
   "Acceptance diff guard passed.",
   "Overview deferred summary guard passed.",
+  "Deployment verification guard passed.",
+  "Deep links guard passed.",
 ];
 
 function envValue(v: string | null | undefined): { display: string; present: boolean } {
