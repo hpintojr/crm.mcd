@@ -2,6 +2,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { ADMIN_ROLES, requireRole } from "@/lib/authz";
 import { features } from "@/lib/features";
+import { getLeadAcceptanceDeferredRunbook } from "@/lib/lead-acceptance-deferred";
 import { getLeadAcceptanceOverview, type LeadAcceptanceOverviewEntry } from "@/lib/lead-acceptance-overview";
 
 export const dynamic = "force-dynamic";
@@ -15,10 +16,25 @@ function priorityClass(priority: LeadAcceptanceOverviewEntry["priority"]) {
   return "border-ink-700 bg-ink-950 text-gray-300";
 }
 
+function statusClass(status: string) {
+  if (status === "PASS") return "border-emerald-700 bg-emerald-950/20 text-emerald-200";
+  if (status === "FAIL") return "border-red-700 bg-red-950/20 text-red-200";
+  if (status === "DEFERRED") return "border-amber-700 bg-amber-950/20 text-amber-200";
+  return "border-ink-700 bg-ink-950 text-gray-300";
+}
+
+function statusLabel(status: string) {
+  if (status === "MISSING") return "Missing";
+  return status[0] + status.slice(1).toLowerCase();
+}
+
 export default async function LeadAcceptanceOverviewPage() {
   if (!features.leads) notFound();
   const actor = await requireRole(ADMIN_ROLES);
-  const overview = await getLeadAcceptanceOverview();
+  const [overview, deferred] = await Promise.all([
+    getLeadAcceptanceOverview(),
+    getLeadAcceptanceDeferredRunbook(),
+  ]);
   const startEntries = overview.entrypoints.filter((entry) => entry.priority === "START");
   const reviewEntries = overview.entrypoints.filter((entry) => entry.priority === "REVIEW");
   const auditEntries = overview.entrypoints.filter((entry) => entry.priority === "AUDIT" || entry.priority === "REFERENCE");
@@ -70,6 +86,63 @@ export default async function LeadAcceptanceOverviewPage() {
             <Link className="rounded-lg border border-ink-700 px-3 py-2 text-sm text-gray-200" href="/admin/leads/acceptance-summary.csv">Download CSV summary</Link>
             <Link className="rounded-lg border border-ink-700 px-3 py-2 text-sm text-gray-200" href="/admin/leads/testing">Record evidence</Link>
           </div>
+        </div>
+      </section>
+
+      <section className="mt-8 rounded-2xl border border-amber-900 bg-amber-950/20 p-6" data-acceptance-overview-deferred="lead-flow">
+        <div className="flex flex-wrap items-start justify-between gap-4">
+          <div>
+            <h2 className="font-semibold text-amber-100">Deferred blockers</h2>
+            <p className="mt-2 max-w-3xl text-sm leading-6 text-amber-100/80">
+              Read-only summary of the five deferred production-acceptance steps. Each row links to the runbook section and to the exact anchor on the acceptance board where Hamilton records the evidence. This section does not mutate Leads, audit records, feature flags, GHL workflows, imports, exports, or business rules.
+            </p>
+          </div>
+          <div className="flex flex-wrap gap-2">
+            <Link className="rounded-lg border border-amber-700 px-3 py-2 text-sm text-amber-100" href="/admin/leads/acceptance-runbook/deferred">Full deferred runbook</Link>
+            <Link className="rounded-lg border border-ink-700 px-3 py-2 text-sm text-gray-200" href="/admin/leads/testing">Acceptance board</Link>
+          </div>
+        </div>
+        <div className="mt-5 grid gap-3 md:grid-cols-5">
+          <Metric label="Configured" value={deferred.counts.configured} detail="Fixed step list" tone="text-brand-200" />
+          <Metric label="Still deferred" value={deferred.counts.currentDeferred} detail="Latest evidence" tone={deferred.counts.currentDeferred ? "text-amber-200" : "text-gray-200"} />
+          <Metric label="Passed" value={deferred.counts.passed} detail="Resolved" tone="text-emerald-200" />
+          <Metric label="Missing" value={deferred.counts.missing} detail="Needs evidence" tone={deferred.counts.missing ? "text-amber-200" : "text-gray-200"} />
+          <Metric label="Failed" value={deferred.counts.failed} detail="Must be zero" tone={deferred.counts.failed ? "text-red-200" : "text-gray-200"} />
+        </div>
+        <div className="mt-5 overflow-hidden rounded-xl border border-amber-800">
+          <table className="w-full border-collapse text-left text-sm">
+            <thead className="bg-amber-950/40 text-xs uppercase tracking-widest text-amber-200/80">
+              <tr>
+                <th className="border-b border-amber-800 px-4 py-3 font-medium">Step</th>
+                <th className="border-b border-amber-800 px-4 py-3 font-medium">Status</th>
+                <th className="border-b border-amber-800 px-4 py-3 font-medium">Evidence source</th>
+                <th className="border-b border-amber-800 px-4 py-3 font-medium">Record on</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-amber-900 text-amber-50">
+              {deferred.steps.map((step) => (
+                <tr className="align-top" data-acceptance-overview-deferred-row={step.id} key={step.id}>
+                  <td className="px-4 py-3">
+                    <p className="font-medium text-white">{step.title}</p>
+                    <p className="mt-1 text-xs text-amber-200/80">Deferred {step.deferredIndex}</p>
+                  </td>
+                  <td className="px-4 py-3">
+                    <span className={`inline-flex rounded-full border px-2.5 py-1 text-xs font-medium ${statusClass(step.status)}`}>{statusLabel(step.status)}</span>
+                  </td>
+                  <td className="px-4 py-3">
+                    <div className="flex flex-wrap gap-2">
+                      <Link className="rounded-lg border border-amber-700 px-2.5 py-1 text-xs text-amber-100" href={step.runbookHref}>Runbook section</Link>
+                      {step.href && <Link className="rounded-lg border border-amber-700 px-2.5 py-1 text-xs text-amber-100" href={step.href}>{step.action || "Open step"}</Link>}
+                    </div>
+                  </td>
+                  <td className="px-4 py-3">
+                    <p className="text-xs text-amber-100/80">{step.whereToRecord}</p>
+                    <Link className="mt-1 inline-block text-xs text-brand-200 underline decoration-amber-700 underline-offset-4" href={step.recordHref}>{step.recordHref}</Link>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
         </div>
       </section>
 
