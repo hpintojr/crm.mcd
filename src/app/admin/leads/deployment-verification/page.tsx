@@ -18,6 +18,7 @@ const EXPECTED_GUARD_LINES = [
   "Overview deferred summary guard passed.",
   "Deployment verification guard passed.",
   "Deep links guard passed.",
+  "Deep links API guard passed.",
 ];
 
 function envValue(v: string | null | undefined): { display: string; present: boolean } {
