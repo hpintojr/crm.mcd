@@ -30,10 +30,11 @@ export default async function LeadAcceptanceOverviewPage() {
           <p className="text-sm font-medium uppercase tracking-widest text-brand-400">Mercury Call Desk</p>
           <h1 className="mt-2 text-3xl font-semibold text-white">Lead acceptance overview</h1>
           <p className="mt-2 max-w-4xl text-gray-400">
-            Read-only landing page for Lead production acceptance. Start here to open the handoff packet, evidence matrix, diff, gaps, closed gates, history, findings, report, runbook, and Hamilton-only acceptance board.
+            Read-only landing page for Lead production acceptance. Start here to open owner decision prep, the handoff packet, evidence matrix, diff, gaps, closed gates, history, findings, report, runbook, and Hamilton-only acceptance board.
           </p>
         </div>
         <div className="flex flex-wrap gap-2">
+          <Link className="rounded-lg border border-brand-500 px-3 py-2 text-sm text-brand-200" href="/admin/leads/owner-decision-prep">Owner decision prep</Link>
           <Link className="rounded-lg border border-brand-500 px-3 py-2 text-sm text-brand-200" href="/admin/leads/acceptance-handoff">Handoff packet</Link>
           <Link className="rounded-lg border border-brand-500 px-3 py-2 text-sm text-brand-200" href="/admin/leads/acceptance-matrix">Evidence matrix</Link>
           <Link className="rounded-lg border border-brand-500 px-3 py-2 text-sm text-brand-200" href="/admin/leads/acceptance-diff">Acceptance diff</Link>
@@ -64,6 +65,7 @@ export default async function LeadAcceptanceOverviewPage() {
           <div className="flex flex-wrap gap-2">
             {overview.evidence.nextStep?.href && <Link className="rounded-lg border border-brand-500 px-3 py-2 text-sm text-brand-200" href={overview.evidence.nextStep.href}>{overview.evidence.nextStep.action || "Open next step"}</Link>}
             {overview.evidence.nextStep?.runbookHref && <Link className="rounded-lg border border-brand-500 px-3 py-2 text-sm text-brand-200" href={overview.evidence.nextStep.runbookHref}>Runbook step</Link>}
+            <Link className="rounded-lg border border-brand-500 px-3 py-2 text-sm text-brand-200" href="/admin/leads/owner-decision-prep">Open owner prep</Link>
             <Link className="rounded-lg border border-brand-500 px-3 py-2 text-sm text-brand-200" href="/admin/leads/acceptance-diff">Open acceptance diff</Link>
             <Link className="rounded-lg border border-ink-700 px-3 py-2 text-sm text-gray-200" href="/admin/leads/acceptance-summary.csv">Download CSV summary</Link>
             <Link className="rounded-lg border border-ink-700 px-3 py-2 text-sm text-gray-200" href="/admin/leads/testing">Record evidence</Link>
