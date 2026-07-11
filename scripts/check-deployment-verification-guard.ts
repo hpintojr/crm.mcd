@@ -20,6 +20,7 @@ const expectedGuardLines = [
   "Deep links guard passed.",
   "Deep links API guard passed.",
   "Deployment verification API guard passed.",
+  "Controlled warm reply guard passed.",
 ];
 
 const guards: [string, string][] = [

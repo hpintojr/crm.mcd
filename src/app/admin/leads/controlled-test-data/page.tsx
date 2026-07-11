@@ -19,6 +19,7 @@ import {
   createControlledTestLeadReference,
   isControlledTestLead,
 } from "@/lib/controlled-test-leads";
+import { simulateControlledWarmReply } from "@/lib/controlled-warm-replies";
 
 export const dynamic = "force-dynamic";
 
@@ -32,6 +33,11 @@ const createSchema = z.object({
 
 const archiveSchema = z.object({
   leadId: z.string().cuid(),
+});
+
+const simulateWarmReplySchema = z.object({
+  leadId: z.string().cuid(),
+  note: z.string().trim().min(3).max(500),
 });
 
 function label(value: string | null | undefined) {
@@ -192,6 +198,29 @@ export default async function ControlledTestDataPage() {
     revalidatePath("/admin/audit");
   }
 
+  async function simulateWarmReply(formData: FormData) {
+    "use server";
+    if (!features.leads) throw new Error("Lead module is not enabled.");
+    const actor = await requireRole(ADMIN_ROLES);
+    const parsed = simulateWarmReplySchema.safeParse({
+      leadId: formData.get("leadId"),
+      note: formData.get("note"),
+    });
+    if (!parsed.success) throw new Error("Simulated warm reply input is invalid.");
+    await simulateControlledWarmReply({
+      leadId: parsed.data.leadId,
+      note: parsed.data.note,
+      actorUserId: actor.id,
+      actorRole: actor.role,
+    });
+    revalidatePath("/admin/leads/controlled-test-data");
+    revalidatePath("/admin/leads/replies");
+    revalidatePath("/admin/leads/acceptance-command-center");
+    revalidatePath("/portal/leads");
+    revalidatePath(`/admin/leads/${parsed.data.leadId}`);
+    revalidatePath("/admin/audit");
+  }
+
   return (
     <main className="mx-auto min-h-screen max-w-7xl px-6 py-12">
       <div className="flex flex-wrap items-start justify-between gap-4">
@@ -282,6 +311,23 @@ export default async function ControlledTestDataPage() {
                         </form>
                       ) : (
                         <p className="rounded-lg border border-ink-700 px-3 py-2 text-sm text-gray-500">Archived and hidden from active agent work.</p>
+                      )}
+                      {!lead.suppressed && !lead.ownerAgentId && (
+                        <form action={simulateWarmReply} className="grid gap-2">
+                          <input name="leadId" type="hidden" value={lead.id} />
+                          <textarea
+                            className="min-h-16 w-full rounded-lg border border-ink-700 bg-ink-950 px-3 py-2 text-sm text-gray-100"
+                            name="note"
+                            placeholder="Simulated inbound reply text (e.g. 'Sounds good, can we do Thursday?')"
+                            required
+                          />
+                          <button
+                            className="rounded-lg border border-brand-500 px-3 py-2 text-sm text-brand-200"
+                            type="submit"
+                          >
+                            Simulate inbound reply (warm-reply triage test)
+                          </button>
+                        </form>
                       )}
                     </div>
                   </div>
