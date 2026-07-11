@@ -1,7 +1,7 @@
 import { getLeadAcceptanceClosedGates } from "@/lib/lead-acceptance-gates";
 import { getLeadAcceptanceHandoffPacket } from "@/lib/lead-acceptance-handoff";
 
-export const LEAD_ACCEPTANCE_OVERVIEW_VERSION = "2026-07-11-pr89";
+export const LEAD_ACCEPTANCE_OVERVIEW_VERSION = "2026-07-11-pr90";
 
 export type LeadAcceptanceOverviewEntry = {
   id: string;
@@ -60,6 +60,13 @@ export const leadAcceptanceOverviewEntries: LeadAcceptanceOverviewEntry[] = [
     description: "Confirm the current environment, branch, commit, and Vercel deployment before recording live acceptance evidence.",
     href: "/admin/leads/deployment-verification",
     priority: "REVIEW",
+  },
+  {
+    id: "deep-links",
+    title: "Deep links",
+    description: "Hub of stable hash anchors for the read-only acceptance surfaces so any log or handoff can link straight to the right section.",
+    href: "/admin/leads/deep-links",
+    priority: "REFERENCE",
   },
   {
     id: "closed-gates",
