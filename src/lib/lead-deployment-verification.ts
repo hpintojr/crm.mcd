@@ -1,6 +1,6 @@
 import "server-only";
 
-export const LEAD_DEPLOYMENT_VERIFICATION_VERSION = "2026-07-11-pr96";
+export const LEAD_DEPLOYMENT_VERIFICATION_VERSION = "2026-07-11-pr97";
 
 export const EXPECTED_LEAD_FLOW_GUARD_LINES = [
   "Lead flow alignment guard passed.",
@@ -16,6 +16,7 @@ export const EXPECTED_LEAD_FLOW_GUARD_LINES = [
   "Deep links API guard passed.",
   "Deployment verification API guard passed.",
   "Controlled warm reply guard passed.",
+  "Latest production commit guard passed.",
 ];
 
 export type LeadDeploymentVerificationRow = {
