@@ -1,7 +1,7 @@
 import { getLeadAcceptanceClosedGates } from "@/lib/lead-acceptance-gates";
 import { getLeadAcceptanceHandoffPacket } from "@/lib/lead-acceptance-handoff";
 
-export const LEAD_ACCEPTANCE_OVERVIEW_VERSION = "2026-07-10-pr84";
+export const LEAD_ACCEPTANCE_OVERVIEW_VERSION = "2026-07-10-pr85";
 
 export type LeadAcceptanceOverviewEntry = {
   id: string;
@@ -17,6 +17,13 @@ export const leadAcceptanceOverviewEntries: LeadAcceptanceOverviewEntry[] = [
     title: "Handoff packet",
     description: "Start here for current evidence counts, latest acceptance records, findings, and closed gates.",
     href: "/admin/leads/acceptance-handoff",
+    priority: "START",
+  },
+  {
+    id: "owner-decision-prep",
+    title: "Owner decision prep",
+    description: "Review Hamilton-only owner decision readiness, remaining blockers, deferred steps, and closed gates.",
+    href: "/admin/leads/owner-decision-prep",
     priority: "START",
   },
   {
