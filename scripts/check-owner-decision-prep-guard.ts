@@ -16,7 +16,8 @@ const guards: [string, string][] = [
   ["src/app/admin/leads/owner-decision-prep/page.tsx", "getLeadAcceptanceDeferredRunbook"],
   ["src/app/admin/leads/owner-decision-prep/page.tsx", "getLeadAcceptanceClosedGates"],
   ["src/app/admin/leads/acceptance-overview/page.tsx", "/admin/leads/owner-decision-prep"],
-  ["src/app/admin/leads/acceptance-overview/page.tsx", "Owner prep"],
+  ["src/app/admin/leads/acceptance-overview/page.tsx", "Owner decision prep"],
+  ["src/app/admin/leads/acceptance-overview/page.tsx", "Open owner prep"],
   ["src/lib/lead-acceptance-overview.ts", "owner-decision-prep"],
   ["src/lib/lead-acceptance-overview.ts", "/admin/leads/owner-decision-prep"],
 ];
