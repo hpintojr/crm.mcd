@@ -7,6 +7,19 @@ function assertContains(path: string, expected: string) {
   }
 }
 
+const expectedGuardLines = [
+  "Lead flow alignment guard passed.",
+  "Owner decision prep guard passed.",
+  "Deferred acceptance runbook guard passed.",
+  "Acceptance summary CSV guard passed.",
+  "Print runbook guard passed.",
+  "Controlled test data history guard passed.",
+  "Acceptance diff guard passed.",
+  "Overview deferred summary guard passed.",
+  "Deployment verification guard passed.",
+  "Deep links guard passed.",
+];
+
 const guards: [string, string][] = [
   ["src/app/admin/leads/deployment-verification/page.tsx", "data-deployment-verification=\"lead-flow\""],
   ["src/app/admin/leads/deployment-verification/page.tsx", "Deployment verification"],
@@ -16,12 +29,11 @@ const guards: [string, string][] = [
   ["src/app/admin/leads/deployment-verification/page.tsx", "VERCEL_DEPLOYMENT_ID"],
   ["src/app/admin/leads/deployment-verification/page.tsx", "Open /api/status"],
   ["src/app/admin/leads/deployment-verification/page.tsx", "Expected guard-pass lines"],
-  ["src/app/admin/leads/deployment-verification/page.tsx", "Lead flow alignment guard passed."],
-  ["src/app/admin/leads/deployment-verification/page.tsx", "Overview deferred summary guard passed."],
   ["src/app/admin/leads/deployment-verification/page.tsx", "data-deployment-verification-row={row.id}"],
   ["src/lib/lead-acceptance-overview.ts", "deployment-verification"],
   ["src/lib/lead-acceptance-overview.ts", "/admin/leads/deployment-verification"],
   ["src/app/admin/leads/acceptance-overview/page.tsx", "/admin/leads/deployment-verification"],
+  ...expectedGuardLines.map((line): [string, string] => ["src/app/admin/leads/deployment-verification/page.tsx", line]),
 ];
 
 for (const [path, expected] of guards) {
