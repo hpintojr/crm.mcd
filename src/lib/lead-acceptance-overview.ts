@@ -1,7 +1,7 @@
 import { getLeadAcceptanceClosedGates } from "@/lib/lead-acceptance-gates";
 import { getLeadAcceptanceHandoffPacket } from "@/lib/lead-acceptance-handoff";
 
-export const LEAD_ACCEPTANCE_OVERVIEW_VERSION = "2026-07-10-pr85";
+export const LEAD_ACCEPTANCE_OVERVIEW_VERSION = "2026-07-11-pr89";
 
 export type LeadAcceptanceOverviewEntry = {
   id: string;
@@ -52,6 +52,13 @@ export const leadAcceptanceOverviewEntries: LeadAcceptanceOverviewEntry[] = [
     title: "Deferred steps",
     description: "Resume the five deferred acceptance steps with operator notes and where-to-record pointers.",
     href: "/admin/leads/acceptance-runbook/deferred",
+    priority: "REVIEW",
+  },
+  {
+    id: "deployment-verification",
+    title: "Deployment verification",
+    description: "Confirm the current environment, branch, commit, and Vercel deployment before recording live acceptance evidence.",
+    href: "/admin/leads/deployment-verification",
     priority: "REVIEW",
   },
   {
