@@ -137,11 +137,22 @@ export async function POST(req: NextRequest) {
     }
   }
 
-  if (!authenticator.check(data.totp, data.totpSecret)) {
-    return json({ error: "That authentication code is not valid." }, 422, id);
+  let validTotp = false;
+  try {
+    validTotp = authenticator.check(data.totp, data.totpSecret);
+  } catch {
+    validTotp = false;
+  }
+  if (!validTotp) return json({ error: "That authentication code is not valid." }, 422, id);
+
+  let passwordHash: string;
+  try {
+    passwordHash = await hashPassword(data.password);
+  } catch (error) {
+    logFailure("password hashing failed", id, error, activation.userId);
+    return json({ error: "Unable to complete activation. Please try again." }, 500, id);
   }
 
-  const passwordHash = await hashPassword(data.password);
   try {
     await db.$transaction(async (tx) => {
       const now = new Date();
