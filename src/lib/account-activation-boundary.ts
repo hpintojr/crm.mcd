@@ -2,7 +2,7 @@ import { z } from "zod";
 
 export const MAX_ACTIVATION_BODY_BYTES = 8_192;
 
-const tokenSchema = z.string().trim().min(16).max(512);
+const tokenSchema = z.string().trim().min(1).max(512);
 const passwordSchema = z
   .string()
   .min(12, "Use at least 12 characters")
