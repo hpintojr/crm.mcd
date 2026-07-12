@@ -8,6 +8,7 @@ function assertContains(path: string, expected: string) {
 }
 
 const expectedGuardLines = [
+  "Lead import response boundary checks passed.",
   "Lead flow alignment guard passed.",
   "Owner decision prep guard passed.",
   "Deferred acceptance runbook guard passed.",
@@ -43,6 +44,7 @@ const expectedGuardLines = [
   "Integration health control plane guard passed.",
   "Admin read report response boundary guard passed.",
   "Lead acceptance report response boundary guard passed.",
+  "Protected CSV download response boundary guard passed.",
 ];
 
 const guards: [string, string][] = [

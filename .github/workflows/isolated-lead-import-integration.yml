@@ -6,7 +6,7 @@ on:
     paths:
       - ".github/workflows/isolated-lead-import-integration.yml"
       - "prisma/schema.prisma"
-      - "prisma/migrations/20260707190000_lead_fields_owner_provenance/**"
+      - "prisma/migrations/20260707190000_lead_fields_owner_provenance/migration.sql"
       - "scripts/test-lead-import-lifecycle-db.ts"
       - "scripts/test-lead-import-research-fields-db.ts"
       - "src/lib/db-integration-test-guard.ts"
@@ -27,12 +27,34 @@ jobs:
     name: Isolated database lifecycle
     runs-on: ubuntu-latest
     timeout-minutes: 10
+    services:
+      postgres:
+        image: postgres:17
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: mcd_ci
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres -d mcd_ci"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    outputs:
+      schema_status: ${{ steps.schema.outputs.status }}
+      schema_tail: ${{ steps.schema.outputs.tail }}
+      lifecycle_status: ${{ steps.lifecycle.outputs.status }}
+      lifecycle_tail: ${{ steps.lifecycle.outputs.tail }}
+      research_status: ${{ steps.research.outputs.status }}
+      research_tail: ${{ steps.research.outputs.tail }}
     env:
       MCD_RUN_DB_INTEGRATION_TESTS: "1"
-      MCD_TEST_DATABASE_URL: ${{ secrets.MCD_TEST_DATABASE_URL }}
-      # Sentinel only: runtime selects MCD_TEST_DATABASE_URL and the guard rejects
-      # a test target that matches this normal-runtime placeholder.
-      DATABASE_URL: postgresql://unused:unused@127.0.0.1:5432/mcd_ci_sentinel
+      MCD_TEST_DATABASE_URL: postgresql://postgres:postgres@127.0.0.1:5432/mcd_ci?schema=public
+      DIRECT_URL: postgresql://postgres:postgres@127.0.0.1:5432/mcd_ci?schema=public
+      # Sentinel only: the guard requires proof that the disposable target is
+      # different from the normal-runtime database target.
+      DATABASE_URL: postgresql://unused:unused@127.0.0.1:5433/mcd_ci_sentinel
 
     steps:
       - name: Check out source
@@ -43,45 +65,88 @@ jobs:
         with:
           node-version: 24
 
-      - name: Confirm isolated database secret is available
-        shell: bash
-        run: |
-          test -n "$MCD_TEST_DATABASE_URL"
-          echo "Isolated database secret is available."
-
       - name: Install dependencies
         run: npm install --no-audit --no-fund
 
       - name: Generate Prisma client
         run: npm run prisma:generate
 
-      - name: Run signed import lifecycle harness
-        id: lifecycle
+      - name: Initialize disposable database schema
+        id: schema
         shell: bash
         run: |
           mkdir -p .ci-logs
           set +e
+          {
+            DATABASE_URL="$MCD_TEST_DATABASE_URL" DIRECT_URL="$MCD_TEST_DATABASE_URL" npx prisma db push --skip-generate --accept-data-loss
+            sed -n '/CREATE OR REPLACE FUNCTION "applyLeadImportResearchFields"()/,$p' \
+              prisma/migrations/20260707190000_lead_fields_owner_provenance/migration.sql \
+              > .ci-logs/lead-import-research-trigger.sql
+            test -s .ci-logs/lead-import-research-trigger.sql
+            DATABASE_URL="$MCD_TEST_DATABASE_URL" DIRECT_URL="$MCD_TEST_DATABASE_URL" \
+              npx prisma db execute --file .ci-logs/lead-import-research-trigger.sql --schema prisma/schema.prisma
+          } > .ci-logs/schema-init.log 2>&1
+          status=$?
+          echo "status=$status" >> "$GITHUB_OUTPUT"
+          {
+            echo "tail<<MCD_SCHEMA_TAIL"
+            tail -n 50 .ci-logs/schema-init.log
+            echo "MCD_SCHEMA_TAIL"
+          } >> "$GITHUB_OUTPUT"
+          exit 0
+
+      - name: Run signed import lifecycle harness
+        id: lifecycle
+        if: steps.schema.outputs.status == '0'
+        shell: bash
+        run: |
+          set +e
           npm run test:lead-import-db > .ci-logs/lead-import-lifecycle.log 2>&1
           status=$?
-          tail -n 120 .ci-logs/lead-import-lifecycle.log
           echo "status=$status" >> "$GITHUB_OUTPUT"
+          {
+            echo "tail<<MCD_LIFECYCLE_TAIL"
+            tail -n 30 .ci-logs/lead-import-lifecycle.log
+            echo "MCD_LIFECYCLE_TAIL"
+          } >> "$GITHUB_OUTPUT"
           exit 0
 
       - name: Run research and opaque acquisition harness
         id: research
+        if: steps.schema.outputs.status == '0'
         shell: bash
         run: |
           set +e
           npm run test:lead-import-research-db > .ci-logs/lead-import-research.log 2>&1
           status=$?
-          tail -n 120 .ci-logs/lead-import-research.log
           echo "status=$status" >> "$GITHUB_OUTPUT"
+          {
+            echo "tail<<MCD_RESEARCH_TAIL"
+            tail -n 30 .ci-logs/lead-import-research.log
+            echo "MCD_RESEARCH_TAIL"
+          } >> "$GITHUB_OUTPUT"
           exit 0
 
-      - name: Fail when any harness fails
-        if: steps.lifecycle.outputs.status != '0' || steps.research.outputs.status != '0'
+  gate:
+    name: Isolated database gate
+    needs: integration
+    if: needs.integration.outputs.schema_status != '0' || needs.integration.outputs.lifecycle_status != '0' || needs.integration.outputs.research_status != '0'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Report failing harnesses
         shell: bash
+        env:
+          SCHEMA_STATUS: ${{ needs.integration.outputs.schema_status }}
+          SCHEMA_TAIL: ${{ needs.integration.outputs.schema_tail }}
+          LIFECYCLE_STATUS: ${{ needs.integration.outputs.lifecycle_status }}
+          LIFECYCLE_TAIL: ${{ needs.integration.outputs.lifecycle_tail }}
+          RESEARCH_STATUS: ${{ needs.integration.outputs.research_status }}
+          RESEARCH_TAIL: ${{ needs.integration.outputs.research_tail }}
         run: |
-          echo "Lead-import lifecycle status: ${{ steps.lifecycle.outputs.status }}"
-          echo "Research/provenance status: ${{ steps.research.outputs.status }}"
+          echo "Disposable schema status: $SCHEMA_STATUS"
+          printf '%s\n' "$SCHEMA_TAIL"
+          echo "Lead-import lifecycle status: $LIFECYCLE_STATUS"
+          printf '%s\n' "$LIFECYCLE_TAIL"
+          echo "Research/provenance status: $RESEARCH_STATUS"
+          printf '%s\n' "$RESEARCH_TAIL"
           exit 1

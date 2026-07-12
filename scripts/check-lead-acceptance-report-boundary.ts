@@ -96,14 +96,19 @@ function checkReportContracts() {
 }
 
 function checkDownloadSeparation() {
+  const helper = read("src/lib/authenticated-json-boundary.ts");
+  assert(helper.includes('"Content-Type": "text/csv; charset=utf-8"'), "CSV helper must retain its CSV content type.");
+  assert(helper.includes('"Content-Disposition": `attachment; filename="${filename}"`'), "CSV helper must retain its download disposition.");
+
   for (const path of [
     "src/app/api/admin/leads/acceptance-history.csv/route.ts",
     "src/app/api/admin/leads/acceptance-report.csv/route.ts",
   ]) {
     const content = read(path);
-    assert(content.includes("text/csv"), `${path} must retain its CSV content type.`);
-    assert(content.includes("Content-Disposition"), `${path} must retain its download disposition.`);
+    assert(content.includes("authenticatedCsvDownload"), `${path} must use the protected CSV download helper.`);
+    assert(content.includes("authenticatedRequestId(request)"), `${path} must propagate a request ID.`);
     assert(!content.includes("authenticatedJson"), `${path} must remain separate from the JSON report boundary.`);
+    assert(!content.includes("NextResponse"), `${path} must not construct download responses directly.`);
   }
 }
 
