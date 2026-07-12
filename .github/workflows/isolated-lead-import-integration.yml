@@ -56,10 +56,39 @@ jobs:
         run: npm run prisma:generate
 
       - name: Run signed import lifecycle harness
+        id: lifecycle
         shell: bash
-        run: npm run test:lead-import-db
+        run: |
+          mkdir -p .ci-logs
+          set +e
+          npm run test:lead-import-db > .ci-logs/lead-import-lifecycle.log 2>&1
+          status=$?
+          echo "status=$status" >> "$GITHUB_OUTPUT"
+          exit 0
 
       - name: Run research and opaque acquisition harness
-        if: always()
+        id: research
         shell: bash
-        run: npm run test:lead-import-research-db
+        run: |
+          set +e
+          npm run test:lead-import-research-db > .ci-logs/lead-import-research.log 2>&1
+          status=$?
+          echo "status=$status" >> "$GITHUB_OUTPUT"
+          exit 0
+
+      - name: Upload isolated harness logs
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: lead-import-isolated-logs
+          path: .ci-logs/*.log
+          if-no-files-found: error
+          retention-days: 7
+
+      - name: Fail when any harness fails
+        if: steps.lifecycle.outputs.status != '0' || steps.research.outputs.status != '0'
+        shell: bash
+        run: |
+          echo "Lead-import lifecycle status: ${{ steps.lifecycle.outputs.status }}"
+          echo "Research/provenance status: ${{ steps.research.outputs.status }}"
+          exit 1
