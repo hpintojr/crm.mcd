@@ -20,9 +20,9 @@ Social Security numbers, tax IDs, bank details, passwords, credentials, and paym
 - Requests are limited to 16 KiB using both the declared content length and the actual UTF-8 body length.
 - Invalid JSON returns a generic HTTP 400 JSON response.
 - Validation failures return field messages but never echo submitted values.
-- Email is trimmed and canonicalized to lowercase before persistence.
+- Email is trimmed and canonicalized to lowercase during validation and before persistence.
 - All responses use `Cache-Control: no-store`, an `X-Request-Id`, and `X-Robots-Tag: noindex, nofollow, noarchive`.
-- The honeypot field returns the same minimal success shape without performing a database or GHL action.
+- The honeypot field returns the same minimal accepted response without performing a database or GHL action.
 
 ## Durable reservation before GHL
 
@@ -38,13 +38,13 @@ The external GHL call is never placed inside a database transaction.
 
 ## Public response
 
-Successful, honeypot, duplicate, and concurrent-retry outcomes return only:
+Successful, honeypot, duplicate, and concurrent-retry outcomes all return HTTP 202 with only:
 
 ```json
 { "ok": true }
 ```
 
-The public response does not expose the internal Agent ID, GHL contact ID, GHL configuration state, stub state, raw integration errors, database details, or whether a submitted email already existed.
+Using one status and body prevents the endpoint from disclosing whether a submitted email already existed. The public response also does not expose the internal Agent ID, GHL contact ID, GHL configuration state, stub state, raw integration errors, or database details.
 
 ## Failure and observability behavior
 
@@ -54,7 +54,7 @@ The public response does not expose the internal Agent ID, GHL contact ID, GHL c
 
 ## Regression check
 
-`npm run check:public-signup-boundary` tests input normalization and duplicate classification, verifies reservation-before-GHL ordering, protects the minimal response, and rejects reintroduction of preflight email lookup or raw GHL error storage.
+`npm run check:public-signup-boundary` tests schema and persistence normalization, duplicate classification, reservation-before-GHL ordering, the uniform HTTP 202 response, and rejection of preflight email lookup or raw GHL error storage.
 
 The guard is part of the authoritative build and deployment-verification chain. It does not submit a signup, access production data, or call GHL.
 
