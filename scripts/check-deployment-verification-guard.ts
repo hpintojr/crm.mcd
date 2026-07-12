@@ -35,6 +35,7 @@ const expectedGuardLines = [
   "Route trace hygiene guard passed.",
   "Public signup boundary guard passed.",
   "Account activation boundary guard passed.",
+  "GHL webhook replay claim guard passed.",
 ];
 
 const guards: [string, string][] = [
