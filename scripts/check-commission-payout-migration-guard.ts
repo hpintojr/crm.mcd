@@ -10,11 +10,18 @@ function assertContains(path: string, expected: string) {
   }
 }
 
-function assertNotContains(path: string, forbidden: string) {
+// Strips SQL comment lines (starting with --) before checking for forbidden DDL, so this guard
+// does not false-positive on the file's own explanatory comment (which quotes the forbidden
+// statement for documentation purposes) and only fires if the real DDL statement is re-added.
+function assertNotReintroduced(path: string, forbiddenStatement: string) {
   const content = readFileSync(path, "utf8");
-  if (content.includes(forbidden)) {
+  const sqlOnly = content
+    .split("\n")
+    .filter((line) => !line.trim().startsWith("--"))
+    .join("\n");
+  if (sqlOnly.includes(forbiddenStatement)) {
     throw new Error(
-      `${path} must not recreate ${forbidden} — that type already exists in production ` +
+      `${path} must not recreate ${forbiddenStatement} — that type already exists in production ` +
         "(confirmed via a Neon safety-branch test on 2026-07-12; see LOCK.md).",
     );
   }
@@ -30,7 +37,7 @@ assertContains(
   MIGRATION_PATH,
   "ClientAccount, ClientServiceActivity, ClientServiceCase, ClientServiceAssignmentEvent, and",
 );
-assertNotContains(MIGRATION_PATH, 'CREATE TYPE "ClientAccountStatus"');
-assertNotContains(MIGRATION_PATH, 'CREATE TABLE "ClientAccount"');
+assertNotReintroduced(MIGRATION_PATH, 'CREATE TYPE "ClientAccountStatus"');
+assertNotReintroduced(MIGRATION_PATH, 'CREATE TABLE "ClientAccount"');
 
 console.log("Commission/payout migration correction guard passed.");
