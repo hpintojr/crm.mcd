@@ -1,6 +1,6 @@
 import "server-only";
 
-export const LEAD_DEPLOYMENT_VERIFICATION_VERSION = "2026-07-12-pr116";
+export const LEAD_DEPLOYMENT_VERIFICATION_VERSION = "2026-07-12-pr117";
 
 export const EXPECTED_LEAD_FLOW_GUARD_LINES = [
   "Lead flow alignment guard passed.",
@@ -31,6 +31,7 @@ export const EXPECTED_LEAD_FLOW_GUARD_LINES = [
   "Public signup boundary guard passed.",
   "Account activation boundary guard passed.",
   "GHL webhook replay claim guard passed.",
+  "GHL webhook request boundary guard passed.",
 ];
 
 export type LeadDeploymentVerificationRow = {
