@@ -9,6 +9,7 @@ Secure Admin and Agent portals for Mercury Call Desk. GoHighLevel (GHL) is a bac
 - [Lead MVP Rollout Status](./docs/LEAD_MVP_ROLLOUT_STATUS.md) — Lead, GHL relay, and servicing handoff status.
 - [Lead MVP Acceptance Test](./docs/LEAD_MVP_ACCEPTANCE_TEST.md) — owner-controlled test sequence.
 - [Production Smoke](./docs/PRODUCTION_SMOKE.md) — deployed-SHA, status, login, and protected-boundary verification.
+- [Lead Aging Cron](./docs/LEAD_AGING_CRON.md) — secured schedule, transient database readiness behavior, and unchanged aging rules.
 - [Documentation Index](./docs/INDEX.md)
 - [Working Instructions](./CLAUDE.md)
 
@@ -52,6 +53,7 @@ Secure Admin and Agent portals for Mercury Call Desk. GoHighLevel (GHL) is a bac
 - Open Pool return protections requiring documented prior ownership, two-way contact, non-referral status, eligible lifecycle, and admin reason.
 - Lead detail view with an admin-only verified Closed Won decision.
 - Warm Reply Triage for unassigned verified inbound replies, with atomic manager assignment and immediate callback creation.
+- The secured Lead aging cron preserves the 45-day claim return and 21-day Shark Tank rules, adds a bounded read-only database readiness probe, and never retries the mutating sweep.
 - The 18-step production Lead Flow acceptance runbook and owner production decision are recorded PASS.
 
 ### GHL relays
@@ -84,6 +86,7 @@ Secure Admin and Agent portals for Mercury Call Desk. GoHighLevel (GHL) is a bac
 - `/admin/project-readiness` combines deployment metadata, feature gates, latest acceptance outcomes, integration health, Client/Service schema state, and Commission migration state.
 - `/admin/servicing/acceptance-command-center` provides an aggregate-only preflight before any owner-authorized Servicing window.
 - Production Smoke validates the deployed `main` SHA, public status contract, login surface, and unauthenticated protection of readiness pages and APIs.
+- Lead aging cron failures return request-correlated, no-store, sanitized `503` or `500` responses; transient database readiness is retried only before the sweep begins.
 - Readiness Board summarizes operational queues and acceptance evidence.
 - Audit History surfaces rollout evidence separately from the general event stream.
 - Integration Monitor includes active errors, resolution notes, setup references, and a short-term resolved-history view.
@@ -126,7 +129,7 @@ Secure Admin and Agent portals for Mercury Call Desk. GoHighLevel (GHL) is a bac
 
 1. Use `/admin/project-readiness` as the source-derived preflight before any module decision.
 2. Treat Production Smoke as the automatic post-deploy baseline and investigate any failed SHA, status, login, or protected-boundary check before considering a release healthy.
-3. Monitor normal Lead Flow and unresolved Integration Monitor items; keep live external GHL workflow/configuration changes separately controlled.
+3. Monitor normal Lead Flow, the Lead aging cron, and unresolved Integration Monitor items; correlate cron failures by `X-Request-Id` and keep live external GHL workflow/configuration changes separately controlled.
 4. Open a Client Servicing acceptance window only after explicit owner authorization; do not change `SERVICING_ENABLED` as part of ordinary code work.
 5. Apply the PR #100 Commission migration only after a new explicit Hamilton authorization and a fresh production-apply plan; migration apply and feature activation must remain separate decisions.
 6. Run controlled Commission acceptance only after production schema approval; keep Finance locked and readiness-only.

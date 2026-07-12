@@ -1,8 +1,23 @@
+import { randomUUID } from "node:crypto";
+import { Prisma } from "@prisma/client";
 import { NextRequest, NextResponse } from "next/server";
-import { runLeadAgingSweep } from "@/lib/lead-aging-jobs";
+import { db } from "@/lib/db";
 import { features } from "@/lib/features";
+import { runLeadAgingSweep } from "@/lib/lead-aging-jobs";
+import {
+  databaseErrorCode,
+  databaseErrorName,
+  isTransientDatabaseError,
+  retryTransientDatabaseOperation,
+  TransientDatabaseRetryExhaustedError,
+} from "@/lib/transient-database-retry";
 
 export const dynamic = "force-dynamic";
+
+const DATABASE_PROBE_MAX_ATTEMPTS = 3;
+const RETRY_AFTER_SECONDS = 60;
+
+type FailurePhase = "database-readiness" | "sweep";
 
 function authorized(request: NextRequest) {
   const cronSecret = process.env.CRON_SECRET;
@@ -20,10 +35,113 @@ function readLimit(request: NextRequest) {
   return Number.isFinite(value) && value > 0 ? value : undefined;
 }
 
-export async function GET(request: NextRequest) {
-  if (!features.leads) return NextResponse.json({ error: "Not found." }, { status: 404 });
-  if (!authorized(request)) return NextResponse.json({ error: "Unauthorized." }, { status: 401 });
+function requestId(request: NextRequest) {
+  const supplied = request.headers.get("x-request-id")?.trim();
+  return supplied && supplied.length <= 128 && /^[A-Za-z0-9._:-]+$/.test(supplied) ? supplied : randomUUID();
+}
 
-  const result = await runLeadAgingSweep({ dryRun: readDryRun(request), limit: readLimit(request) });
-  return NextResponse.json(result);
+function json(body: unknown, status = 200, id?: string, retryable = false) {
+  return NextResponse.json(body, {
+    status,
+    headers: {
+      "Cache-Control": "no-store, max-age=0",
+      ...(id ? { "X-Request-Id": id } : {}),
+      ...(retryable ? { "Retry-After": String(RETRY_AFTER_SECONDS) } : {}),
+    },
+  });
+}
+
+function logFailure(input: {
+  requestId: string;
+  phase: FailurePhase;
+  error: unknown;
+  databaseProbeAttempts: number;
+  retryable: boolean;
+}) {
+  const sourceError = input.error instanceof TransientDatabaseRetryExhaustedError ? input.error.lastError : input.error;
+  console.error(
+    "[lead-aging-cron] failure",
+    JSON.stringify({
+      requestId: input.requestId,
+      phase: input.phase,
+      retryable: input.retryable,
+      databaseProbeAttempts: input.databaseProbeAttempts,
+      errorName: databaseErrorName(sourceError),
+      errorCode: databaseErrorCode(sourceError),
+    }),
+  );
+}
+
+export async function GET(request: NextRequest) {
+  const id = requestId(request);
+  if (!features.leads) return json({ error: "Not found.", requestId: id }, 404, id);
+  if (!authorized(request)) return json({ error: "Unauthorized.", requestId: id }, 401, id);
+
+  let phase: FailurePhase = "database-readiness";
+  let databaseProbeAttempts = 0;
+
+  try {
+    const probe = await retryTransientDatabaseOperation(
+      () => db.$queryRaw<Array<{ ready: number }>>(Prisma.sql`SELECT 1 AS "ready"`),
+      {
+        maxAttempts: DATABASE_PROBE_MAX_ATTEMPTS,
+        initialDelayMs: 250,
+        maxDelayMs: 1_000,
+        onRetry: ({ attempt, nextAttempt, delayMs, error }) => {
+          console.warn(
+            "[lead-aging-cron] database readiness retry",
+            JSON.stringify({
+              requestId: id,
+              attempt,
+              nextAttempt,
+              delayMs,
+              errorName: databaseErrorName(error),
+              errorCode: databaseErrorCode(error),
+            }),
+          );
+        },
+      },
+    );
+    databaseProbeAttempts = probe.attempts;
+
+    phase = "sweep";
+    // The mutating sweep runs exactly once. Only the read-only SELECT 1 readiness probe is retried.
+    const result = await runLeadAgingSweep({ dryRun: readDryRun(request), limit: readLimit(request) });
+    return json({ ...result, requestId: id, databaseProbeAttempts }, 200, id);
+  } catch (error) {
+    const readinessExhausted = error instanceof TransientDatabaseRetryExhaustedError;
+    const retryable = readinessExhausted || isTransientDatabaseError(error);
+    const attempts = readinessExhausted ? error.attempts : databaseProbeAttempts;
+
+    logFailure({ requestId: id, phase, error, databaseProbeAttempts: attempts, retryable });
+
+    if (retryable) {
+      return json(
+        {
+          ok: false,
+          error: "Lead aging sweep could not complete because the database connection was unavailable.",
+          retryable: true,
+          phase,
+          requestId: id,
+          databaseProbeAttempts: attempts,
+        },
+        503,
+        id,
+        true,
+      );
+    }
+
+    return json(
+      {
+        ok: false,
+        error: "Lead aging sweep failed.",
+        retryable: false,
+        phase,
+        requestId: id,
+        databaseProbeAttempts: attempts,
+      },
+      500,
+      id,
+    );
+  }
 }
