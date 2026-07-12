@@ -27,6 +27,20 @@ jobs:
     name: Isolated database lifecycle
     runs-on: ubuntu-latest
     timeout-minutes: 10
+    services:
+      postgres:
+        image: postgres:17
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: mcd_ci
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres -d mcd_ci"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
     outputs:
       lifecycle_status: ${{ steps.lifecycle.outputs.status }}
       lifecycle_tail: ${{ steps.lifecycle.outputs.tail }}
@@ -34,10 +48,10 @@ jobs:
       research_tail: ${{ steps.research.outputs.tail }}
     env:
       MCD_RUN_DB_INTEGRATION_TESTS: "1"
-      MCD_TEST_DATABASE_URL: ${{ secrets.MCD_TEST_DATABASE_URL }}
-      # Sentinel only: runtime selects MCD_TEST_DATABASE_URL and the guard rejects
-      # a test target that matches this normal-runtime placeholder.
-      DATABASE_URL: postgresql://unused:unused@127.0.0.1:5432/mcd_ci_sentinel
+      MCD_TEST_DATABASE_URL: postgresql://postgres:postgres@127.0.0.1:5432/mcd_ci?schema=public
+      # Sentinel only: the guard requires proof that the disposable target is
+      # different from the normal-runtime database target.
+      DATABASE_URL: postgresql://unused:unused@127.0.0.1:5433/mcd_ci_sentinel
 
     steps:
       - name: Check out source
@@ -48,17 +62,15 @@ jobs:
         with:
           node-version: 24
 
-      - name: Confirm isolated database secret is available
-        shell: bash
-        run: |
-          test -n "$MCD_TEST_DATABASE_URL"
-          echo "Isolated database secret is available."
-
       - name: Install dependencies
         run: npm install --no-audit --no-fund
 
       - name: Generate Prisma client
         run: npm run prisma:generate
+
+      - name: Initialize disposable database schema
+        shell: bash
+        run: DATABASE_URL="$MCD_TEST_DATABASE_URL" npx prisma db push --skip-generate --accept-data-loss
 
       - name: Run signed import lifecycle harness
         id: lifecycle
