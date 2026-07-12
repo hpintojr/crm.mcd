@@ -37,7 +37,7 @@ const guards: [string, string][] = [
   ["scripts/run-production-smoke.ts", "/api/admin/servicing/acceptance-readiness"],
   ["scripts/run-production-smoke.ts", 'matchedPath === "/login"'],
   ["scripts/run-production-smoke.ts", "GITHUB_STEP_SUMMARY"],
-  ["scripts/run-production-smoke.ts", "Counts only"],
+  ["scripts/run-production-smoke.ts", "Unauthenticated request resolves to /login"],
   ["docs/PRODUCTION_SMOKE.md", "Production Smoke"],
   ["docs/PRODUCTION_SMOKE.md", "does not authenticate"],
   ["docs/PRODUCTION_SMOKE.md", "does not mutate"],
