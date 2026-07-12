@@ -34,6 +34,7 @@ const expectedGuardLines = [
   "Manager claim action boundary guard passed.",
   "Route trace hygiene guard passed.",
   "Public signup boundary guard passed.",
+  "Account activation boundary guard passed.",
 ];
 
 const guards: [string, string][] = [
