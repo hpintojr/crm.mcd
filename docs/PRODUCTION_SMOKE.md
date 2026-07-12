@@ -14,7 +14,16 @@ The `Production Smoke` GitHub Actions workflow verifies the deployed production 
    - `Cache-Control: no-store`.
 2. For a `main` push, the runner polls until production reports the exact GitHub commit that triggered the workflow.
 3. `/login` returns the branded Mercury Call Desk sign-in surface and remains `noindex, nofollow`.
-4. Unauthenticated requests to these protected routes resolve to `/login` and do not expose their protected markers:
+4. `/api/status`, `/login`, and protected login-boundary responses include the required HTTP security headers:
+   - conservative CSP base/form/frame/object directives;
+   - MIME sniffing prevention;
+   - anti-framing;
+   - strict cross-origin referrer handling;
+   - disabled camera, microphone, geolocation, payment, USB, and browsing-topics capabilities;
+   - opener isolation compatible with legitimate popups;
+   - DNS-prefetch, legacy cross-domain policy, and legacy download protections;
+   - platform HSTS.
+5. Unauthenticated requests to these protected routes resolve to `/login` and do not expose their protected markers:
    - `/admin/project-readiness`;
    - `/api/admin/project-readiness`;
    - `/admin/servicing/acceptance-command-center`;
@@ -46,7 +55,7 @@ Optional controls:
 
 ## Failure meaning
 
-A failure means at least one of these contracts changed or production did not converge to the expected `main` commit within the polling window. Investigate the Vercel deployment, `/api/status`, authentication middleware, or route protection before treating the release as healthy.
+A failure means at least one of these contracts changed or production did not converge to the expected `main` commit within the polling window. Investigate the Vercel deployment, `/api/status`, global header configuration, authentication middleware, or route protection before treating the release as healthy.
 
 ## Safety boundary
 
