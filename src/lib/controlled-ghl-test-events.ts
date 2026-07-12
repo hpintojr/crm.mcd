@@ -85,7 +85,9 @@ export function previewControlledGhlTestEventFromLead(lead: PreviewLead, family:
   const recovery = family === "appointment" && ["APPOINTMENT_CANCELLED", "APPOINTMENT_NO_SHOW"].includes(eventType);
   const won = eventType === "OPPORTUNITY_WON";
   const lost = eventType === "OPPORTUNITY_LOST";
-  const preservedClosedWon = (recovery || lost) && lead.lifecycle === "CLOSED_WON";
+  // Mirrors the guard in lead-appointment-attribution.ts: booking-family appointment events must
+  // not reopen an already Closed Won Lead, same as recovery-family events and lost opportunities.
+  const preservedClosedWon = (booked || recovery || lost) && lead.lifecycle === "CLOSED_WON";
   const callbackMayBeCreated = recovery && Boolean(lead.ownerAgentId) && !preservedClosedWon && !ignored;
 
   return {
@@ -99,7 +101,7 @@ export function previewControlledGhlTestEventFromLead(lead: PreviewLead, family:
     expected: {
       lifecycle: ignored
         ? lead.lifecycle
-        : booked
+        : booked && !preservedClosedWon
           ? "DEMO_BOOKED"
           : recovery && !preservedClosedWon
             ? "CONTACTED"
