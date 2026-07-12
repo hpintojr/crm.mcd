@@ -18,6 +18,7 @@
 - [Account Activation](./ACCOUNT_ACTIVATION.md) — token privacy, bounded requests, authenticator preparation, and atomic single-use completion.
 - [GHL Webhook Replay](./GHL_WEBHOOK_REPLAY.md) — unique event ledger, duplicate handling, and atomic failed-event retry claims.
 - [GHL Webhook Request Boundary](./GHL_WEBHOOK_REQUEST_BOUNDARY.md) — secret-first authentication, bounded JSON intake, response metadata, and sanitized failures.
+- [Portal Write Request Boundary](./PORTAL_WRITE_REQUEST_BOUNDARY.md) — authenticated body ordering, 16 KiB limits, hardened responses, and expected-error handling.
 - [Daily Log](./DAILY_LOG.md)
 
 ## Current operational reference
