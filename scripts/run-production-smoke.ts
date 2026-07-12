@@ -134,7 +134,8 @@ async function checkLoginSurface() {
   assert(response.headers.get("content-type")?.includes("text/html"), "/login did not return HTML.");
   assert(html.includes("Mercury Call Desk"), "/login is missing the Mercury Call Desk identity.");
   assert(html.includes(">Sign in<"), "/login is missing the sign-in heading.");
-  assert(html.includes('name="robots" content="noindex, nofollow"'), "/login must remain noindex, nofollow.");
+  assert(html.includes('name="robots"'), "/login is missing the robots meta tag.");
+  assert(html.includes('content="noindex, nofollow"'), "/login must remain noindex, nofollow.");
   results.push({ check: "Login surface", target: "/login", detail: "HTTP 200, branded, noindex" });
 }
 
@@ -167,6 +168,9 @@ async function writeStepSummary() {
 }
 
 async function main() {
+  if (expectedCommitSha) {
+    assert(/^[0-9a-f]{40}$/i.test(expectedCommitSha), "EXPECTED_COMMIT_SHA must be a 40-character Git SHA.");
+  }
   console.log(`[production-smoke] target=${baseUrl.toString()} expected=${expectedCommitSha ?? "current production"}`);
   await waitForExpectedDeployment();
   await checkLoginSurface();
@@ -193,8 +197,9 @@ async function main() {
 main().catch(async (error) => {
   const message = error instanceof Error ? error.stack ?? error.message : String(error);
   console.error(`[production-smoke] FAILED\n${message}`);
-  if (process.env.GITHUB_STEP_SUMMARY) {
-    await appendFile(process.env.GITHUB_STEP_SUMMARY, `## Production smoke failed\n\n\`\`\`text\n${message}\n\`\`\`\n`, "utf8").catch(() => undefined);
+  const summaryPath = process.env.GITHUB_STEP_SUMMARY;
+  if (summaryPath) {
+    await appendFile(summaryPath, `## Production smoke failed\n\n\`\`\`text\n${message}\n\`\`\`\n`, "utf8").catch(() => undefined);
   }
   process.exitCode = 1;
 });
