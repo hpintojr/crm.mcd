@@ -4,7 +4,7 @@ Mercury Call Desk applies a conservative global security-header baseline from `n
 
 ## Single source of truth
 
-`next.config.mjs` is the only application source allowed to define the global HTTP security-header baseline.
+`next.config.mjs` is the only application source allowed to define the global HTTP security-header baseline and framework-response disclosure setting.
 
 `middleware.ts` remains responsible only for the existing NextAuth authorization wrapper and route matcher. It must not set response security headers. Keeping authentication middleware free of header mutations prevents a partial or older middleware copy from overriding or drifting away from the global configuration.
 
@@ -26,6 +26,12 @@ The source guard fails if security-header names or `response.headers.set(...)` c
 
 Vercel supplies `Strict-Transport-Security`; Production Smoke verifies that it remains present.
 
+## Framework disclosure
+
+Next.js adds `X-Powered-By: Next.js` by default. `next.config.mjs` sets `poweredByHeader: false`, so application responses do not advertise the framework through that header.
+
+This does not change rendering, routing, caching, authentication, or response bodies. Production Smoke verifies that `X-Powered-By` is absent on the public status endpoint, login surface, and protected login boundaries.
+
 ## Conservative Content Security Policy
 
 The CSP is intentionally limited to directives that are safe for the current Next.js application without requiring nonces or external-domain inventories. It does **not** set `default-src`, `script-src`, `style-src`, `img-src`, or `connect-src`, so it does not alter existing asset loading or server/API behavior.
@@ -34,7 +40,7 @@ Do not add `unsafe-eval`, wildcard framing, wildcard base URLs, or wildcard form
 
 ## Automated verification
 
-`npm run check:http-security-headers` protects the single-source configuration, authentication-only middleware boundary, documentation, build wiring, and Production Smoke assertions.
+`npm run check:http-security-headers` protects the single-source configuration, authentication-only middleware boundary, framework-header suppression, documentation, build wiring, and Production Smoke assertions.
 
 Production Smoke checks the deployed headers on:
 
@@ -43,8 +49,8 @@ Production Smoke checks the deployed headers on:
 - unauthenticated Project Readiness page/API boundaries;
 - unauthenticated Servicing Preflight page/API boundaries.
 
-A missing or changed header causes the post-deploy smoke to fail.
+A missing, changed, or reintroduced disclosure header causes the post-deploy smoke to fail.
 
 ## Safety boundary
 
-This hardening centralizes existing response-header configuration only. It does not change the NextAuth wrapper, middleware matcher, authentication, authorization rules, application or database state, feature gates, GHL behavior, migrations, Commission/Finance data, payments, or payouts.
+This hardening changes response metadata only. It does not change the NextAuth wrapper, middleware matcher, authentication, authorization rules, application or database state, feature gates, GHL behavior, migrations, Commission/Finance data, payments, or payouts.
