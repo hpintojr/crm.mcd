@@ -31,7 +31,7 @@
     "check:lead-import-concurrency": "tsx scripts/check-lead-import-concurrency.ts",
     "check:lead-import-db-harness": "tsx scripts/check-lead-import-db-harness.ts",
     "check:lead-import-research-provenance": "tsx scripts/check-lead-import-research-provenance.ts",
-    "check:lead-flow-alignment": "tsx scripts/check-lead-flow-alignment.ts && tsx scripts/check-owner-decision-prep-guard.ts && tsx scripts/check-deferred-acceptance-runbook-guard.ts && tsx scripts/check-acceptance-summary-csv-guard.ts && tsx scripts/check-print-runbook-guard.ts && tsx scripts/check-controlled-test-data-history-guard.ts && tsx scripts/check-acceptance-diff-guard.ts && tsx scripts/check-overview-deferred-summary-guard.ts && tsx scripts/check-deployment-verification-guard.ts && tsx scripts/check-deep-links-guard.ts && tsx scripts/check-deep-links-api-guard.ts && tsx scripts/check-deployment-verification-api-guard.ts && tsx scripts/check-controlled-warm-reply-guard.ts && tsx scripts/check-latest-production-commit-guard.ts && tsx scripts/check-appointment-closed-won-guard.ts && tsx scripts/check-commission-payout-migration-guard.ts && tsx scripts/check-project-readiness-guard.ts && tsx scripts/check-servicing-acceptance-preflight-guard.ts && tsx scripts/check-production-smoke-guard.ts && tsx scripts/check-lead-aging-cron-resilience.ts && tsx scripts/check-http-security-headers.ts",
+    "check:lead-flow-alignment": "tsx scripts/check-lead-flow-alignment.ts && tsx scripts/check-owner-decision-prep-guard.ts && tsx scripts/check-deferred-acceptance-runbook-guard.ts && tsx scripts/check-acceptance-summary-csv-guard.ts && tsx scripts/check-print-runbook-guard.ts && tsx scripts/check-controlled-test-data-history-guard.ts && tsx scripts/check-acceptance-diff-guard.ts && tsx scripts/check-overview-deferred-summary-guard.ts && tsx scripts/check-deployment-verification-guard.ts && tsx scripts/check-deep-links-guard.ts && tsx scripts/check-deep-links-api-guard.ts && tsx scripts/check-deployment-verification-api-guard.ts && tsx scripts/check-controlled-warm-reply-guard.ts && tsx scripts/check-latest-production-commit-guard.ts && tsx scripts/check-appointment-closed-won-guard.ts && tsx scripts/check-commission-payout-migration-guard.ts && tsx scripts/check-project-readiness-guard.ts && tsx scripts/check-servicing-acceptance-preflight-guard.ts && tsx scripts/check-production-smoke-guard.ts && tsx scripts/check-lead-aging-cron-resilience.ts && tsx scripts/check-http-security-headers.ts && tsx scripts/check-auth-telemetry-hygiene.ts",
     "check:controlled-warm-reply-guard": "tsx scripts/check-controlled-warm-reply-guard.ts",
     "check:latest-production-commit-guard": "tsx scripts/check-latest-production-commit-guard.ts",
     "check:appointment-closed-won-guard": "tsx scripts/check-appointment-closed-won-guard.ts",
@@ -40,7 +40,8 @@
     "check:servicing-acceptance-preflight-guard": "tsx scripts/check-servicing-acceptance-preflight-guard.ts",
     "check:production-smoke-guard": "tsx scripts/check-production-smoke-guard.ts",
     "check:lead-aging-cron-resilience": "tsx scripts/check-lead-aging-cron-resilience.ts",
-    "check:http-security-headers": "tsx scripts/check-http-security-headers.ts"
+    "check:http-security-headers": "tsx scripts/check-http-security-headers.ts",
+    "check:auth-telemetry-hygiene": "tsx scripts/check-auth-telemetry-hygiene.ts"
   },
   "dependencies": {
     "@node-rs/argon2": "^2.0.2",
