@@ -1,4 +1,5 @@
-import { NextResponse } from "next/server";
+import { NextRequest } from "next/server";
+import { authenticatedCsvDownload, authenticatedRequestId } from "@/lib/authenticated-json-boundary";
 import { requireRole } from "@/lib/authz";
 import { db } from "@/lib/db";
 
@@ -11,7 +12,8 @@ function escapeCsv(value: unknown) {
 
 export const dynamic = "force-dynamic";
 
-export async function GET() {
+export async function GET(request: NextRequest) {
+  const requestId = authenticatedRequestId(request);
   const actor = await requireRole([...ADMIN_ROLES]);
   const entries = await db.auditLog.findMany({ orderBy: { createdAt: "desc" }, take: 10_000 });
   const lines = [
@@ -37,11 +39,9 @@ export async function GET() {
       metadata: { rows: entries.length },
     },
   });
-  return new NextResponse(lines.join("\n"), {
-    headers: {
-      "Content-Type": "text/csv; charset=utf-8",
-      "Content-Disposition": `attachment; filename="mcd-audit-${new Date().toISOString().slice(0, 10)}.csv"`,
-      "Cache-Control": "no-store",
-    },
-  });
+  return authenticatedCsvDownload(
+    lines.join("\n"),
+    `mcd-audit-${new Date().toISOString().slice(0, 10)}.csv`,
+    requestId,
+  );
 }
