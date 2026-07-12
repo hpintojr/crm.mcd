@@ -13,8 +13,11 @@ import {
 } from "@/lib/transient-database-retry";
 
 export const dynamic = "force-dynamic";
+export const maxDuration = 90;
 
-const DATABASE_PROBE_MAX_ATTEMPTS = 3;
+const DATABASE_PROBE_MAX_ATTEMPTS = 5;
+const DATABASE_PROBE_INITIAL_DELAY_MS = 1_000;
+const DATABASE_PROBE_MAX_DELAY_MS = 8_000;
 const RETRY_AFTER_SECONDS = 60;
 
 type FailurePhase = "database-readiness" | "sweep";
@@ -85,8 +88,8 @@ export async function GET(request: NextRequest) {
       () => db.$queryRaw<Array<{ ready: number }>>(Prisma.sql`SELECT 1 AS "ready"`),
       {
         maxAttempts: DATABASE_PROBE_MAX_ATTEMPTS,
-        initialDelayMs: 250,
-        maxDelayMs: 1_000,
+        initialDelayMs: DATABASE_PROBE_INITIAL_DELAY_MS,
+        maxDelayMs: DATABASE_PROBE_MAX_DELAY_MS,
         onRetry: ({ attempt, nextAttempt, delayMs, error }) => {
           console.warn(
             "[lead-aging-cron] database readiness retry",
