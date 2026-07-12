@@ -1,15 +1,19 @@
 import { Prisma } from "@prisma/client";
-import { NextRequest, NextResponse } from "next/server";
+import { NextRequest } from "next/server";
 import { z } from "zod";
 import { createActivation } from "@/lib/activation";
 import { db } from "@/lib/db";
 import { activationEmail } from "@/lib/emails/activation-email";
 import {
   finishInboundEvent,
+  ghlWebhookJson,
+  logGhlWebhookRuntimeFailure,
   logIntegrationError,
+  prepareGhlWebhookRequest,
   recordInboundEvent,
   requestIp,
-  verifyGhlWebhook,
+  sanitizedGhlWebhookFailure,
+  verifyGhlWebhookLocation,
 } from "@/lib/ghl-webhook";
 import { sendMail } from "@/lib/mail";
 
@@ -35,29 +39,24 @@ function docType(value: z.infer<typeof webhookSchema>["document_type"]) {
 }
 
 export async function POST(request: NextRequest) {
-  let raw: unknown;
-  try {
-    raw = await request.json();
-  } catch {
-    return NextResponse.json({ error: "Invalid JSON." }, { status: 400 });
-  }
+  const prepared = await prepareGhlWebhookRequest(request);
+  if (!prepared.ok) return prepared.response;
+  const { raw, requestId } = prepared;
 
   const parsed = webhookSchema.safeParse(raw);
-  if (!parsed.success) {
-    return NextResponse.json({ error: "Invalid webhook payload." }, { status: 422 });
-  }
+  if (!parsed.success) return ghlWebhookJson({ error: "Invalid webhook payload." }, 422, requestId);
   const payload = parsed.data;
-  const verified = verifyGhlWebhook(request, payload.location_id);
+  const verified = verifyGhlWebhookLocation(payload.location_id);
   if (!verified.ok) {
     if (verified.status === 202) {
       await logIntegrationError({
         source: "ghl.documents",
         refId: payload.ghl_event_id,
         message: verified.message,
-        payload: raw as Prisma.InputJsonValue,
-      });
+        payload: { requestId, locationId: payload.location_id },
+      }).catch(() => undefined);
     }
-    return NextResponse.json({ error: verified.message }, { status: verified.status });
+    return ghlWebhookJson({ error: verified.message }, verified.status, requestId);
   }
 
   const recorded = await recordInboundEvent({
@@ -66,12 +65,12 @@ export async function POST(request: NextRequest) {
     type: "documents.completed",
     payload: raw as Prisma.InputJsonValue,
   });
-  if (!recorded.firstTime) return NextResponse.json({ ok: true, duplicate: true });
+  if (!recorded.firstTime) return ghlWebhookJson({ ok: true, duplicate: true }, 200, requestId);
 
   try {
     if (payload.status !== "COMPLETED") {
       await finishInboundEvent(payload.ghl_event_id, "PROCESSED");
-      return NextResponse.json({ ok: true, ignored: true });
+      return ghlWebhookJson({ ok: true, ignored: true }, 200, requestId);
     }
 
     const agent = payload.mini_crm_agent_id
@@ -83,10 +82,10 @@ export async function POST(request: NextRequest) {
         source: "ghl.documents",
         refId: payload.ghl_contact_id ?? payload.mini_crm_agent_id,
         message: "No Mini CRM agent matched the document webhook.",
-        payload: raw as Prisma.InputJsonValue,
+        payload: { requestId, ghlEventId: payload.ghl_event_id },
       });
       await finishInboundEvent(payload.ghl_event_id, "ERROR");
-      return NextResponse.json({ ok: true, unmatched: true }, { status: 202 });
+      return ghlWebhookJson({ ok: true, unmatched: true }, 202, requestId);
     }
 
     const completedAt = payload.completed_at ? new Date(payload.completed_at) : new Date();
@@ -135,13 +134,13 @@ export async function POST(request: NextRequest) {
 
     if (!fourGatesComplete || !agreementCountersigned || current.userId || current.status !== "APPROVED") {
       await finishInboundEvent(payload.ghl_event_id, "PROCESSED");
-      return NextResponse.json({
+      return ghlWebhookJson({
         ok: true,
         provisioned: false,
         gatesComplete: fourGatesComplete,
         countersigned: agreementCountersigned,
         approved: current.status === "APPROVED",
-      });
+      }, 200, requestId);
     }
 
     const existingUser = await db.user.findUnique({ where: { email: current.personalEmail } });
@@ -150,10 +149,10 @@ export async function POST(request: NextRequest) {
         source: "ghl.documents",
         refId: current.id,
         message: "Cannot provision agent: email belongs to a privileged Mini CRM user.",
-        payload: raw as Prisma.InputJsonValue,
+        payload: { requestId, ghlEventId: payload.ghl_event_id },
       });
       await finishInboundEvent(payload.ghl_event_id, "ERROR");
-      return NextResponse.json({ ok: true, conflict: true }, { status: 202 });
+      return ghlWebhookJson({ ok: true, conflict: true }, 202, requestId);
     }
 
     let user = existingUser;
@@ -227,16 +226,19 @@ export async function POST(request: NextRequest) {
 
     // Do not echo the one-time activation URL back in the webhook response body —
     // it's a bearer credential and GHL's webhook delivery log would retain it.
-    return NextResponse.json({ ok: true, provisioned: true, emailDelivered: delivery.ok && !delivery.stub });
+    return ghlWebhookJson({ ok: true, provisioned: true, emailDelivered: delivery.ok && !delivery.stub }, 200, requestId);
   } catch (error) {
-    const message = error instanceof Error ? error.message : "Unknown webhook processing failure.";
-    await logIntegrationError({
-      source: "ghl.documents",
-      refId: payload.ghl_event_id,
-      message,
-      payload: raw as Prisma.InputJsonValue,
-    });
-    await finishInboundEvent(payload.ghl_event_id, "ERROR").catch(() => undefined);
-    return NextResponse.json({ error: "Webhook processing failed." }, { status: 500 });
+    const failure = sanitizedGhlWebhookFailure(error);
+    logGhlWebhookRuntimeFailure({ source: "ghl.documents", requestId, refId: payload.ghl_event_id, error });
+    await Promise.allSettled([
+      finishInboundEvent(payload.ghl_event_id, "ERROR"),
+      logIntegrationError({
+        source: "ghl.documents",
+        refId: payload.ghl_event_id,
+        message: "GHL document webhook processing failed.",
+        payload: { requestId, ...failure },
+      }),
+    ]);
+    return ghlWebhookJson({ error: "Webhook processing failed." }, 500, requestId);
   }
 }
