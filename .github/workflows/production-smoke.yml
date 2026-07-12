@@ -1,0 +1,43 @@
+name: Production Smoke
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+  schedule:
+    - cron: "17 */6 * * *"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: production-smoke-main
+  cancel-in-progress: true
+
+jobs:
+  smoke:
+    name: Deployment and auth boundaries
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+
+    steps:
+      - name: Check out source
+        uses: actions/checkout@v4
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 24
+
+      - name: Install smoke runner dependencies
+        run: npm install --ignore-scripts --no-audit --no-fund
+
+      - name: Wait for and verify production
+        run: npm run smoke:production
+        env:
+          PRODUCTION_BASE_URL: https://crm.mercurycalldesk.com
+          EXPECTED_COMMIT_SHA: ${{ github.sha }}
+          SMOKE_MAX_ATTEMPTS: "30"
+          SMOKE_RETRY_SECONDS: "15"
+          SMOKE_REQUEST_TIMEOUT_MS: "15000"
