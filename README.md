@@ -8,6 +8,7 @@ Secure Admin and Agent portals for Mercury Call Desk. GoHighLevel (GHL) is a bac
 - [Workspace](./docs/WORKSPACE.md) — current implementation inventory, gates, operational paths, and test plan.
 - [Lead MVP Rollout Status](./docs/LEAD_MVP_ROLLOUT_STATUS.md) — Lead, GHL relay, and servicing handoff status.
 - [Lead MVP Acceptance Test](./docs/LEAD_MVP_ACCEPTANCE_TEST.md) — owner-controlled test sequence.
+- [Production Smoke](./docs/PRODUCTION_SMOKE.md) — deployed-SHA, status, login, and protected-boundary verification.
 - [Documentation Index](./docs/INDEX.md)
 - [Working Instructions](./CLAUDE.md)
 
@@ -15,6 +16,7 @@ Secure Admin and Agent portals for Mercury Call Desk. GoHighLevel (GHL) is a bac
 
 - `main` is the production source branch.
 - Vercel deploys changes from `main` to `https://crm.mercurycalldesk.com`.
+- The read-only Production Smoke workflow waits for the exact merged SHA, validates `/api/status`, and verifies login/protected-route boundaries after each `main` push and every six hours.
 - Production environment values live in Vercel only; never commit credentials.
 - Neon schema changes use a disposable safety branch before an explicit production apply.
 - Do not enable a database-backed feature until its schema, production build, and controlled live test are complete.
@@ -80,6 +82,8 @@ Secure Admin and Agent portals for Mercury Call Desk. GoHighLevel (GHL) is a bac
 
 - Lead, Servicing, and Commission acceptance boards record Pass, Fail, or Deferred evidence with admin identity, note, and timestamp.
 - `/admin/project-readiness` combines deployment metadata, feature gates, latest acceptance outcomes, integration health, Client/Service schema state, and Commission migration state.
+- `/admin/servicing/acceptance-command-center` provides an aggregate-only preflight before any owner-authorized Servicing window.
+- Production Smoke validates the deployed `main` SHA, public status contract, login surface, and unauthenticated protection of readiness pages and APIs.
 - Readiness Board summarizes operational queues and acceptance evidence.
 - Audit History surfaces rollout evidence separately from the general event stream.
 - Integration Monitor includes active errors, resolution notes, setup references, and a short-term resolved-history view.
@@ -91,7 +95,7 @@ Secure Admin and Agent portals for Mercury Call Desk. GoHighLevel (GHL) is a bac
 | Leads | `LEADS_ENABLED` | 18/18 acceptance steps PASS and owner production decision recorded; monitor normal operations and keep external workflow/configuration changes separately controlled |
 | GHL appointment relay | uses Lead workflow | Built, guarded against reopening Closed Won, and covered by controlled testing |
 | GHL opportunity relay | uses Lead workflow | Code and controlled harness deployed; live external GHL workflow configuration remains owner-controlled |
-| GHL inbound reply relay | uses Lead workflow | Code and controlled warm-reply path deployed; live external GHL workflow configuration remains owner-controlled |
+| GHL inbound reply relay | uses Lead workflow | Code and controlled warm-reply path deployed; live external workflow configuration remains owner-controlled |
 | Client Servicing | `SERVICING_ENABLED` | Workflow and production Client/Service schema present; gate remains locked pending separately authorized acceptance |
 | Commissions | `COMMISSIONS_ENABLED` | Application workflow and corrected migration staged; production Commission/Payout schema remains unapplied and gate locked |
 | Finance | `FINANCE_ENABLED` | Readiness-only boundary; no payout execution or money movement |
@@ -121,8 +125,9 @@ Secure Admin and Agent portals for Mercury Call Desk. GoHighLevel (GHL) is a bac
 ## Immediate next sequence
 
 1. Use `/admin/project-readiness` as the source-derived preflight before any module decision.
-2. Monitor normal Lead Flow and unresolved Integration Monitor items; keep live external GHL workflow/configuration changes separately controlled.
-3. Open a Client Servicing acceptance window only after explicit owner authorization; do not change `SERVICING_ENABLED` as part of ordinary code work.
-4. Apply the PR #100 Commission migration only after a new explicit Hamilton authorization and a fresh production-apply plan; migration apply and feature activation must remain separate decisions.
-5. Run controlled Commission acceptance only after production schema approval; keep Finance locked and readiness-only.
-6. Continue platform hardening separately: preview/production secret isolation, least-privilege database access/RLS decision, structured error tracking, authenticated login smoke coverage, and scaling/backups review.
+2. Treat Production Smoke as the automatic post-deploy baseline and investigate any failed SHA, status, login, or protected-boundary check before considering a release healthy.
+3. Monitor normal Lead Flow and unresolved Integration Monitor items; keep live external GHL workflow/configuration changes separately controlled.
+4. Open a Client Servicing acceptance window only after explicit owner authorization; do not change `SERVICING_ENABLED` as part of ordinary code work.
+5. Apply the PR #100 Commission migration only after a new explicit Hamilton authorization and a fresh production-apply plan; migration apply and feature activation must remain separate decisions.
+6. Run controlled Commission acceptance only after production schema approval; keep Finance locked and readiness-only.
+7. Continue platform hardening separately: preview/production secret isolation, least-privilege database access/RLS decision, structured error tracking, authenticated-session E2E smoke coverage, and scaling/backups review.
