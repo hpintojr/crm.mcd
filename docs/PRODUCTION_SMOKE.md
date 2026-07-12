@@ -4,17 +4,18 @@ The `Production Smoke` GitHub Actions workflow verifies the deployed production 
 
 ## What it checks
 
-1. `https://crm.mercurycalldesk.com/api/status` returns HTTP 200 JSON with:
+1. `https://crm.mercurycalldesk.com/api/status` returns HTTP 200 JSON with the minimal public deployment identity required for release verification:
    - `ok: true`;
    - service `crm-mcd`;
    - environment `production`;
    - branch `main`;
    - a valid 40-character commit SHA;
-   - deployment URL and region;
-   - `Cache-Control: no-store`.
-2. For a `main` push, the runner polls until production reports the exact GitHub commit that triggered the workflow.
-3. `/login` returns the branded Mercury Call Desk sign-in surface and remains `noindex, nofollow`.
-4. `/api/status`, `/login`, and protected login-boundary responses include the required HTTP security headers:
+   - `Cache-Control: no-store`;
+   - `X-Robots-Tag: noindex, nofollow, noarchive`.
+2. The public status payload does **not** expose commit messages, deployment hostnames, regions, per-request timestamps, credentials, database details, protected records, or feature configuration.
+3. For a `main` push, the runner polls until production reports the exact GitHub commit that triggered the workflow.
+4. `/login` returns the branded Mercury Call Desk sign-in surface and remains `noindex, nofollow`.
+5. `/api/status`, `/login`, and protected login-boundary responses include the required HTTP security headers:
    - conservative CSP base/form/frame/object directives;
    - MIME sniffing prevention;
    - anti-framing;
@@ -23,7 +24,7 @@ The `Production Smoke` GitHub Actions workflow verifies the deployed production 
    - opener isolation compatible with legitimate popups;
    - DNS-prefetch, legacy cross-domain policy, and legacy download protections;
    - platform HSTS.
-5. Unauthenticated requests to these protected routes resolve to `/login` and do not expose their protected markers:
+6. Unauthenticated requests to these protected routes resolve to `/login` and do not expose their protected markers:
    - `/admin/project-readiness`;
    - `/api/admin/project-readiness`;
    - `/admin/servicing/acceptance-command-center`;
@@ -59,4 +60,4 @@ A failure means at least one of these contracts changed or production did not co
 
 ## Safety boundary
 
-The smoke runner does not authenticate, submit credentials, call a server action, or access protected data. It does not mutate Leads, Client Accounts, Service Cases, audit records, feature flags, GHL workflows, Commission or Finance state, payment providers, or payouts. It uses GET requests only and validates the public deployment and unauthenticated security boundary.
+The smoke runner does not authenticate, submit credentials, call a server action, or access protected data. It does not mutate Leads, Client Accounts, Service Cases, audit records, feature flags, GHL workflows, Commission or Finance state, payment providers, or payouts. It uses GET requests only and validates the minimal public deployment identity and unauthenticated security boundary.
