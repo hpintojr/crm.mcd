@@ -31,10 +31,11 @@ const guards: [string, string][] = [
   ["src/app/admin/leads/deep-links/page.tsx", "/api/status"],
   ["src/app/admin/leads/deep-links/page.tsx", "/api/admin/leads/deep-links"],
   ["src/app/admin/leads/deep-links/page.tsx", "/api/admin/leads/deployment-verification"],
-  ["src/app/api/admin/leads/deep-links/route.ts", "NextResponse.json"],
+  ["src/app/api/admin/leads/deep-links/route.ts", "authenticatedRequestId(request)"],
+  ["src/app/api/admin/leads/deep-links/route.ts", "authenticatedJson"],
   ["src/app/api/admin/leads/deep-links/route.ts", "requireRole(ADMIN_ROLES)"],
   ["src/app/api/admin/leads/deep-links/route.ts", "getLeadAcceptanceDeepLinks"],
-  ["src/app/api/admin/leads/deep-links/route.ts", "Cache-Control"],
+  ["src/app/api/admin/leads/deep-links/route.ts", "viewedBy: { role: actor.role }"],
   ["src/lib/lead-deployment-verification.ts", "Deep links API guard passed."],
   ["scripts/check-deployment-verification-guard.ts", "Deep links API guard passed."],
   ["package.json", "check-deep-links-api-guard.ts"],
@@ -43,6 +44,13 @@ const guards: [string, string][] = [
 
 for (const [path, expected] of guards) {
   assertContains(path, expected);
+}
+
+const route = readFileSync("src/app/api/admin/leads/deep-links/route.ts", "utf8");
+for (const forbidden of ["NextResponse.json", "viewedBy: { id:", "actor.id", "actor.email", "request.json()", "request.text()"]) {
+  if (route.includes(forbidden)) {
+    throw new Error(`Deep-links API contains forbidden response or identity behavior: ${forbidden}`);
+  }
 }
 
 console.log("Deep links API guard passed.");
