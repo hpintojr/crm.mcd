@@ -1,7 +1,16 @@
 import { Prisma } from "@prisma/client";
-import { NextRequest, NextResponse } from "next/server";
+import { NextRequest } from "next/server";
 import { z } from "zod";
-import { finishInboundEvent, logIntegrationError, requestIp, verifyGhlWebhook } from "@/lib/ghl-webhook";
+import {
+  finishInboundEvent,
+  ghlWebhookJson,
+  logGhlWebhookRuntimeFailure,
+  logIntegrationError,
+  prepareGhlWebhookRequest,
+  requestIp,
+  sanitizedGhlWebhookFailure,
+  verifyGhlWebhookLocation,
+} from "@/lib/ghl-webhook";
 import { relayGhlInboundReply } from "@/lib/ghl-inbound-reply-relay";
 
 const optionalText = (max: number) => z.preprocess((value) => typeof value === "string" && !value.trim() ? undefined : value, z.string().trim().max(max).optional());
@@ -22,12 +31,15 @@ const schema = z.object({
 });
 
 export async function POST(request: NextRequest) {
-  const raw: unknown = await request.json().catch(() => null);
+  const prepared = await prepareGhlWebhookRequest(request);
+  if (!prepared.ok) return prepared.response;
+  const { raw, requestId } = prepared;
+
   const parsed = schema.safeParse(raw);
-  if (!parsed.success) return NextResponse.json({ error: "Invalid inbound reply webhook payload." }, { status: 422 });
+  if (!parsed.success) return ghlWebhookJson({ error: "Invalid inbound reply webhook payload." }, 422, requestId);
   const payload = parsed.data;
-  const verified = verifyGhlWebhook(request, payload.location_id);
-  if (!verified.ok) return NextResponse.json({ error: verified.message }, { status: verified.status });
+  const verified = verifyGhlWebhookLocation(payload.location_id);
+  if (!verified.ok) return ghlWebhookJson({ error: verified.message }, verified.status, requestId);
 
   try {
     const result = await relayGhlInboundReply({
@@ -43,12 +55,21 @@ export async function POST(request: NextRequest) {
       rawPayload: raw as Prisma.InputJsonValue,
       ipAddress: requestIp(request),
     });
-    if (result.duplicate) return NextResponse.json({ ok: true, duplicate: true });
+    if (result.duplicate) return ghlWebhookJson({ ok: true, duplicate: true }, 200, requestId);
     await finishInboundEvent(payload.ghl_event_id, "PROCESSED");
-    return NextResponse.json({ ok: true, relayed: true, leadMatched: result.leadMatched, leadGated: result.leadGated, leadIgnored: result.leadIgnored, callbackCreated: result.callbackCreated, callbackExpedited: result.callbackExpedited });
+    return ghlWebhookJson({ ok: true, relayed: true, leadMatched: result.leadMatched, leadGated: result.leadGated, leadIgnored: result.leadIgnored, callbackCreated: result.callbackCreated, callbackExpedited: result.callbackExpedited }, 200, requestId);
   } catch (error) {
-    await finishInboundEvent(payload.ghl_event_id, "ERROR").catch(() => undefined);
-    await logIntegrationError({ source: "ghl.replies", refId: payload.ghl_event_id, message: error instanceof Error ? error.message : "Inbound reply webhook processing failed.", payload: raw as Prisma.InputJsonValue });
-    return NextResponse.json({ error: "Inbound reply webhook processing failed." }, { status: 500 });
+    const failure = sanitizedGhlWebhookFailure(error);
+    logGhlWebhookRuntimeFailure({ source: "ghl.replies", requestId, refId: payload.ghl_event_id, error });
+    await Promise.allSettled([
+      finishInboundEvent(payload.ghl_event_id, "ERROR"),
+      logIntegrationError({
+        source: "ghl.replies",
+        refId: payload.ghl_event_id,
+        message: "GHL inbound reply webhook processing failed.",
+        payload: { requestId, ...failure },
+      }),
+    ]);
+    return ghlWebhookJson({ error: "Inbound reply webhook processing failed." }, 500, requestId);
   }
 }
