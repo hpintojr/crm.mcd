@@ -1,7 +1,17 @@
-import { NextRequest, NextResponse } from "next/server";
+import { NextRequest } from "next/server";
 import { z } from "zod";
 import { db } from "@/lib/db";
-import { finishInboundEvent, logIntegrationError, recordInboundEvent, requestIp, verifyGhlWebhook } from "@/lib/ghl-webhook";
+import {
+  finishInboundEvent,
+  ghlWebhookJson,
+  logGhlWebhookRuntimeFailure,
+  logIntegrationError,
+  prepareGhlWebhookRequest,
+  recordInboundEvent,
+  requestIp,
+  sanitizedGhlWebhookFailure,
+  verifyGhlWebhookLocation,
+} from "@/lib/ghl-webhook";
 import { parseGhlAppointmentDate } from "@/lib/ghl-appointment-time";
 import { attributeAppointmentToLead } from "@/lib/lead-appointment-attribution";
 
@@ -34,16 +44,19 @@ function appointmentStatus(type: z.infer<typeof payloadSchema>["event_type"]) {
 }
 
 export async function POST(request: NextRequest) {
-  const raw: unknown = await request.json().catch(() => null);
+  const prepared = await prepareGhlWebhookRequest(request);
+  if (!prepared.ok) return prepared.response;
+  const { raw, requestId } = prepared;
+
   const parsed = payloadSchema.safeParse(raw);
-  if (!parsed.success) return NextResponse.json({ error: "Invalid appointment webhook payload." }, { status: 422 });
+  if (!parsed.success) return ghlWebhookJson({ error: "Invalid appointment webhook payload." }, 422, requestId);
   const payload = parsed.data;
-  const verified = verifyGhlWebhook(request, payload.location_id);
-  if (!verified.ok) return NextResponse.json({ error: verified.message }, { status: verified.status });
+  const verified = verifyGhlWebhookLocation(payload.location_id);
+  if (!verified.ok) return ghlWebhookJson({ error: verified.message }, verified.status, requestId);
 
   try {
     const event = await recordInboundEvent({ ghlEventId: payload.ghl_event_id, locationId: payload.location_id, type: "appointments.changed", payload: raw as object });
-    if (!event.firstTime) return NextResponse.json({ ok: true, duplicate: true });
+    if (!event.firstTime) return ghlWebhookJson({ ok: true, duplicate: true }, 200, requestId);
     const agent = payload.ghl_agent_user_id ? await db.agent.findFirst({ where: { ghlUserId: payload.ghl_agent_user_id } }) : null;
     const startAt = parseGhlAppointmentDate(payload.starts_at, "starts_at", payload.timezone);
     const endAt = payload.ends_at ? parseGhlAppointmentDate(payload.ends_at, "ends_at", payload.timezone) : null;
@@ -57,13 +70,19 @@ export async function POST(request: NextRequest) {
       db.auditLog.create({ data: { actionType: "GHL_APPOINTMENT_RELAYED", entityType: "Appointment", entityId: appointment.id, ipAddress: requestIp(request), metadata: { leadMatched: leadAttribution.matched, leadGated: leadAttribution.gated, leadIgnored: leadAttribution.ignored, callbackCreated: leadAttribution.callbackCreated, callbackExpedited: leadAttribution.callbackExpedited, preservedClosedWon: leadAttribution.preservedClosedWon } } }),
       db.webhookEvent.update({ where: { ghlEventId: payload.ghl_event_id }, data: { status: "PROCESSED", processedAt: new Date() } }),
     ]);
-    return NextResponse.json({ ok: true, relayed: true, appointmentId: appointment.id, agentMatched: Boolean(agent), leadMatched: leadAttribution.matched, leadGated: leadAttribution.gated, leadIgnored: leadAttribution.ignored, callbackCreated: leadAttribution.callbackCreated, callbackExpedited: leadAttribution.callbackExpedited });
+    return ghlWebhookJson({ ok: true, relayed: true, appointmentId: appointment.id, agentMatched: Boolean(agent), leadMatched: leadAttribution.matched, leadGated: leadAttribution.gated, leadIgnored: leadAttribution.ignored, callbackCreated: leadAttribution.callbackCreated, callbackExpedited: leadAttribution.callbackExpedited }, 200, requestId);
   } catch (error) {
-    const message = error instanceof Error ? error.message : "Appointment webhook processing failed.";
+    const failure = sanitizedGhlWebhookFailure(error);
+    logGhlWebhookRuntimeFailure({ source: "ghl.appointments", requestId, refId: payload.ghl_event_id, error });
     await Promise.allSettled([
       finishInboundEvent(payload.ghl_event_id, "ERROR"),
-      logIntegrationError({ source: "ghl.appointments", refId: payload.ghl_event_id, message }),
+      logIntegrationError({
+        source: "ghl.appointments",
+        refId: payload.ghl_event_id,
+        message: "GHL appointment webhook processing failed.",
+        payload: { requestId, ...failure },
+      }),
     ]);
-    return NextResponse.json({ error: message }, { status: 500 });
+    return ghlWebhookJson({ error: "Appointment webhook processing failed." }, 500, requestId);
   }
 }
