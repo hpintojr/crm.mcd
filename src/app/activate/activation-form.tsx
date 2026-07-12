@@ -1,6 +1,6 @@
 "use client";
 
-import { FormEvent, useState } from "react";
+import { FormEvent, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 
 type SetupData = {
@@ -17,10 +17,16 @@ export function ActivationForm({ token }: { token: string }) {
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
 
+  useEffect(() => {
+    window.history.replaceState(null, "", "/activate");
+  }, []);
+
   async function post(payload: Record<string, string>) {
     const response = await fetch("/api/activate", {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      cache: "no-store",
+      referrerPolicy: "no-referrer",
+      headers: { "Content-Type": "application/json", Accept: "application/json" },
       body: JSON.stringify(payload),
     });
     const data = (await response.json()) as Record<string, string | boolean>;
@@ -56,6 +62,9 @@ export function ActivationForm({ token }: { token: string }) {
         totpSecret: setup.totpSecret,
         totp: code,
       });
+      setPassword("");
+      setConfirmPassword("");
+      setCode("");
       router.replace("/login");
       router.refresh();
     } catch (caught) {
@@ -73,7 +82,7 @@ export function ActivationForm({ token }: { token: string }) {
           <img className="mx-auto h-52 w-52" src={setup.qrDataUrl} alt="Authenticator app setup QR code" />
           <p className="mt-3 text-sm text-gray-400">Scan this code, then enter the six-digit code from your authenticator app.</p>
         </div>
-        <Field label="Authentication code" name="totp" value={code} onChange={setCode} inputMode="numeric" maxLength={6} />
+        <Field label="Authentication code" name="totp" value={code} onChange={setCode} inputMode="numeric" maxLength={6} autoComplete="one-time-code" />
         <button className="w-full rounded-lg bg-brand-500 px-6 py-3 font-medium text-ink-950 transition hover:bg-brand-400 disabled:opacity-60" disabled={submitting} type="submit">
           {submitting ? "Activating…" : "Complete activation"}
         </button>

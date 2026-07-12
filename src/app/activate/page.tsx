@@ -1,6 +1,14 @@
+import type { Metadata } from "next";
 import { db } from "@/lib/db";
 import { hashToken } from "@/lib/password";
 import { ActivationForm } from "./activation-form";
+
+export const dynamic = "force-dynamic";
+
+export const metadata: Metadata = {
+  robots: { index: false, follow: false, noarchive: true },
+  referrer: "no-referrer",
+};
 
 type ActivatePageProps = {
   searchParams: Promise<{ token?: string }>;
@@ -8,19 +16,20 @@ type ActivatePageProps = {
 
 export default async function ActivatePage({ searchParams }: ActivatePageProps) {
   const { token } = await searchParams;
-  const activation = token
+  const rawToken = token?.trim();
+  const activation = rawToken && rawToken.length <= 512
     ? await db.activationToken.findFirst({
         where: {
-          tokenHash: hashToken(token),
+          tokenHash: hashToken(rawToken),
           purpose: "ACTIVATION",
           usedAt: null,
           expiresAt: { gt: new Date() },
         },
-        include: { user: { select: { email: true } } },
+        include: { user: { select: { email: true, status: true } } },
       })
     : null;
 
-  if (!token || !activation) {
+  if (!rawToken || !activation || activation.user.status === "DISABLED") {
     return (
       <main className="mx-auto flex min-h-screen max-w-lg items-center px-6 py-16">
         <div className="w-full rounded-2xl border border-red-800 bg-ink-900 p-8 text-center">
@@ -41,7 +50,7 @@ export default async function ActivatePage({ searchParams }: ActivatePageProps) 
         <p className="mt-2 text-sm text-gray-400">
           Create your password and connect an authenticator app for {activation.user.email}.
         </p>
-        <ActivationForm token={token} />
+        <ActivationForm token={rawToken} />
       </div>
     </main>
   );
