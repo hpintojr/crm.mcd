@@ -1,22 +1,47 @@
 import "server-only";
 
+import { randomUUID } from "node:crypto";
 import { NextResponse } from "next/server";
 import { verifyLeadImportTransportRequest } from "@/lib/lead-import-request-verifier";
 import {
   LeadImportConfigurationError,
   requireLeadImportHmacConfig,
 } from "@/lib/lead-import-env";
+import { leadImportHeaderNames } from "@/lib/lead-import-http";
 
 const MAX_LEAD_IMPORT_BODY_BYTES = 1_000_000;
+const MAX_LEAD_IMPORT_REQUEST_ID_LENGTH = 128;
+const LEAD_IMPORT_REQUEST_ID_PATTERN = /^[A-Za-z0-9._:-]+$/;
 
 export type LeadImportGuardResult =
-  | { ok: true; body: unknown }
+  | { ok: true; body: unknown; requestId: string }
   | { ok: false; response: NextResponse };
 
-function payloadTooLargeResponse() {
-  return NextResponse.json(
+export function leadImportRequestId(request: Request) {
+  const supplied = request.headers.get(leadImportHeaderNames.requestId)?.trim();
+  return supplied &&
+    supplied.length <= MAX_LEAD_IMPORT_REQUEST_ID_LENGTH &&
+    LEAD_IMPORT_REQUEST_ID_PATTERN.test(supplied)
+    ? supplied
+    : randomUUID();
+}
+
+export function leadImportJson(body: unknown, status: number, requestId: string) {
+  return NextResponse.json(body, {
+    status,
+    headers: {
+      "Cache-Control": "no-store, max-age=0",
+      "X-Request-Id": requestId,
+      "X-Robots-Tag": "noindex, nofollow, noarchive",
+    },
+  });
+}
+
+function payloadTooLargeResponse(requestId: string) {
+  return leadImportJson(
     { error: "LEAD_IMPORT_PAYLOAD_TOO_LARGE", message: "Lead-import payload exceeds the allowed size." },
-    { status: 413 }
+    413,
+    requestId,
   );
 }
 
@@ -34,14 +59,10 @@ function declaredContentLength(headers: Headers) {
  * touches the database.
  */
 export async function guardLeadImportRequest(request: Request, path: string): Promise<LeadImportGuardResult> {
+  const requestId = leadImportRequestId(request);
   const declaredLength = declaredContentLength(request.headers);
   if (declaredLength !== null && declaredLength > MAX_LEAD_IMPORT_BODY_BYTES) {
-    return { ok: false, response: payloadTooLargeResponse() };
-  }
-
-  const bodyText = await request.text();
-  if (new TextEncoder().encode(bodyText).byteLength > MAX_LEAD_IMPORT_BODY_BYTES) {
-    return { ok: false, response: payloadTooLargeResponse() };
+    return { ok: false, response: payloadTooLargeResponse(requestId) };
   }
 
   let secret: string;
@@ -54,13 +75,32 @@ export async function guardLeadImportRequest(request: Request, path: string): Pr
     if (error instanceof LeadImportConfigurationError) {
       return {
         ok: false,
-        response: NextResponse.json(
+        response: leadImportJson(
           { error: "LEAD_IMPORT_UNAVAILABLE", message: "Lead-import service is not configured." },
-          { status: 503 }
+          503,
+          requestId,
         ),
       };
     }
     throw error;
+  }
+
+  let bodyText: string;
+  try {
+    bodyText = await request.text();
+  } catch {
+    return {
+      ok: false,
+      response: leadImportJson(
+        { error: "LEAD_IMPORT_BODY_READ_ERROR", message: "Unable to read lead-import request body." },
+        400,
+        requestId,
+      ),
+    };
+  }
+
+  if (new TextEncoder().encode(bodyText).byteLength > MAX_LEAD_IMPORT_BODY_BYTES) {
+    return { ok: false, response: payloadTooLargeResponse(requestId) };
   }
 
   const verification = verifyLeadImportTransportRequest({
@@ -75,9 +115,10 @@ export async function guardLeadImportRequest(request: Request, path: string): Pr
   if (!verification.ok) {
     return {
       ok: false,
-      response: NextResponse.json(
+      response: leadImportJson(
         { error: verification.response.code, message: verification.response.message },
-        { status: verification.response.status }
+        verification.response.status,
+        requestId,
       ),
     };
   }
@@ -85,23 +126,25 @@ export async function guardLeadImportRequest(request: Request, path: string): Pr
   if (verification.auth.keyId !== expectedKeyId) {
     return {
       ok: false,
-      response: NextResponse.json(
+      response: leadImportJson(
         { error: "LEAD_IMPORT_UNAUTHORIZED", message: "Unknown lead-import key id." },
-        { status: 401 }
+        401,
+        requestId,
       ),
     };
   }
 
-  if (bodyText.trim().length === 0) return { ok: true, body: {} };
+  if (bodyText.trim().length === 0) return { ok: true, body: {}, requestId };
 
   try {
-    return { ok: true, body: JSON.parse(bodyText) };
+    return { ok: true, body: JSON.parse(bodyText), requestId };
   } catch {
     return {
       ok: false,
-      response: NextResponse.json(
+      response: leadImportJson(
         { error: "LEAD_IMPORT_INVALID_JSON", message: "Request body must be valid JSON." },
-        { status: 400 }
+        400,
+        requestId,
       ),
     };
   }
