@@ -29,7 +29,7 @@ export default async function OperatingStatusPage() {
       status: state(features.leads),
       detail:
         "The 18-step production acceptance runbook is complete and the owner production decision is recorded PASS. Cold Lead activity-first calling, two-way-contact claim controls, DNC, aging, controlled GHL simulations, and deployment verification are deployed through PR #100.",
-      next: "Monitor normal Lead Flow operations and Integration Monitor. Keep live external GHL workflow changes and new import/export runs separately controlled.",
+      next: "Use the command center as the starting point for monitoring normal Lead Flow and Integration Monitor. Keep live external GHL workflow changes and new import/export runs separately controlled.",
       href: "/admin/leads/testing",
       commandHref: "/admin/leads/acceptance-command-center",
       reportHref: "/admin/leads/acceptance-report",
