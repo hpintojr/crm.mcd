@@ -13,6 +13,7 @@
 - [Production Smoke](./PRODUCTION_SMOKE.md) — automated deployed-SHA, status, login, security-header, and protected-boundary verification.
 - [Lead Aging Cron](./LEAD_AGING_CRON.md) — secured schedule, bounded database readiness retries, failure contracts, and unchanged aging rules.
 - [HTTP Security Headers](./HTTP_SECURITY_HEADERS.md) — global anti-framing, MIME, referrer, browser-permission, and opener policies.
+- [Route Tracing](./ROUTE_TRACING.md) — opt-in server diagnostic progress logs and safe metadata boundaries.
 - [Daily Log](./DAILY_LOG.md)
 
 ## Current operational reference

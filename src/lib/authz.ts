@@ -2,6 +2,7 @@ import "server-only";
 
 import type { User, UserRole } from "@prisma/client";
 import { db } from "@/lib/db";
+import { routeTrace } from "@/lib/route-trace";
 
 export type Role = UserRole;
 
@@ -23,15 +24,15 @@ async function redirectToLogin(path: string): Promise<never> {
 }
 
 export async function requireUser(): Promise<User> {
-  console.info("[route-trace] requireUser: auth start");
+  routeTrace("requireUser: auth start");
   const { auth } = await import("../auth");
   const session = await auth();
   const userId = session?.user?.id;
-  console.info("[route-trace] requireUser: auth finished", { hasUserId: Boolean(userId) });
+  routeTrace("requireUser: auth finished", { hasUserId: Boolean(userId) });
   if (!userId) return redirectToLogin("/login");
 
   const user = await db.user.findUnique({ where: { id: userId } });
-  console.info("[route-trace] requireUser: user lookup finished", { found: Boolean(user), active: user?.status === "ACTIVE" });
+  routeTrace("requireUser: user lookup finished", { found: Boolean(user), active: user?.status === "ACTIVE" });
   if (!user || user.status !== "ACTIVE") return redirectToLogin("/login?e=forbidden");
 
   return user;
@@ -39,7 +40,7 @@ export async function requireUser(): Promise<User> {
 
 export async function requireRole(roles: UserRole[]): Promise<User> {
   const user = await requireUser();
-  console.info("[route-trace] requireRole: evaluated", { allowed: roles.includes(user.role) });
+  routeTrace("requireRole: evaluated", { allowed: roles.includes(user.role) });
   if (!roles.includes(user.role)) return redirectToLogin("/login?e=forbidden");
   return user;
 }
