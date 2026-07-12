@@ -41,8 +41,9 @@ export default async function OperatingStatusPage() {
       status: state(features.servicing),
       detail:
         "The Client/Service tables are present in production and the onboarding, launch, trigger-based case, healthy-account protection, and House-transfer workspaces are built. Normal use remains gated.",
-      next: "Use Project Readiness to confirm schema state, then obtain an explicit owner-authorized controlled Servicing acceptance window before opening the gate.",
+      next: "Use the read-only Servicing command center to confirm schema, gate separation, Lead acceptance, controlled inputs, and aggregate queues; then obtain an explicit owner-authorized test window before opening the gate.",
       href: "/admin/servicing/testing",
+      commandHref: "/admin/servicing/acceptance-command-center",
     },
     {
       name: "Commission Eligibility & Ledger",
