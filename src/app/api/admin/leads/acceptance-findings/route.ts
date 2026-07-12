@@ -1,4 +1,5 @@
-import { NextResponse } from "next/server";
+import { NextRequest } from "next/server";
+import { authenticatedJson, authenticatedRequestId } from "@/lib/authenticated-json-boundary";
 import { ADMIN_ROLES, requireRole } from "@/lib/authz";
 import {
   LEAD_ACCEPTANCE_FINDINGS_CATALOG_VERSION,
@@ -9,19 +10,21 @@ import {
 
 export const dynamic = "force-dynamic";
 
-export async function GET() {
+export async function GET(request: NextRequest) {
+  const requestId = authenticatedRequestId(request);
   const actor = await requireRole(ADMIN_ROLES);
-  return NextResponse.json(
+  return authenticatedJson(
     {
       ok: true,
       catalogVersion: LEAD_ACCEPTANCE_FINDINGS_CATALOG_VERSION,
       latestProductionCommit: LEAD_ACCEPTANCE_FINDINGS_LATEST_PRODUCTION_COMMIT,
       counts: leadAcceptanceFindingCounts(),
       findings: leadAcceptanceFindings,
-      viewedBy: { id: actor.id, role: actor.role },
+      viewedBy: { role: actor.role },
       safetyBoundary:
         "Read-only findings catalog only. Does not mutate Leads, audit records, feature flags, GHL workflows, imports, exports, or business rules.",
     },
-    { headers: { "Cache-Control": "no-store" } },
+    200,
+    requestId,
   );
 }

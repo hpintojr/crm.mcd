@@ -23,6 +23,7 @@
 - [Legacy Admin Lead Import Retirement](./LEGACY_ADMIN_LEAD_IMPORT_RETIREMENT.md) — retired duplicate writer, HTTP 410 contract, and supported guarded preview/commit paths.
 - [Integration Health Control Plane](./INTEGRATION_HEALTH_CONTROL_PLANE.md) — protected aggregate webhook/error health, configuration readiness, privacy contract, and read-failure behavior.
 - [Protected Admin Read Report Boundary](./ADMIN_READ_REPORT_BOUNDARY.md) — shared request-ID/no-store/noindex responses and role-only viewer metadata for operational JSON reports.
+- [Lead Acceptance Report Boundary](./LEAD_ACCEPTANCE_REPORT_BOUNDARY.md) — standardized non-download acceptance JSON responses while preserving report calculations and separate CSV contracts.
 - [Daily Log](./DAILY_LOG.md)
 
 ## Current operational reference
@@ -35,6 +36,17 @@
 - Servicing Acceptance API: `/api/admin/servicing/acceptance-readiness`
 - Lead deployment verification API: `/api/admin/leads/deployment-verification`
 - Controlled test data report API: `/api/admin/leads/controlled-test-data`
+- Lead acceptance findings: `/api/admin/leads/acceptance-findings`
+- Lead acceptance gaps: `/api/admin/leads/acceptance-gaps`
+- Lead acceptance gates: `/api/admin/leads/acceptance-gates`
+- Lead acceptance handoff: `/api/admin/leads/acceptance-handoff`
+- Lead acceptance matrix: `/api/admin/leads/acceptance-matrix`
+- Lead acceptance overview: `/api/admin/leads/acceptance-overview`
+- Lead acceptance report: `/api/admin/leads/acceptance-report`
+- Lead acceptance deep links: `/api/admin/leads/deep-links`
+- Lead aging preview: `/api/admin/leads/aging-preview`
+- Lead acceptance CSV: `/api/admin/leads/acceptance-report.csv`
+- Lead acceptance history CSV: `/api/admin/leads/acceptance-history.csv`
 - Lead Aging Cron: `/api/cron/leads/aging`
 - Public Partner Signup: `/signup`
 - Account Activation: `/activate`

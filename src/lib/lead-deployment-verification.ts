@@ -1,6 +1,6 @@
 import "server-only";
 
-export const LEAD_DEPLOYMENT_VERIFICATION_VERSION = "2026-07-12-pr122";
+export const LEAD_DEPLOYMENT_VERIFICATION_VERSION = "2026-07-12-pr123";
 
 export const EXPECTED_LEAD_FLOW_GUARD_LINES = [
   "Lead flow alignment guard passed.",
@@ -37,6 +37,7 @@ export const EXPECTED_LEAD_FLOW_GUARD_LINES = [
   "Legacy Admin Lead import retirement guard passed.",
   "Integration health control plane guard passed.",
   "Admin read report response boundary guard passed.",
+  "Lead acceptance report response boundary guard passed.",
 ];
 
 export type LeadDeploymentVerificationRow = {

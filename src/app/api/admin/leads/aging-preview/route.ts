@@ -1,7 +1,8 @@
-import { NextRequest, NextResponse } from "next/server";
+import { NextRequest } from "next/server";
+import { authenticatedJson, authenticatedRequestId } from "@/lib/authenticated-json-boundary";
 import { ADMIN_ROLES, requireRole } from "@/lib/authz";
-import { runLeadAgingSweep } from "@/lib/lead-aging-jobs";
 import { features } from "@/lib/features";
+import { runLeadAgingSweep } from "@/lib/lead-aging-jobs";
 
 export const dynamic = "force-dynamic";
 
@@ -11,10 +12,12 @@ function readLimit(request: NextRequest) {
 }
 
 export async function GET(request: NextRequest) {
-  if (!features.leads) return NextResponse.json({ error: "Not found." }, { status: 404 });
+  const requestId = authenticatedRequestId(request);
+  if (!features.leads) return authenticatedJson({ error: "Not found." }, 404, requestId);
+
   const actor = await requireRole(ADMIN_ROLES);
   const result = await runLeadAgingSweep({ dryRun: true, limit: readLimit(request) });
-  return NextResponse.json(
+  return authenticatedJson(
     {
       ...result,
       reportType: "lead-aging-preview",
@@ -22,6 +25,7 @@ export async function GET(request: NextRequest) {
       generatedAt: new Date().toISOString(),
       mutationPerformed: false,
     },
-    { headers: { "Cache-Control": "no-store, max-age=0" } },
+    200,
+    requestId,
   );
 }

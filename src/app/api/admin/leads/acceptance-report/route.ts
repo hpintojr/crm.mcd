@@ -1,4 +1,5 @@
-import { NextResponse } from "next/server";
+import { NextRequest } from "next/server";
+import { authenticatedJson, authenticatedRequestId } from "@/lib/authenticated-json-boundary";
 import { ADMIN_ROLES, requireRole } from "@/lib/authz";
 import { db } from "@/lib/db";
 import { getAcceptanceEvidenceSummary } from "@/lib/acceptance-evidence-summary";
@@ -33,7 +34,8 @@ function latestByStep(records: AcceptanceRecord[]) {
   return latest;
 }
 
-export async function GET() {
+export async function GET(request: NextRequest) {
+  const requestId = authenticatedRequestId(request);
   const actor = await requireRole(ADMIN_ROLES);
   const [records, controlledEvidence] = await Promise.all([
     getAcceptanceRecords(),
@@ -66,7 +68,7 @@ export async function GET() {
   const readyForOwnerDecision = failCount === 0 && notRecordedCount === 1 && ownerDecision === null;
   const fullyPassed = passCount === steps.length;
 
-  return NextResponse.json(
+  return authenticatedJson(
     {
       ok: true,
       reportType: "lead-production-acceptance",
@@ -103,6 +105,7 @@ export async function GET() {
         servicingCommissionsFinanceRemainGated: true,
       },
     },
-    { headers: { "Cache-Control": "no-store, max-age=0" } },
+    200,
+    requestId,
   );
 }
