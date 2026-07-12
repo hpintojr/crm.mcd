@@ -21,11 +21,14 @@
 - [Portal Write Request Boundary](./PORTAL_WRITE_REQUEST_BOUNDARY.md) — authenticated body ordering, 16 KiB limits, hardened responses, and expected-error handling.
 - [Admin Controlled Test Request Boundary](./ADMIN_CONTROLLED_TEST_REQUEST_BOUNDARY.md) — Admin-first parsing, bounded requests, controlled-test error mapping, and unchanged preview/apply semantics.
 - [Legacy Admin Lead Import Retirement](./LEGACY_ADMIN_LEAD_IMPORT_RETIREMENT.md) — retired duplicate writer, HTTP 410 contract, and supported guarded preview/commit paths.
+- [Integration Health Control Plane](./INTEGRATION_HEALTH_CONTROL_PLANE.md) — protected aggregate webhook/error health, configuration readiness, privacy contract, and read-failure behavior.
 - [Daily Log](./DAILY_LOG.md)
 
 ## Current operational reference
 
 - Project Readiness: `/admin/project-readiness`
+- Integration Health: `/admin/integrations/health`
+- Integration Health API: `/api/admin/integrations/health`
 - Servicing Acceptance Preflight: `/admin/servicing/acceptance-command-center`
 - Lead Aging Cron: `/api/cron/leads/aging`
 - Public Partner Signup: `/signup`
