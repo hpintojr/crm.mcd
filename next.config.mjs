@@ -19,6 +19,7 @@ const securityHeaders = [
 
 const nextConfig = {
   reactStrictMode: true,
+  poweredByHeader: false,
   // Server-only secrets are read via process.env in server code; never expose to the client.
   async headers() {
     return [

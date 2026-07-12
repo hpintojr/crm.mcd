@@ -19,6 +19,7 @@ const middlewarePath = "middleware.ts";
 const smokePath = "scripts/run-production-smoke.ts";
 
 for (const expected of [
+  'poweredByHeader: false',
   'source: "/:path*"',
   'key: "Content-Security-Policy"',
   "base-uri 'self'",
@@ -82,6 +83,7 @@ for (const forbidden of [
 for (const expected of [
   "validateSecurityHeaders",
   'response.headers.get("content-security-policy")',
+  'response.headers.get("x-powered-by") === null',
   'response.headers.get("x-content-type-options") === "nosniff"',
   'response.headers.get("x-frame-options") === "DENY"',
   'response.headers.get("referrer-policy") === "strict-origin-when-cross-origin"',
@@ -96,6 +98,7 @@ for (const expected of [
 
 assertContains("docs/HTTP_SECURITY_HEADERS.md", "Conservative Content Security Policy");
 assertContains("docs/HTTP_SECURITY_HEADERS.md", "Single source of truth");
+assertContains("docs/HTTP_SECURITY_HEADERS.md", "X-Powered-By");
 assertContains("docs/HTTP_SECURITY_HEADERS.md", "Production Smoke");
 assertContains("docs/INDEX.md", "HTTP_SECURITY_HEADERS.md");
 assertContains("README.md", "HTTP security headers");
