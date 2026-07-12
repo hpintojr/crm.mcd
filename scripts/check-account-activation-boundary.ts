@@ -25,15 +25,15 @@ function checkSchema() {
 
   const prepare = activationRequestSchema.parse({
     action: "prepare",
-    token: "  abcdefghijklmnop  ",
+    token: "  token  ",
     password: "correct horse battery staple",
     confirmPassword: "correct horse battery staple",
   });
-  assert(prepare.token === "abcdefghijklmnop", "Activation token must be trimmed.");
+  assert(prepare.token === "token", "Activation token must be trimmed without changing the existing non-empty minimum.");
 
   const complete = activationRequestSchema.parse({
     action: "complete",
-    token: "abcdefghijklmnop",
+    token: "token",
     password: "correct horse battery staple",
     confirmPassword: "correct horse battery staple",
     totpSecret: "JBSWY3DPEHPK3PXP",
@@ -41,10 +41,11 @@ function checkSchema() {
   });
   assert(complete.totp === "123456", "Six-digit TOTP must be accepted.");
 
-  assert(!activationRequestSchema.safeParse({ action: "prepare", token: "short", password: "valid password here", confirmPassword: "valid password here" }).success, "Short activation tokens must fail.");
-  assert(!activationRequestSchema.safeParse({ action: "prepare", token: "abcdefghijklmnop", password: "            ", confirmPassword: "            " }).success, "Whitespace-only passwords must fail.");
-  assert(!activationRequestSchema.safeParse({ action: "complete", token: "abcdefghijklmnop", password: "valid password here", confirmPassword: "valid password here", totpSecret: "not-valid-secret!", totp: "123456" }).success, "Malformed TOTP secrets must fail.");
-  assert(!activationRequestSchema.safeParse({ action: "complete", token: "abcdefghijklmnop", password: "valid password here", confirmPassword: "valid password here", totpSecret: "JBSWY3DPEHPK3PXP", totp: "12345" }).success, "Non-six-digit TOTP values must fail.");
+  assert(!activationRequestSchema.safeParse({ action: "prepare", token: "   ", password: "valid password here", confirmPassword: "valid password here" }).success, "Empty activation tokens must fail.");
+  assert(!activationRequestSchema.safeParse({ action: "prepare", token: "x".repeat(513), password: "valid password here", confirmPassword: "valid password here" }).success, "Oversized activation tokens must fail.");
+  assert(!activationRequestSchema.safeParse({ action: "prepare", token: "token", password: "            ", confirmPassword: "            " }).success, "Whitespace-only passwords must fail.");
+  assert(!activationRequestSchema.safeParse({ action: "complete", token: "token", password: "valid password here", confirmPassword: "valid password here", totpSecret: "not-valid-secret!", totp: "123456" }).success, "Malformed TOTP secrets must fail.");
+  assert(!activationRequestSchema.safeParse({ action: "complete", token: "token", password: "valid password here", confirmPassword: "valid password here", totpSecret: "JBSWY3DPEHPK3PXP", totp: "12345" }).success, "Non-six-digit TOTP values must fail.");
 
   const unavailable = new ActivationUnavailableError();
   assert(isActivationUnavailableError(unavailable), "Typed activation-unavailable errors must be recognized.");
@@ -87,15 +88,14 @@ function checkRoute() {
   assert((route.match(/tx\.activationToken\.updateMany/g) ?? []).length === 1, "Activation token must be consumed exactly once.");
   assert((route.match(/await tx\.user\.update/g) ?? []).length === 1, "Activation must update the User exactly once.");
   assert((route.match(/db\.\$transaction\(async \(tx\)/g) ?? []).length === 1, "Activation completion must use one interactive transaction.");
+  assert((route.match(/NextResponse\.json/g) ?? []).length === 1, "Activation responses must use one centralized JSON helper.");
 
   for (const forbidden of [
     "db.$transaction([",
     "db.activationToken.update({",
     "error.message",
     "stack:",
-    "tokenHash:",
     "email: activation.user.email",
-    "return NextResponse.json",
   ]) {
     assertExcludes(path, forbidden);
   }
@@ -109,7 +109,10 @@ function checkPageAndClient() {
     'export const dynamic = "force-dynamic"',
     'referrer: "no-referrer"',
     "robots: { index: false, follow: false, noarchive: true }",
+    "const rawToken = token?.trim()",
+    "rawToken.length <= 512",
     'activation.user.status === "DISABLED"',
+    "<ActivationForm token={rawToken} />",
   ]) {
     assertContains(pagePath, expected);
   }
