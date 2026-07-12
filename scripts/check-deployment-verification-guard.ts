@@ -42,6 +42,7 @@ const expectedGuardLines = [
   "Legacy Admin Lead import retirement guard passed.",
   "Integration health control plane guard passed.",
   "Admin read report response boundary guard passed.",
+  "Lead acceptance report response boundary guard passed.",
 ];
 
 const guards: [string, string][] = [
