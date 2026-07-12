@@ -1,36 +1,139 @@
+import { randomUUID } from "node:crypto";
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
+import { databaseErrorCode, databaseErrorName } from "@/lib/transient-database-retry";
 import { signupSchema } from "@/lib/validation";
 import { upsertSalesHqContact } from "@/lib/ghl";
+import {
+  isDuplicateAgentEmailError,
+  MAX_PUBLIC_SIGNUP_BODY_BYTES,
+  normalizePublicSignupInput,
+} from "@/lib/public-signup-boundary";
 
-// Public endpoint: create a submitted agent and port non-sensitive contact data to GHL.
-// SSN and bank details are intentionally NOT accepted here.
+export const dynamic = "force-dynamic";
+
+function requestId(req: NextRequest) {
+  const supplied = req.headers.get("x-request-id")?.trim();
+  return supplied && supplied.length <= 128 && /^[A-Za-z0-9._:-]+$/.test(supplied) ? supplied : randomUUID();
+}
+
+function json(body: unknown, status: number, id: string) {
+  return NextResponse.json(body, {
+    status,
+    headers: {
+      "Cache-Control": "no-store, max-age=0",
+      "X-Request-Id": id,
+      "X-Robots-Tag": "noindex, nofollow, noarchive",
+    },
+  });
+}
+
+function logDatabaseFailure(event: string, id: string, error: unknown, agentId?: string) {
+  console.error(
+    `[agent-signup] ${event}`,
+    JSON.stringify({
+      requestId: id,
+      agentId: agentId ?? null,
+      errorName: databaseErrorName(error),
+      errorCode: databaseErrorCode(error),
+    }),
+  );
+}
+
+// Public endpoint: reserve one submitted Agent application, then port non-sensitive contact data to GHL.
+// SSN, tax IDs, and bank details are intentionally NOT accepted here.
 export async function POST(req: NextRequest) {
+  const id = requestId(req);
+  const declaredLength = Number(req.headers.get("content-length") ?? "0");
+  if (Number.isFinite(declaredLength) && declaredLength > MAX_PUBLIC_SIGNUP_BODY_BYTES) {
+    return json({ error: "Request too large." }, 413, id);
+  }
+
+  let rawText: string;
+  try {
+    rawText = await req.text();
+  } catch {
+    return json({ error: "Unable to read request." }, 400, id);
+  }
+
+  if (new TextEncoder().encode(rawText).byteLength > MAX_PUBLIC_SIGNUP_BODY_BYTES) {
+    return json({ error: "Request too large." }, 413, id);
+  }
+
   let raw: unknown;
   try {
-    raw = await req.json();
+    raw = JSON.parse(rawText);
   } catch {
-    return NextResponse.json({ error: "Invalid JSON" }, { status: 400 });
+    return json({ error: "Invalid JSON" }, 400, id);
   }
 
   const parsed = signupSchema.safeParse(raw);
   if (!parsed.success) {
-    return NextResponse.json(
+    return json(
       { error: "Please check the highlighted fields.", issues: parsed.error.flatten() },
-      { status: 422 },
+      422,
+      id,
     );
   }
-  const data = parsed.data;
 
-  if (data.company_url) return NextResponse.json({ ok: true }, { status: 200 });
+  const data = normalizePublicSignupInput(parsed.data);
+  if (data.company_url) return json({ ok: true }, 200, id);
 
   const ip = req.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ?? null;
-  const existing = await db.agent.findUnique({ where: { personalEmail: data.personalEmail } });
-  if (existing) {
-    return NextResponse.json({ error: "An application with this email already exists." }, { status: 409 });
+  const companyName = data.companyName || null;
+
+  let reservation: { agentId: string; auditId: string };
+  try {
+    reservation = await db.$transaction(async (tx) => {
+      const agent = await tx.agent.create({
+        data: {
+          legalName: data.legalName,
+          companyName,
+          preferredName: data.preferredName || null,
+          personalEmail: data.personalEmail,
+          mobile: data.mobile,
+          mailingAddress: data.mailingAddress || null,
+          emergencyContact: data.emergencyContact || null,
+          status: "SUBMITTED",
+          onboardingDocs: {
+            create: [
+              { docType: "SALES_AGREEMENT" },
+              { docType: "NDA_IP" },
+              { docType: "W9_PAYOUT" },
+              { docType: "ACKNOWLEDGMENT" },
+            ],
+          },
+        },
+        select: { id: true },
+      });
+
+      const audit = await tx.auditLog.create({
+        data: {
+          actionType: "AGENT_SIGNUP",
+          entityType: "Agent",
+          entityId: agent.id,
+          ipAddress: ip,
+          metadata: {
+            requestId: id,
+            companyNameProvided: Boolean(companyName),
+            ghl: "pending",
+          },
+        },
+        select: { id: true },
+      });
+
+      return { agentId: agent.id, auditId: audit.id };
+    });
+  } catch (error) {
+    if (isDuplicateAgentEmailError(error)) {
+      // Treat retries and concurrent duplicate submissions as idempotent success without revealing account existence.
+      return json({ ok: true }, 200, id);
+    }
+
+    logDatabaseFailure("reservation failed", id, error);
+    return json({ error: "Unable to submit application. Please try again." }, 500, id);
   }
 
-  const companyName = data.companyName?.trim() || null;
   const ghl = await upsertSalesHqContact({
     legalName: data.legalName,
     companyName,
@@ -41,44 +144,48 @@ export async function POST(req: NextRequest) {
     tags: ["agent-signup"],
   });
 
-  const agent = await db.agent.create({
-    data: {
-      legalName: data.legalName,
-      companyName,
-      preferredName: data.preferredName || null,
-      personalEmail: data.personalEmail,
-      mobile: data.mobile,
-      mailingAddress: data.mailingAddress || null,
-      emergencyContact: data.emergencyContact || null,
-      status: "SUBMITTED",
-      ghlContactId: ghl.ok ? ghl.data.contactId : null,
-      onboardingDocs: {
-        create: [
-          { docType: "SALES_AGREEMENT" },
-          { docType: "NDA_IP" },
-          { docType: "W9_PAYOUT" },
-          { docType: "ACKNOWLEDGMENT" },
-        ],
-      },
-    },
-  });
+  const ghlState = ghl.ok ? (ghl.stub ? "stub" : "linked") : "error";
 
-  await db.auditLog.create({
-    data: {
-      actionType: "AGENT_SIGNUP",
-      entityType: "Agent",
-      entityId: agent.id,
-      ipAddress: ip,
-      metadata: {
-        companyNameProvided: Boolean(companyName),
-        ghl: ghl.ok ? (ghl.stub ? "stub" : "linked") : "error",
-        ghlError: ghl.ok ? null : ghl.error,
-      },
-    },
-  });
+  try {
+    await db.$transaction(async (tx) => {
+      if (ghl.ok) {
+        await tx.agent.update({
+          where: { id: reservation.agentId },
+          data: { ghlContactId: ghl.data.contactId },
+        });
+      } else {
+        await tx.integrationError.create({
+          data: {
+            source: "GHL_AGENT_SIGNUP",
+            refId: reservation.agentId,
+            message: "Agent signup contact sync failed.",
+            payload: { operation: "contacts/upsert", requestId: id },
+          },
+        });
+      }
 
-  return NextResponse.json(
-    { ok: true, agentId: agent.id, ghl: ghl.ok ? (ghl.stub ? "stub" : "linked") : "error" },
-    { status: 201 },
-  );
+      await tx.auditLog.update({
+        where: { id: reservation.auditId },
+        data: {
+          metadata: {
+            requestId: id,
+            companyNameProvided: Boolean(companyName),
+            ghl: ghlState,
+          },
+        },
+      });
+    });
+  } catch (error) {
+    // The application and initial audit are already durable. Do not invite a duplicate public retry.
+    logDatabaseFailure("integration finalization failed", id, error, reservation.agentId);
+  }
+
+  if (!ghl.ok) {
+    console.warn(
+      "[agent-signup] GHL contact sync deferred",
+      JSON.stringify({ requestId: id, agentId: reservation.agentId, operation: "contacts/upsert" }),
+    );
+  }
+
+  return json({ ok: true }, 201, id);
 }
