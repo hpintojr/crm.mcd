@@ -1,16 +1,28 @@
 import { Prisma } from "@prisma/client";
-import { NextRequest, NextResponse } from "next/server";
+import { NextRequest } from "next/server";
 import { z } from "zod";
-import { finishInboundEvent, logIntegrationError, recordInboundEvent, verifyGhlWebhook } from "@/lib/ghl-webhook";
+import {
+  finishInboundEvent,
+  ghlWebhookJson,
+  logGhlWebhookRuntimeFailure,
+  logIntegrationError,
+  prepareGhlWebhookRequest,
+  recordInboundEvent,
+  sanitizedGhlWebhookFailure,
+  verifyGhlWebhookLocation,
+} from "@/lib/ghl-webhook";
 
 const schema = z.object({ ghl_event_id: z.string().min(1), location_id: z.string().min(1) }).passthrough();
 
 export async function POST(request: NextRequest) {
-  const raw: unknown = await request.json().catch(() => null);
+  const prepared = await prepareGhlWebhookRequest(request);
+  if (!prepared.ok) return prepared.response;
+  const { raw, requestId } = prepared;
+
   const parsed = schema.safeParse(raw);
-  if (!parsed.success) return NextResponse.json({ error: "Invalid webhook payload." }, { status: 422 });
-  const verified = verifyGhlWebhook(request, parsed.data.location_id);
-  if (!verified.ok) return NextResponse.json({ error: verified.message }, { status: verified.status });
+  if (!parsed.success) return ghlWebhookJson({ error: "Invalid webhook payload." }, 422, requestId);
+  const verified = verifyGhlWebhookLocation(parsed.data.location_id);
+  if (!verified.ok) return ghlWebhookJson({ error: verified.message }, verified.status, requestId);
 
   try {
     const event = await recordInboundEvent({
@@ -19,16 +31,18 @@ export async function POST(request: NextRequest) {
       type: "invoices",
       payload: raw as Prisma.InputJsonValue,
     });
-    if (!event.firstTime) return NextResponse.json({ ok: true, duplicate: true });
+    if (!event.firstTime) return ghlWebhookJson({ ok: true, duplicate: true }, 200, requestId);
     await finishInboundEvent(parsed.data.ghl_event_id, "PROCESSED");
-    return NextResponse.json({ ok: true, queued: true });
+    return ghlWebhookJson({ ok: true, queued: true }, 200, requestId);
   } catch (error) {
+    const failure = sanitizedGhlWebhookFailure(error);
+    logGhlWebhookRuntimeFailure({ source: "ghl.invoices", requestId, refId: parsed.data.ghl_event_id, error });
     await logIntegrationError({
       source: "ghl.invoices",
       refId: parsed.data.ghl_event_id,
-      message: error instanceof Error ? error.message : "Webhook processing failed.",
-      payload: raw as Prisma.InputJsonValue,
-    });
-    return NextResponse.json({ error: "Webhook processing failed." }, { status: 500 });
+      message: "GHL invoice webhook processing failed.",
+      payload: { requestId, ...failure },
+    }).catch(() => undefined);
+    return ghlWebhookJson({ error: "Webhook processing failed." }, 500, requestId);
   }
 }
