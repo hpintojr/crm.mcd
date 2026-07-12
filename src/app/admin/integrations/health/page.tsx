@@ -17,12 +17,6 @@ function stateLabel(state: IntegrationHealthState) {
   return state.replaceAll("_", " ").toLowerCase().replace(/^./, (letter) => letter.toUpperCase());
 }
 
-function stateClass(state: IntegrationHealthState) {
-  if (state === "READY") return "border-emerald-700 bg-emerald-950/20 text-emerald-200";
-  if (state === "ATTENTION_REQUIRED" || state === "CONFIGURATION_INCOMPLETE") return "border-amber-800 bg-amber-950/20 text-amber-200";
-  return "border-red-800 bg-red-950/20 text-red-200";
-}
-
 export default async function IntegrationHealthPage() {
   const actor = await requireRole(ADMIN_ROLES);
   const snapshot = await getIntegrationHealthSnapshot();
@@ -112,7 +106,7 @@ export default async function IntegrationHealthPage() {
       <section className="mt-8 rounded-2xl border border-amber-900 bg-amber-950/20 p-6">
         <h2 className="font-semibold text-amber-100">Safety boundary</h2>
         <p className="mt-2 text-sm leading-6 text-amber-100/80">{snapshot.safetyBoundary}</p>
-        <p className="mt-3 text-xs text-amber-200/70">Viewed by {actor.email}. Generated {pacific(snapshot.generatedAt)} PT.</p>
+        <p className="mt-3 text-xs text-amber-200/70">Viewed by role {actor.role}. Generated {pacific(snapshot.generatedAt)} PT.</p>
       </section>
     </main>
   );
