@@ -40,6 +40,8 @@ const guards: [string, string][] = [
   ["src/app/admin/servicing/testing/page.tsx", "SERVICING_ACCEPTANCE_STEPS"],
   ["src/app/admin/servicing/testing/page.tsx", "id={step.id}"],
   ["src/app/admin/servicing/testing/page.tsx", "scroll-mt-6"],
+  ["src/app/admin/operating-status/page.tsx", "/admin/servicing/acceptance-command-center"],
+  ["src/app/admin/operating-status/page.tsx", "read-only Servicing command center"],
   ["src/lib/lead-deployment-verification.ts", "Servicing acceptance preflight guard passed."],
   ["scripts/check-deployment-verification-guard.ts", "Servicing acceptance preflight guard passed."],
   ["package.json", "check-servicing-acceptance-preflight-guard.ts"],
