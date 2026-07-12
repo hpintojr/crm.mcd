@@ -33,6 +33,7 @@ const expectedGuardLines = [
   "Certification precondition UX guard passed.",
   "Manager claim action boundary guard passed.",
   "Route trace hygiene guard passed.",
+  "Public signup boundary guard passed.",
 ];
 
 const guards: [string, string][] = [
