@@ -32,10 +32,13 @@ const guards: [string, string][] = [
   ["src/app/admin/servicing/acceptance-command-center/page.tsx", "/api/admin/servicing/acceptance-readiness"],
   ["src/app/admin/servicing/acceptance-command-center/page.tsx", "Owner authorization boundary"],
   ["src/app/admin/servicing/acceptance-command-center/page.tsx", "Counts only. No client or Lead identities"],
-  ["src/app/api/admin/servicing/acceptance-readiness/route.ts", "export async function GET()"],
+  ["src/app/api/admin/servicing/acceptance-readiness/route.ts", "export async function GET(request: NextRequest)"],
+  ["src/app/api/admin/servicing/acceptance-readiness/route.ts", "authenticatedRequestId(request)"],
+  ["src/app/api/admin/servicing/acceptance-readiness/route.ts", "authenticatedJson"],
   ["src/app/api/admin/servicing/acceptance-readiness/route.ts", "requireRole(ADMIN_ROLES)"],
   ["src/app/api/admin/servicing/acceptance-readiness/route.ts", "getServicingAcceptanceReadinessSnapshot"],
-  ["src/app/api/admin/servicing/acceptance-readiness/route.ts", "Cache-Control"],
+  ["src/app/api/admin/servicing/acceptance-readiness/route.ts", "snapshot.ok ? 200 : 503"],
+  ["src/app/api/admin/servicing/acceptance-readiness/route.ts", "viewedBy: { role: actor.role }"],
   ["src/app/admin/servicing/testing/page.tsx", "/admin/servicing/acceptance-command-center"],
   ["src/app/admin/servicing/testing/page.tsx", "SERVICING_ACCEPTANCE_STEPS"],
   ["src/app/admin/servicing/testing/page.tsx", "id={step.id}"],
@@ -64,6 +67,10 @@ for (const path of [
   assertExcludes(path, "createClientAccount");
   assertExcludes(path, "openClientServiceCase");
   assertExcludes(path, "confirmClientLaunch");
+}
+
+for (const forbidden of ["NextResponse.json", "viewedBy: { id:", "actor.id", "actor.email", "request.json()", "request.text()"]) {
+  assertExcludes("src/app/api/admin/servicing/acceptance-readiness/route.ts", forbidden);
 }
 
 console.log("Servicing acceptance preflight guard passed.");
