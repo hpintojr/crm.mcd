@@ -33,10 +33,12 @@ const guards: [string, string][] = [
   ["src/app/admin/project-readiness/page.tsx", "requireRole(ADMIN_ROLES)"],
   ["src/app/admin/project-readiness/page.tsx", "/api/admin/project-readiness"],
   ["src/app/admin/project-readiness/page.tsx", "Commission enum contract"],
-  ["src/app/api/admin/project-readiness/route.ts", "export async function GET()"],
+  ["src/app/api/admin/project-readiness/route.ts", "export async function GET(request: NextRequest)"],
+  ["src/app/api/admin/project-readiness/route.ts", "authenticatedRequestId(request)"],
+  ["src/app/api/admin/project-readiness/route.ts", "authenticatedJson"],
   ["src/app/api/admin/project-readiness/route.ts", "requireRole(ADMIN_ROLES)"],
   ["src/app/api/admin/project-readiness/route.ts", "getProjectReadinessSnapshot"],
-  ["src/app/api/admin/project-readiness/route.ts", "Cache-Control"],
+  ["src/app/api/admin/project-readiness/route.ts", "viewedBy: { role: actor.role }"],
   ["src/app/admin/command-center/page.tsx", "/admin/project-readiness"],
   ["src/app/admin/operating-status/page.tsx", "/admin/project-readiness"],
   ["src/app/admin/settings/page.tsx", "/admin/project-readiness"],
@@ -62,6 +64,10 @@ for (const path of [
   assertExcludes(path, "$queryRawUnsafe");
   assertExcludes(path, "revalidatePath");
   assertExcludes(path, '"use server"');
+}
+
+for (const forbidden of ["NextResponse.json", "viewedBy: { id:", "actor.id", "actor.email", "request.json()", "request.text()"] ) {
+  assertExcludes("src/app/api/admin/project-readiness/route.ts", forbidden);
 }
 
 console.log("Project readiness guard passed.");
