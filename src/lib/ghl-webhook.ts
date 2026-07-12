@@ -48,11 +48,13 @@ export async function recordInboundEvent(event: GhlInboundEvent) {
   } catch (error) {
     if (!(error instanceof Prisma.PrismaClientKnownRequestError) || error.code !== "P2002") throw error;
 
-    const existing = await db.webhookEvent.findUnique({ where: { ghlEventId: event.ghlEventId } });
-    if (existing?.status !== "ERROR") return { firstTime: false as const, retry: false as const };
-
-    await db.webhookEvent.update({
-      where: { ghlEventId: event.ghlEventId },
+    // Exactly one delivery may reopen an event that previously reached ERROR.
+    // Concurrent duplicates race on this conditional update; only the winner receives count=1.
+    const claimed = await db.webhookEvent.updateMany({
+      where: {
+        ghlEventId: event.ghlEventId,
+        status: "ERROR",
+      },
       data: {
         status: "RECEIVED",
         processedAt: null,
@@ -61,6 +63,8 @@ export async function recordInboundEvent(event: GhlInboundEvent) {
         payload: event.payload,
       },
     });
+
+    if (claimed.count !== 1) return { firstTime: false as const, retry: false as const };
     return { firstTime: true as const, retry: true as const };
   }
 }
