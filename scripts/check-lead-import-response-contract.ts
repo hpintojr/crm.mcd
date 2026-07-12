@@ -79,14 +79,14 @@ for (const expected of [
   '"X-Request-Id": requestId',
   '"X-Robots-Tag": "noindex, nofollow, noarchive"',
   "new TextEncoder().encode(bodyText).byteLength",
-  "verifyLeadImportTransportRequest",
+  "const verification = verifyLeadImportTransportRequest",
 ]) {
   assert.ok(guard.includes(expected), `Lead import guard is missing response-boundary behavior: ${expected}`);
 }
 
-const configIndex = guard.indexOf("requireLeadImportHmacConfig()");
+const configIndex = guard.indexOf("const config = requireLeadImportHmacConfig()");
 const bodyReadIndex = guard.indexOf("bodyText = await request.text()");
-const verificationIndex = guard.indexOf("verifyLeadImportTransportRequest");
+const verificationIndex = guard.indexOf("const verification = verifyLeadImportTransportRequest");
 const parseIndex = guard.indexOf("JSON.parse(bodyText)");
 assert.ok(configIndex >= 0 && bodyReadIndex > configIndex, "Lead import HMAC configuration must be resolved before body consumption.");
 assert.ok(verificationIndex > bodyReadIndex, "Lead import signature verification must follow the bounded body read.");
