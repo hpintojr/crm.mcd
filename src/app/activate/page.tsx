@@ -16,10 +16,11 @@ type ActivatePageProps = {
 
 export default async function ActivatePage({ searchParams }: ActivatePageProps) {
   const { token } = await searchParams;
-  const activation = token
+  const rawToken = token?.trim();
+  const activation = rawToken && rawToken.length <= 512
     ? await db.activationToken.findFirst({
         where: {
-          tokenHash: hashToken(token),
+          tokenHash: hashToken(rawToken),
           purpose: "ACTIVATION",
           usedAt: null,
           expiresAt: { gt: new Date() },
@@ -28,7 +29,7 @@ export default async function ActivatePage({ searchParams }: ActivatePageProps) 
       })
     : null;
 
-  if (!token || !activation || activation.user.status === "DISABLED") {
+  if (!rawToken || !activation || activation.user.status === "DISABLED") {
     return (
       <main className="mx-auto flex min-h-screen max-w-lg items-center px-6 py-16">
         <div className="w-full rounded-2xl border border-red-800 bg-ink-900 p-8 text-center">
@@ -49,7 +50,7 @@ export default async function ActivatePage({ searchParams }: ActivatePageProps) 
         <p className="mt-2 text-sm text-gray-400">
           Create your password and connect an authenticator app for {activation.user.email}.
         </p>
-        <ActivationForm token={token} />
+        <ActivationForm token={rawToken} />
       </div>
     </main>
   );
