@@ -15,6 +15,7 @@ function assertExcludes(path: string, forbidden: string) {
 }
 
 const configPath = "next.config.mjs";
+const middlewarePath = "middleware.ts";
 const smokePath = "scripts/run-production-smoke.ts";
 
 for (const expected of [
@@ -54,6 +55,31 @@ for (const forbidden of [
 }
 
 for (const expected of [
+  'import NextAuth from "next-auth"',
+  'import { authConfig } from "./src/auth.config"',
+  "const { auth } = NextAuth(authConfig)",
+  "export default auth(() => NextResponse.next())",
+  'matcher: ["/((?!api|_next/static|_next/image|favicon.ico).*)"]',
+]) {
+  assertContains(middlewarePath, expected);
+}
+
+for (const forbidden of [
+  "response.headers.set",
+  "Content-Security-Policy",
+  "X-Content-Type-Options",
+  "X-Frame-Options",
+  "Referrer-Policy",
+  "Permissions-Policy",
+  "Cross-Origin-Opener-Policy",
+  "X-DNS-Prefetch-Control",
+  "X-Permitted-Cross-Domain-Policies",
+  "X-Download-Options",
+]) {
+  assertExcludes(middlewarePath, forbidden);
+}
+
+for (const expected of [
   "validateSecurityHeaders",
   'response.headers.get("content-security-policy")',
   'response.headers.get("x-content-type-options") === "nosniff"',
@@ -69,6 +95,7 @@ for (const expected of [
 }
 
 assertContains("docs/HTTP_SECURITY_HEADERS.md", "Conservative Content Security Policy");
+assertContains("docs/HTTP_SECURITY_HEADERS.md", "Single source of truth");
 assertContains("docs/HTTP_SECURITY_HEADERS.md", "Production Smoke");
 assertContains("docs/INDEX.md", "HTTP_SECURITY_HEADERS.md");
 assertContains("README.md", "HTTP security headers");
