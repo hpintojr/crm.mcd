@@ -19,6 +19,7 @@
 - [GHL Webhook Replay](./GHL_WEBHOOK_REPLAY.md) — unique event ledger, duplicate handling, and atomic failed-event retry claims.
 - [GHL Webhook Request Boundary](./GHL_WEBHOOK_REQUEST_BOUNDARY.md) — secret-first authentication, bounded JSON intake, response metadata, and sanitized failures.
 - [Portal Write Request Boundary](./PORTAL_WRITE_REQUEST_BOUNDARY.md) — authenticated body ordering, 16 KiB limits, hardened responses, and expected-error handling.
+- [Admin Controlled Test Request Boundary](./ADMIN_CONTROLLED_TEST_REQUEST_BOUNDARY.md) — Admin-first parsing, bounded requests, controlled-test error mapping, and unchanged preview/apply semantics.
 - [Daily Log](./DAILY_LOG.md)
 
 ## Current operational reference
@@ -32,6 +33,7 @@
 - Lead acceptance evidence: `/admin/leads/testing`
 - Warm Reply Triage: `/admin/leads/replies`
 - Integration Monitor: `/admin/integrations`
+- Controlled GHL Test Events: `/api/admin/integrations/test-events`
 - Resolved Integration History: `/admin/integrations/resolved`
 - Agent Operations: `/admin/agents`
 - Client Onboarding Queue: `/admin/servicing/onboarding`
