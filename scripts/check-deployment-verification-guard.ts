@@ -30,6 +30,7 @@ const expectedGuardLines = [
   "Lead aging cron resilience guard passed.",
   "HTTP security headers guard passed.",
   "Auth telemetry hygiene guard passed.",
+  "Certification precondition UX guard passed.",
 ];
 
 const guards: [string, string][] = [
