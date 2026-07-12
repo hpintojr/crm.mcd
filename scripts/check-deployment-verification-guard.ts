@@ -22,6 +22,9 @@ const expectedGuardLines = [
   "Deployment verification API guard passed.",
   "Controlled warm reply guard passed.",
   "Latest production commit guard passed.",
+  "Appointment Closed Won guard passed.",
+  "Commission schema migration guard passed.",
+  "Project readiness guard passed.",
 ];
 
 const guards: [string, string][] = [

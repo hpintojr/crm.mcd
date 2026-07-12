@@ -8,21 +8,23 @@
 |---|---|
 | Production code | GitHub `main` |
 | Production app | `https://crm.mercurycalldesk.com` |
+| Current deployed SHA | `/api/status` and `/admin/project-readiness` |
 | System of record | Neon PostgreSQL |
 | Deployment | Vercel |
 | Calendar / opportunity / reply relay source | GoHighLevel (GHL) |
 | Admin test evidence | MiniCRM `AuditLog`, acceptance boards, Integration Monitor |
+| Cross-module readiness | `/admin/project-readiness` and `/api/admin/project-readiness` |
 
 ## Feature-gate rule
 
-Feature flags are independent. Do not assume a flag value from this document; verify the deployed environment before activation or status reporting.
+Feature flags are independent. Do not assume a flag value from this document; verify the deployed environment before activation or status reporting. A passing acceptance board does not open a feature gate, and a schema apply does not authorize activation.
 
-| Module | Gate | Build state | Activation rule |
+| Module | Gate | Build/schema state | Activation rule |
 |---|---|---|---|
-| Leads | `LEADS_ENABLED` | Controlled lead import, review, Cold Lead activity-first workspace, My Workspace dashboard, two-way-contact claim gate, DNC, aging sweep, warm replies, GHL relays, acceptance board | Controlled test window only after owner approval |
-| Servicing | `SERVICING_ENABLED` | Closed Won onboarding, client account guard, launch, cases, ownership/House controls, acceptance board | Controlled servicing test after Lead lifecycle is proven |
-| Commissions | `COMMISSIONS_ENABLED` | Eligibility/readiness/ledger review and acceptance board; Hold management intentionally paused pending schema confirmation | Do not enable until migration and policy tests are approved |
-| Finance | `FINANCE_ENABLED` | Readiness-only boundary page | No money movement or payout execution |
+| Leads | `LEADS_ENABLED` | Core workflow deployed; 18/18 production acceptance steps and owner decision recorded PASS | Normal Lead Flow approved; keep live external GHL configuration and new import/export runs separately controlled |
+| Servicing | `SERVICING_ENABLED` | Workflow built; Client/Service raw-SQL tables present in production | Controlled Servicing acceptance only after a separate owner-authorized window |
+| Commissions | `COMMISSIONS_ENABLED` | Workflow built; PR #100 migration corrected and safety-branch-tested; Commission/Payout tables remain unapplied in production | Production migration apply requires new explicit authorization; acceptance and feature activation remain separate later decisions |
+| Finance | `FINANCE_ENABLED` | Readiness-only boundary | No money movement, payment-provider execution, or payout release |
 
 ## Implemented workflow map
 
@@ -37,29 +39,29 @@ Feature flags are independent. Do not assume a flag value from this document; ve
 
 `RAW/PENDING_REVIEW → AVAILABLE → CONTACTED/NURTURING → CLAIMED → DEMO_BOOKED → CLOSED_WON or CLOSED_LOST`
 
-- Imports support controlled JSON and CSV conversion, but server preview is required before commit.
-- Required import values are company, usable business phone, original source, and intake method. CSV headers will be mapped after the test-file headers are reviewed.
+- Signed batch import and controlled JSON/CSV conversion require server preview before commit.
+- Required import values are company, usable business phone, original source, and intake method.
 - Admin review approves only managed pools. New imports cannot enter Open Pool.
-- Cold Leads are worked activity-first: call attempts log `CALL_INITIATED` only and do not soft-lock, reserve, or claim the record.
+- Cold Leads are worked activity-first: call attempts log `CALL_INITIATED` before the device dialer opens and do not soft-lock, reserve, or claim the record.
 - No-answer and voicemail dispositions keep the Lead unowned and available in Cold Leads.
 - Callback-requested, qualified, and follow-up/interested dispositions record two-way contact and unlock claim eligibility without auto-claiming.
 - Claiming is atomic and agent-scoped; claiming requires `twoWayContactAt` and starts the 45-day responsibility timer.
-- My Workspace now shows assigned records, callback queue, recent activity, and claim-timer responsibility without requiring a selected Lead ID.
+- My Workspace shows assigned records, callback queue, recent activity, and claim-timer responsibility without requiring a selected Lead ID.
 - The secured daily aging sweep returns expired claimed Leads to Open Pool and promotes 21-day stale unclaimed Open Pool records to Shark Tank.
-- `CRON_SECRET` has been configured by the owner in Vercel for the secured aging endpoint.
 - Notes, dispositions, callbacks, two-way contact, wrong-number/out-of-business, DNC, and suppression are audited.
 - Admin suppression cancels scheduled callbacks and clears future action state.
-- Warm reply triage assigns an unowned reply to one active agent atomically and creates immediate callback work.
+- Warm reply triage assigns an unowned verified reply to one active agent atomically and creates immediate callback work.
+- The full 18-step production Lead Flow acceptance runbook and owner production decision are recorded PASS.
 
 ### 3. GHL → MiniCRM relays
 
-| Relay | Endpoint | Current behavior | Test requirement |
+| Relay | Endpoint | Current behavior | Remaining control |
 |---|---|---|---|
-| Appointment lifecycle | `/api/ghl/appointments` | Booked/Confirmed/Rescheduled maintain `DEMO_BOOKED`; Cancelled/No-show create same-owner follow-up; schedule retains recent outcomes | Controlled event test across all appointment states |
-| Opportunity result | `/api/ghl/opportunities` | Won → `CLOSED_WON`; Lost → `CLOSED_LOST`; late loss cannot undo Closed Won; suppressed Leads unchanged | Configure GHL workflow and test Won, Lost, retry, late loss, suppression |
-| Inbound reply | `/api/ghl/replies` | Logs inbound SMS/email, records two-way contact, creates or expedites owner callback; unowned reply goes to Warm Reply Triage; DNC/suppressed Leads unchanged | Configure GHL workflow and test owned, unowned, duplicate event, suppression |
+| Appointment lifecycle | `/api/ghl/appointments` | Booked/Confirmed/Rescheduled maintain `DEMO_BOOKED`; Cancelled/No-show create same-owner follow-up; any appointment event preserves an existing `CLOSED_WON` | Live external workflow changes remain owner-controlled |
+| Opportunity result | `/api/ghl/opportunities` | Won → `CLOSED_WON`; Lost → `CLOSED_LOST`; late loss cannot undo Closed Won; suppressed Leads unchanged | Live external workflow changes remain owner-controlled |
+| Inbound reply | `/api/ghl/replies` | Logs inbound SMS/email, records two-way contact, creates or expedites owner callback; unowned reply goes to Warm Reply Triage; DNC/suppressed Leads unchanged | Live external workflow changes remain owner-controlled |
 
-All three use verified webhook handling, approved location validation, idempotency by GHL event ID, and audit/integration-error records.
+All three use verified webhook handling, approved location validation, idempotency by GHL event ID, and audit/integration-error records. Controlled test tooling exists for relay and warm-reply acceptance without calling live GHL.
 
 ### 4. Closed Won → Client Servicing
 
@@ -74,61 +76,73 @@ All three use verified webhook handling, approved location validation, idempoten
 5. Triggered service work creates a Service Case; response and resolution are documented.
 6. Healthy, current-paying accounts remain with their owner when quiet. House transfer requires a reason and audit record.
 
+The Client/Service schema is already present in production. Normal Servicing use remains feature-gated and requires a separately authorized controlled acceptance window.
+
+### 5. Commission eligibility and ledger
+
+- Commission review uses raw SQL behind `COMMISSIONS_ENABLED`.
+- Source code includes agent Commission profiles, eligibility decisions, ledger intake/review, hold application/release, retirement/termination policy, and audit evidence.
+- PR #100 corrected the staged migration to define the exact app-used enums and fields plus `CommissionHold`, `CommissionEligibilityDecision`, and `AgentCommissionProfile`; existing payout reference tables remain in the same staged migration.
+- The exact final DDL passed disposable Neon catalog verification and an app-style lifecycle smoke test.
+- The Commission/Payout tables and enums remain absent from production. The migration has not been applied.
+- Applying the migration, enabling Commissions, and running controlled Commission acceptance are three separate owner decisions.
+
+### 6. Finance boundary
+
+- Finance is readiness-only.
+- It documents prerequisites: eligible Commission entry, payment clearance, no active hold, documented approval, and an externally verified destination reference.
+- The CRM does not store raw bank/routing data, execute payment-provider actions, release payouts, or move money.
+
+## Project readiness control plane
+
+`/admin/project-readiness` is the protected, source-derived preflight for cross-module decisions. It reads:
+
+- Vercel deployment environment, branch, commit, and deployment ID;
+- current feature-gate values;
+- latest Lead, Servicing, and Commission acceptance outcomes;
+- unresolved Integration Errors and failed Webhook Events;
+- production Client/Service table presence;
+- expected Commission/Payout table and enum presence;
+- exact Commission enum ordering;
+- legacy Commission enum and ledger-column drift indicators.
+
+The matching JSON endpoint is `/api/admin/project-readiness`. Both are read-only and use `Cache-Control: no-store`.
+
 ## What is not complete or intentionally paused
 
-- Full client-side `tel:` interception is not complete; the current Cold Lead branch uses a dial link plus explicit call-start logging.
-- GHL Opportunity and Inbound Reply workflows still require external GHL configuration and controlled acceptance testing.
+- Full browser-level `tel:` interception is not implemented; the Cold Lead path uses activity-first API logging followed by a device dial link.
+- Live external GHL workflow/configuration changes remain owner-controlled even though relay code and controlled harness tests are deployed.
 - Automatic GHL Opportunity Won → Client Account creation remains intentionally disabled.
-- Client-account production migration protections are prepared but not yet approved/applied as a production database release.
-- Commission Hold management is not built because the exact deployed Hold schema was not available through an approved inspection path.
-- Commission production schema rollout remains on an isolated Neon safety branch; no production Commission schema apply is assumed.
+- Servicing acceptance and normal feature activation remain gated.
+- Commission production schema apply remains gated; production currently has no Commission/Payout tables from PR #100.
+- Commission acceptance remains gated until after an approved production schema apply.
 - Finance/payment provider execution, bank data, payment collection, and payouts are not implemented.
 - External email/SMS campaign sending is not part of the inbound-reply relay.
+- Preview and production environment isolation, least-privilege database role/RLS, structured error tracking, authenticated login smoke automation, and scaling/backups policy remain platform-hardening work.
 
-## Current controlled test plan
+## Current next sequence
 
-### Test agents
-
-1. **Agent A — individual test agent**
-   - Active
-   - All four onboarding documents complete
-   - Certified/eligible for Lead claim test
-
-2. **Agent B — company/entity W-9 test agent**
-   - Active
-   - Company/entity name recorded in Documents → W-9/entity section
-   - W-9 acknowledgment status tracked without storing a W-9
-   - Leave uncertified initially to prove claim access is blocked
-
-### Test CSV
-
-Before import, review the actual source headers and map them to the controlled import model. Minimum viable columns:
-
-```text
-company
-businessPhone
-originalSource
-intakeMethod
-```
-
-Useful optional columns include contact names, email, website, industry, city, state, timezone, campaign data, referral data, and UTM values.
-
-### Test order
-
-1. Confirm feature gates and deployment state.
-2. Create/configure the second test agent and record company/entity W-9 status.
-3. Validate CSV header mapping and use a small internal-only batch.
-4. Execute Lead acceptance steps: import, review, Cold Lead activity, no-claim-before-contact boundary, DNC, claim after two-way contact, My Workspace dashboard, Open Pool return, aging sweep, GHL appointments, opportunity results, and inbound replies.
-5. Record Pass/Fail/Deferred evidence on `/admin/leads/testing`.
-6. Run servicing acceptance only after the Lead lifecycle test is signed off.
-7. Keep Commissions and Finance gated.
+1. Use `/admin/project-readiness` before any release or module decision.
+2. Continue monitoring normal Lead Flow, Integration Monitor, aging, and deployment guard results.
+3. Make live GHL workflow/configuration changes only through a separately approved controlled plan.
+4. Open Client Servicing acceptance only after explicit owner authorization; keep the feature gate independent from code changes.
+5. Apply PR #100’s Commission migration only through a fresh owner-authorized production-apply plan; verify catalog state afterward before considering Commission acceptance.
+6. Keep Finance readiness-only until Commission schema and acceptance stabilize and a separate owner decision is recorded.
+7. Address platform hardening as separate reviewed work: preview/prod secret isolation, database least privilege/RLS, observability, authenticated E2E login smoke, Neon scaling, and backup retention.
 
 ## Operational pages
 
 | Purpose | Path |
 |---|---|
+| Project readiness control plane | `/admin/project-readiness` |
+| Project readiness JSON | `/api/admin/project-readiness` |
+| Main admin command center | `/admin/command-center` |
+| Module operating status | `/admin/operating-status` |
+| Feature-gate display | `/admin/settings` |
 | Lead review / controlled import | `/admin/leads` |
 | Lead acceptance evidence | `/admin/leads/testing` |
+| Lead acceptance overview | `/admin/leads/acceptance-overview` |
+| Lead deployment verification | `/admin/leads/deployment-verification` |
 | Agent Cold Lead / active Lead workspace | `/portal/leads` |
 | My assigned-work dashboard | `/portal/workspace` |
 | Lead aging cron | `/api/cron/leads/aging` |
@@ -140,9 +154,12 @@ Useful optional columns include contact names, email, website, industry, city, s
 | Client onboarding queue | `/admin/servicing/onboarding` |
 | Launch confirmations | `/admin/servicing/launches` |
 | Service cases | `/admin/servicing/cases` |
+| Servicing acceptance | `/admin/servicing/testing` |
+| Commission eligibility | `/admin/commissions` |
+| Commission acceptance | `/admin/commissions/testing` |
+| Finance readiness | `/admin/finance` |
 | Integration Monitor | `/admin/integrations` |
-| Reply relay setup | `/admin/integrations/replies` |
-| Opportunity relay setup | `/admin/integrations/opportunities` |
+| Controlled GHL event harness | `/admin/integrations/test-events` |
 | Resolved integration history | `/admin/integrations/resolved` |
 | Readiness Board | `/admin/readiness` |
 | Audit history | `/admin/audit` |
