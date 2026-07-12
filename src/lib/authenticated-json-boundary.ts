@@ -32,6 +32,19 @@ export function authenticatedNoContent(requestId: string) {
   });
 }
 
+export function authenticatedCsvDownload(csv: string, filename: string, requestId: string) {
+  return new NextResponse(csv, {
+    status: 200,
+    headers: {
+      "Content-Type": "text/csv; charset=utf-8",
+      "Content-Disposition": `attachment; filename="${filename}"`,
+      "Cache-Control": "no-store, max-age=0",
+      "X-Request-Id": requestId,
+      "X-Robots-Tag": "noindex, nofollow, noarchive",
+    },
+  });
+}
+
 export async function prepareAuthenticatedJson(request: Request, requestId: string) {
   const declaredLength = Number(request.headers.get("content-length") ?? "0");
   if (Number.isFinite(declaredLength) && declaredLength > MAX_AUTHENTICATED_JSON_BODY_BYTES) {

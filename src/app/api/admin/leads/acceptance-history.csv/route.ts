@@ -1,4 +1,5 @@
-import { NextResponse } from "next/server";
+import { NextRequest } from "next/server";
+import { authenticatedCsvDownload, authenticatedRequestId } from "@/lib/authenticated-json-boundary";
 import { ADMIN_ROLES, requireRole } from "@/lib/authz";
 import { db } from "@/lib/db";
 import {
@@ -17,7 +18,8 @@ function escapeCsv(value: unknown) {
   return `"${text.replaceAll('"', '""')}"`;
 }
 
-export async function GET() {
+export async function GET(request: NextRequest) {
+  const requestId = authenticatedRequestId(request);
   const actor = await requireRole(ADMIN_ROLES);
   const records = await db.auditLog.findMany({
     where: {
@@ -69,11 +71,9 @@ export async function GET() {
   });
 
   const csv = [header, ...rows].map((row) => row.map(escapeCsv).join(",")).join("\n");
-  return new NextResponse(csv, {
-    headers: {
-      "Content-Type": "text/csv; charset=utf-8",
-      "Content-Disposition": `attachment; filename="mcd-lead-acceptance-history-${new Date().toISOString().slice(0, 10)}.csv"`,
-      "Cache-Control": "no-store",
-    },
-  });
+  return authenticatedCsvDownload(
+    csv,
+    `mcd-lead-acceptance-history-${new Date().toISOString().slice(0, 10)}.csv`,
+    requestId,
+  );
 }

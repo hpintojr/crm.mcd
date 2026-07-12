@@ -1,4 +1,5 @@
-import { NextResponse } from "next/server";
+import { NextRequest } from "next/server";
+import { authenticatedCsvDownload, authenticatedRequestId } from "@/lib/authenticated-json-boundary";
 import { ADMIN_ROLES, requireRole } from "@/lib/authz";
 import { getLeadAcceptanceOverview } from "@/lib/lead-acceptance-overview";
 
@@ -30,12 +31,13 @@ function flattenCsv(path: string, value: unknown, rows: CsvRow[]) {
   rows.push([path, value === null ? "null" : typeof value, value === undefined ? "" : String(value)]);
 }
 
-export async function GET() {
+export async function GET(request: NextRequest) {
+  const requestId = authenticatedRequestId(request);
   const actor = await requireRole(ADMIN_ROLES);
   const overview = await getLeadAcceptanceOverview();
   const payload = {
     ...overview,
-    viewedBy: { id: actor.id, role: actor.role },
+    viewedBy: { role: actor.role },
     safetyBoundary:
       "Read-only acceptance overview CSV export only. Does not mutate Leads, audit records, feature flags, GHL workflows, imports, exports, commissions, payouts, finance, client onboarding, or business rules.",
   };
@@ -44,11 +46,9 @@ export async function GET() {
   flattenCsv("acceptance_overview", payload, rows);
 
   const csv = [["path", "type", "value"], ...rows].map((row) => row.map(escapeCsv).join(",")).join("\n");
-  return new NextResponse(csv, {
-    headers: {
-      "Content-Type": "text/csv; charset=utf-8",
-      "Content-Disposition": `attachment; filename="mcd-lead-acceptance-summary-${new Date().toISOString().slice(0, 10)}.csv"`,
-      "Cache-Control": "no-store",
-    },
-  });
+  return authenticatedCsvDownload(
+    csv,
+    `mcd-lead-acceptance-summary-${new Date().toISOString().slice(0, 10)}.csv`,
+    requestId,
+  );
 }
