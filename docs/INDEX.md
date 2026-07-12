@@ -22,14 +22,19 @@
 - [Admin Controlled Test Request Boundary](./ADMIN_CONTROLLED_TEST_REQUEST_BOUNDARY.md) — Admin-first parsing, bounded requests, controlled-test error mapping, and unchanged preview/apply semantics.
 - [Legacy Admin Lead Import Retirement](./LEGACY_ADMIN_LEAD_IMPORT_RETIREMENT.md) — retired duplicate writer, HTTP 410 contract, and supported guarded preview/commit paths.
 - [Integration Health Control Plane](./INTEGRATION_HEALTH_CONTROL_PLANE.md) — protected aggregate webhook/error health, configuration readiness, privacy contract, and read-failure behavior.
+- [Protected Admin Read Report Boundary](./ADMIN_READ_REPORT_BOUNDARY.md) — shared request-ID/no-store/noindex responses and role-only viewer metadata for operational JSON reports.
 - [Daily Log](./DAILY_LOG.md)
 
 ## Current operational reference
 
 - Project Readiness: `/admin/project-readiness`
+- Project Readiness API: `/api/admin/project-readiness`
 - Integration Health: `/admin/integrations/health`
 - Integration Health API: `/api/admin/integrations/health`
 - Servicing Acceptance Preflight: `/admin/servicing/acceptance-command-center`
+- Servicing Acceptance API: `/api/admin/servicing/acceptance-readiness`
+- Lead deployment verification API: `/api/admin/leads/deployment-verification`
+- Controlled test data report API: `/api/admin/leads/controlled-test-data`
 - Lead Aging Cron: `/api/cron/leads/aging`
 - Public Partner Signup: `/signup`
 - Account Activation: `/activate`
