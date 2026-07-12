@@ -1,7 +1,9 @@
 import Link from "next/link";
 import { revalidatePath } from "next/cache";
+import { redirect } from "next/navigation";
 import { ADMIN_ROLES, requireRole } from "@/lib/authz";
 import { claimAvailableLead } from "@/lib/claims";
+import { isControlledTestLead } from "@/lib/controlled-test-leads";
 import { db } from "@/lib/db";
 import { features } from "@/lib/features";
 import { logColdLeadDisposition, logLeadInteraction, suppressLeadForDnc } from "@/lib/lead-workspace";
@@ -12,7 +14,7 @@ import { getPortalContext } from "@/lib/portal-context";
 
 export const dynamic = "force-dynamic";
 
-type LeadsPageProps = { searchParams: Promise<{ selected?: string; selectedCold?: string; mode?: string }> };
+type LeadsPageProps = { searchParams: Promise<{ selected?: string; selectedCold?: string; mode?: string; claimStatus?: string }> };
 
 function label(value: string) {
   return value.replaceAll("_", " ").toLowerCase().replace(/^./, (letter) => letter.toUpperCase());
@@ -32,10 +34,57 @@ function actionClass(agentFriendly: boolean) {
     : "rounded-lg border border-brand-500 px-3 py-2 text-center text-xs text-brand-200";
 }
 
+function expectedClaimFailureStatus(error: unknown): string | null {
+  const message = error instanceof Error ? error.message : "";
+  if (message === "Use reassignment controls for manager lead assignment.") return "manager_reassignment";
+  if (message === "Lead access is pending manager certification.") return "certification_required";
+  if (message.startsWith("Active lead capacity of ")) return "capacity_reached";
+  if (
+    message === "This lead is not claim-eligible. A two-way contact disposition is required before claiming." ||
+    message === "This record is no longer available to claim."
+  ) {
+    return "unavailable";
+  }
+  return null;
+}
+
+function claimFeedback(status?: string) {
+  switch (status) {
+    case "claimed":
+      return {
+        className: "border-emerald-700 bg-emerald-950/30 text-emerald-100",
+        message: "Lead claimed successfully. The 45-day responsibility timer is now active.",
+      };
+    case "manager_reassignment":
+      return {
+        className: "border-amber-700 bg-amber-950/30 text-amber-100",
+        message: "Managers must use Admin reassignment controls for real Leads. Direct claim remains limited to controlled acceptance-test Leads.",
+      };
+    case "certification_required":
+      return {
+        className: "border-amber-700 bg-amber-950/30 text-amber-100",
+        message: "Direct claim is unavailable until the Agent profile has manager-certified Lead access.",
+      };
+    case "capacity_reached":
+      return {
+        className: "border-amber-700 bg-amber-950/30 text-amber-100",
+        message: "This Agent has reached the active Lead capacity. Resolve or reassign existing work before claiming another Lead.",
+      };
+    case "unavailable":
+      return {
+        className: "border-amber-700 bg-amber-950/30 text-amber-100",
+        message: "This Lead is no longer available to claim or no longer satisfies the two-way-contact claim gate.",
+      };
+    default:
+      return null;
+  }
+}
+
 export default async function LeadsPage({ searchParams }: LeadsPageProps) {
-  const { agent } = await getPortalContext();
+  const { agent, isAdmin } = await getPortalContext();
   const params = await searchParams;
   const agentFriendly = params.mode === "agent";
+  const feedback = claimFeedback(params.claimStatus);
 
   if (!features.leads) {
     return (
@@ -74,6 +123,15 @@ export default async function LeadsPage({ searchParams }: LeadsPageProps) {
   const selectedColdNotes = selectedColdLead ? await db.leadNote.findMany({ where: { leadId: selectedColdLead.id }, orderBy: { createdAt: "desc" }, take: 12 }) : [];
   const selectedColdCallbacks = selectedColdLead ? await db.leadCallback.findMany({ where: { leadId: selectedColdLead.id }, orderBy: { dueAt: "desc" }, take: 12 }) : [];
   const selectedColdClaimEligible = selectedColdLead ? ["CONTACTED", "NURTURING", "DEMO_BOOKED"].includes(selectedColdLead.lifecycle) && ["HOT", "NURTURE"].includes(selectedColdLead.pool) && Boolean(selectedColdLead.twoWayContactAt) : false;
+  const selectedColdIsControlledTest = selectedColdLead ? isControlledTestLead(selectedColdLead) : false;
+  const selectedColdClaimActorReady = Boolean(agent?.canClaimLeads) && (!isAdmin || selectedColdIsControlledTest);
+  const selectedColdClaimReady = selectedColdClaimEligible && selectedColdClaimActorReady;
+  const selectedColdClaimGuidance =
+    selectedColdClaimEligible && !selectedColdClaimActorReady
+      ? isAdmin && !selectedColdIsControlledTest
+        ? "Managers must use Admin reassignment controls for real Leads. Direct claim is reserved for controlled acceptance-test Leads."
+        : "Direct claim is unavailable until an Agent profile is certified for Lead access."
+      : null;
 
   const selectedLead = agent && params.selected
     ? await db.lead.findFirst({ where: { id: params.selected, ownerAgentId: agent.id, dnc: false, suppressed: false } })
@@ -87,8 +145,15 @@ export default async function LeadsPage({ searchParams }: LeadsPageProps) {
     const actor = await requireRole(["AGENT", ...ADMIN_ROLES]);
     const leadId = String(formData.get("leadId") ?? "");
     if (!leadId) throw new Error("Lead is required.");
-    await claimAvailableLead({ userId: actor.id, role: actor.role }, leadId);
+    try {
+      await claimAvailableLead({ userId: actor.id, role: actor.role }, leadId);
+    } catch (error) {
+      const status = expectedClaimFailureStatus(error);
+      if (!status) throw error;
+      redirect(`/portal/leads?selectedCold=${encodeURIComponent(leadId)}&claimStatus=${status}#cold-lead-review`);
+    }
     revalidatePath("/portal/leads");
+    redirect(`/portal/leads?selected=${encodeURIComponent(leadId)}&claimStatus=claimed`);
   }
 
   async function recordColdDisposition(formData: FormData) {
@@ -134,6 +199,12 @@ export default async function LeadsPage({ searchParams }: LeadsPageProps) {
         </Link>
       </section>
 
+      {feedback && (
+        <section className={`mb-6 rounded-xl border px-4 py-3 text-sm ${feedback.className}`} data-claim-feedback={params.claimStatus} role="status">
+          {feedback.message}
+        </section>
+      )}
+
       <section className={`grid gap-6 ${agentFriendly ? "xl:grid-cols-[1.15fr_0.85fr]" : "xl:grid-cols-2"}`}>
         <section className="portal-card p-0" data-agent-surface="cold-lead-list">
           <div className="border-b px-6 py-4 portal-border"><h2 className="portal-heading font-semibold">Cold Lead workspace</h2><p className="portal-copy mt-1 text-sm">Call attempts create activity only. No soft lock, no ownership, no claim before two-way contact.</p></div>
@@ -152,7 +223,8 @@ export default async function LeadsPage({ searchParams }: LeadsPageProps) {
           <div className="mt-6"><LeadResearchFields leadId={selectedColdLead.id} /></div>
           <div className="mt-7 grid gap-3 border-t pt-6 portal-border sm:grid-cols-2"><ColdLeadDialButton leadId={selectedColdLead.id} phone={selectedColdLead.normalizedPhone || selectedColdLead.businessPhone} /></div>
           <form action={recordColdDisposition} className="mt-6 space-y-4 rounded-xl border p-4 portal-border" data-agent-action="save-cold-disposition"><input name="leadId" type="hidden" value={selectedColdLead.id} /><div><label className="portal-heading text-sm font-medium" htmlFor="coldDisposition">Disposition after call</label><select className="mt-1 w-full rounded-lg border bg-transparent px-3 py-2 text-sm portal-border" defaultValue="NO_ANSWER" id="coldDisposition" name="disposition"><option value="NO_ANSWER">No answer</option><option value="VOICEMAIL">Voicemail</option><option value="CALLBACK_REQUESTED">Callback requested</option><option value="QUALIFIED">Qualified / spoke with decision maker</option><option value="FOLLOW_UP">Follow up / interested</option><option value="NOT_INTERESTED">Not interested</option><option value="WRONG_NUMBER">Wrong number</option><option value="OUT_OF_BUSINESS">Out of business</option></select><p className="portal-copy mt-1 text-xs">Only callback requested, qualified, or follow-up/interested outcomes unlock claiming.</p></div><div><label className="portal-heading text-sm font-medium" htmlFor="coldNote">Call notes</label><textarea className="mt-1 w-full rounded-lg border bg-transparent px-3 py-2 text-sm portal-border" id="coldNote" name="note" placeholder="Document the meaningful result. No-answer and voicemail do not reserve this lead." rows={4} /></div><div><label className="portal-heading text-sm font-medium" htmlFor="coldCallbackAtPacific">Follow-up time, Pacific</label><input className="mt-1 w-full rounded-lg border bg-transparent px-3 py-2 text-sm portal-border" id="coldCallbackAtPacific" name="callbackAtPacific" type="datetime-local" /><p className="portal-copy mt-1 text-xs">Callback before claim creates a task only; it does not reserve ownership.</p></div><button className={agentFriendly ? "rounded-xl bg-brand-500 px-5 py-3 text-sm font-semibold text-ink-950 hover:bg-brand-400" : "rounded-lg bg-brand-500 px-4 py-2 text-sm font-medium text-ink-950 hover:bg-brand-400"} type="submit">Save disposition</button></form>
-          {selectedColdClaimEligible && <form action={claim} className="mt-4 rounded-xl border border-brand-500/50 bg-brand-500/10 p-4" data-agent-action="claim-unlocked-lead"><input name="leadId" type="hidden" value={selectedColdLead.id} /><h3 className="portal-heading text-sm font-semibold">Claim unlocked</h3><p className="portal-copy mt-1 text-xs">Two-way contact is verified. Claiming starts the 45-day responsibility timer.</p><button className={agentFriendly ? "mt-3 rounded-xl bg-brand-500 px-5 py-3 text-sm font-semibold text-ink-950 hover:bg-brand-400" : "mt-3 rounded-lg bg-brand-500 px-4 py-2 text-sm font-medium text-ink-950 hover:bg-brand-400"} type="submit">Claim this lead</button></form>}
+          {selectedColdClaimReady && <form action={claim} className="mt-4 rounded-xl border border-brand-500/50 bg-brand-500/10 p-4" data-agent-action="claim-unlocked-lead"><input name="leadId" type="hidden" value={selectedColdLead.id} /><h3 className="portal-heading text-sm font-semibold">Claim unlocked</h3><p className="portal-copy mt-1 text-xs">Two-way contact is verified. Claiming starts the 45-day responsibility timer.</p><button className={agentFriendly ? "mt-3 rounded-xl bg-brand-500 px-5 py-3 text-sm font-semibold text-ink-950 hover:bg-brand-400" : "mt-3 rounded-lg bg-brand-500 px-4 py-2 text-sm font-medium text-ink-950 hover:bg-brand-400"} type="submit">Claim this lead</button></form>}
+          {selectedColdClaimGuidance && <div className="mt-4 rounded-xl border border-amber-700 bg-amber-950/20 p-4 text-sm text-amber-100" data-agent-action="claim-guidance"><h3 className="font-semibold">Claim action unavailable</h3><p className="mt-1 text-xs">{selectedColdClaimGuidance}</p></div>}
           <form action={applyDnc} className="mt-4 rounded-xl border border-red-800/70 bg-red-950/20 p-4" data-agent-action="apply-dnc"><input name="leadId" type="hidden" value={selectedColdLead.id} /><label className="text-sm font-medium text-red-100" htmlFor="coldReason">Do not contact</label><textarea className="mt-2 w-full rounded-lg border border-red-800/70 bg-transparent px-3 py-2 text-sm text-red-50" id="coldReason" name="reason" placeholder="Optional opt-out wording or context." rows={2} /><p className="mt-2 text-xs text-red-200">This immediately suppresses the record across lead workflows and cancels scheduled callbacks.</p><button className={agentFriendly ? "mt-3 rounded-xl border border-red-500 px-5 py-3 text-sm font-semibold text-red-100 hover:bg-red-950/70" : "mt-3 rounded-lg border border-red-500 px-4 py-2 text-sm font-medium text-red-100 hover:bg-red-950/70"} type="submit">Apply DNC and suppress</button></form>
         </section>
         <aside className="space-y-6"><section className="portal-card"><h2 className="portal-heading text-lg font-semibold">Cold activity</h2>{selectedColdActivities.length === 0 ? <p className="portal-copy mt-3 text-sm">No activity logged yet.</p> : <div className="mt-4 space-y-3">{selectedColdActivities.map((activity) => <div className="border-b pb-3 last:border-b-0 portal-border" key={activity.id}><p className="portal-heading text-sm font-medium">{label(activity.type)}{activity.disposition ? ` · ${label(activity.disposition)}` : ""}</p><p className="portal-copy mt-1 text-xs">{pacific(activity.occurredAt)}</p></div>)}</div>}</section><section className="portal-card"><h2 className="portal-heading text-lg font-semibold">Notes</h2>{selectedColdNotes.length === 0 ? <p className="portal-copy mt-3 text-sm">No notes logged yet.</p> : <div className="mt-4 space-y-3">{selectedColdNotes.map((note) => <div className="border-b pb-3 last:border-b-0 portal-border" key={note.id}><p className="portal-copy text-sm whitespace-pre-wrap">{note.body}</p><p className="portal-copy mt-1 text-xs">{pacific(note.createdAt)}</p></div>)}</div>}</section><section className="portal-card"><h2 className="portal-heading text-lg font-semibold">Follow-up history</h2>{selectedColdCallbacks.length === 0 ? <p className="portal-copy mt-3 text-sm">No callbacks recorded yet.</p> : <div className="mt-4 space-y-3">{selectedColdCallbacks.map((callback) => <div className="border-b pb-3 last:border-b-0 portal-border" key={callback.id}><p className="portal-heading text-sm font-medium">{label(callback.status)}</p><p className="portal-copy mt-1 text-xs">Due {pacific(callback.dueAt)}</p></div>)}</div>}</section></aside>
