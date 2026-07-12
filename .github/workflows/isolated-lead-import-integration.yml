@@ -42,6 +42,8 @@ jobs:
           --health-timeout 5s
           --health-retries 10
     outputs:
+      schema_status: ${{ steps.schema.outputs.status }}
+      schema_tail: ${{ steps.schema.outputs.tail }}
       lifecycle_status: ${{ steps.lifecycle.outputs.status }}
       lifecycle_tail: ${{ steps.lifecycle.outputs.tail }}
       research_status: ${{ steps.research.outputs.status }}
@@ -69,14 +71,26 @@ jobs:
         run: npm run prisma:generate
 
       - name: Initialize disposable database schema
-        shell: bash
-        run: DATABASE_URL="$MCD_TEST_DATABASE_URL" npx prisma db push --skip-generate --accept-data-loss
-
-      - name: Run signed import lifecycle harness
-        id: lifecycle
+        id: schema
         shell: bash
         run: |
           mkdir -p .ci-logs
+          set +e
+          DATABASE_URL="$MCD_TEST_DATABASE_URL" npx prisma db push --skip-generate --accept-data-loss > .ci-logs/schema-init.log 2>&1
+          status=$?
+          echo "status=$status" >> "$GITHUB_OUTPUT"
+          {
+            echo "tail<<MCD_SCHEMA_TAIL"
+            tail -n 40 .ci-logs/schema-init.log
+            echo "MCD_SCHEMA_TAIL"
+          } >> "$GITHUB_OUTPUT"
+          exit 0
+
+      - name: Run signed import lifecycle harness
+        id: lifecycle
+        if: steps.schema.outputs.status == '0'
+        shell: bash
+        run: |
           set +e
           npm run test:lead-import-db > .ci-logs/lead-import-lifecycle.log 2>&1
           status=$?
@@ -90,6 +104,7 @@ jobs:
 
       - name: Run research and opaque acquisition harness
         id: research
+        if: steps.schema.outputs.status == '0'
         shell: bash
         run: |
           set +e
@@ -106,17 +121,21 @@ jobs:
   gate:
     name: Isolated database gate
     needs: integration
-    if: needs.integration.outputs.lifecycle_status != '0' || needs.integration.outputs.research_status != '0'
+    if: needs.integration.outputs.schema_status != '0' || needs.integration.outputs.lifecycle_status != '0' || needs.integration.outputs.research_status != '0'
     runs-on: ubuntu-latest
     steps:
       - name: Report failing harnesses
         shell: bash
         env:
+          SCHEMA_STATUS: ${{ needs.integration.outputs.schema_status }}
+          SCHEMA_TAIL: ${{ needs.integration.outputs.schema_tail }}
           LIFECYCLE_STATUS: ${{ needs.integration.outputs.lifecycle_status }}
           LIFECYCLE_TAIL: ${{ needs.integration.outputs.lifecycle_tail }}
           RESEARCH_STATUS: ${{ needs.integration.outputs.research_status }}
           RESEARCH_TAIL: ${{ needs.integration.outputs.research_tail }}
         run: |
+          echo "Disposable schema status: $SCHEMA_STATUS"
+          printf '%s\n' "$SCHEMA_TAIL"
           echo "Lead-import lifecycle status: $LIFECYCLE_STATUS"
           printf '%s\n' "$LIFECYCLE_TAIL"
           echo "Research/provenance status: $RESEARCH_STATUS"
