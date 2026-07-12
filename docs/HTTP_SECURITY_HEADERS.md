@@ -2,6 +2,14 @@
 
 Mercury Call Desk applies a conservative global security-header baseline from `next.config.mjs` to every application path.
 
+## Single source of truth
+
+`next.config.mjs` is the only application source allowed to define the global HTTP security-header baseline.
+
+`middleware.ts` remains responsible only for the existing NextAuth authorization wrapper and route matcher. It must not set response security headers. Keeping authentication middleware free of header mutations prevents a partial or older middleware copy from overriding or drifting away from the global configuration.
+
+The source guard fails if security-header names or `response.headers.set(...)` calls are added back to middleware.
+
 ## Header baseline
 
 | Header | Value / policy | Purpose |
@@ -26,7 +34,7 @@ Do not add `unsafe-eval`, wildcard framing, wildcard base URLs, or wildcard form
 
 ## Automated verification
 
-`npm run check:http-security-headers` protects the source configuration, documentation, build wiring, and Production Smoke assertions.
+`npm run check:http-security-headers` protects the single-source configuration, authentication-only middleware boundary, documentation, build wiring, and Production Smoke assertions.
 
 Production Smoke checks the deployed headers on:
 
@@ -39,4 +47,4 @@ A missing or changed header causes the post-deploy smoke to fail.
 
 ## Safety boundary
 
-This hardening changes response headers only. It does not authenticate a user, change authorization rules, mutate application or database state, alter feature gates, call GHL, apply migrations, access Commission/Finance data, or initiate payments or payouts.
+This hardening centralizes existing response-header configuration only. It does not change the NextAuth wrapper, middleware matcher, authentication, authorization rules, application or database state, feature gates, GHL behavior, migrations, Commission/Finance data, payments, or payouts.
