@@ -31,7 +31,7 @@ function checkSnapshot() {
     '"CONFIGURATION_INCOMPLETE"',
     '"READ_FAILED"',
     "allowedGhlLocations().size",
-    "webhookSecretConfigured: Boolean(env.ghl.webhookSecret)",
+    "const webhookSecretConfigured = Boolean(env.ghl.webhookSecret);",
     "aggregateOnly: true",
     "includesPayloads: false",
     "includesEventIds: false",
@@ -96,8 +96,7 @@ function checkPageAndApi() {
   ]) {
     assert(page.includes(expected), `${pagePath} is missing protected aggregate UI behavior: ${expected}`);
   }
-  for (const forbidden of ["actor.email", "event.ghlEventId", "event.locationId", "error.message", "error.refId", "payload"] as const) {
-    if (forbidden === "payload") continue;
+  for (const forbidden of ["actor.email", "event.ghlEventId", "event.locationId", "error.message", "error.refId"]) {
     assert(!page.includes(forbidden), `${pagePath} exposes forbidden identifying detail: ${forbidden}`);
   }
 
