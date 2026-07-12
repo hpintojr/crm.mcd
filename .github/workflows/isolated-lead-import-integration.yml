@@ -63,6 +63,7 @@ jobs:
           set +e
           npm run test:lead-import-db > .ci-logs/lead-import-lifecycle.log 2>&1
           status=$?
+          tail -n 120 .ci-logs/lead-import-lifecycle.log
           echo "status=$status" >> "$GITHUB_OUTPUT"
           exit 0
 
@@ -73,17 +74,9 @@ jobs:
           set +e
           npm run test:lead-import-research-db > .ci-logs/lead-import-research.log 2>&1
           status=$?
+          tail -n 120 .ci-logs/lead-import-research.log
           echo "status=$status" >> "$GITHUB_OUTPUT"
           exit 0
-
-      - name: Upload isolated harness logs
-        if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: lead-import-isolated-logs
-          path: .ci-logs/*.log
-          if-no-files-found: error
-          retention-days: 7
 
       - name: Fail when any harness fails
         if: steps.lifecycle.outputs.status != '0' || steps.research.outputs.status != '0'
