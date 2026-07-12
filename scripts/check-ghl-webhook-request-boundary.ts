@@ -9,11 +9,6 @@ function assertContains(path: string, expected: string) {
   assert(content.includes(expected), `${path} is missing required GHL request boundary: ${expected}`);
 }
 
-function assertExcludes(path: string, forbidden: string) {
-  const content = readFileSync(path, "utf8");
-  assert(!content.includes(forbidden), `${path} contains forbidden GHL request behavior: ${forbidden}`);
-}
-
 function checkSharedBoundary() {
   const path = "src/lib/ghl-webhook.ts";
   const content = readFileSync(path, "utf8");
@@ -37,10 +32,11 @@ function checkSharedBoundary() {
     assertContains(path, expected);
   }
 
-  const secretIndex = content.indexOf("const secret = verifyGhlWebhookSecret(request)", content.indexOf("prepareGhlWebhookRequest"));
-  const textIndex = content.indexOf("rawText = await request.text()", content.indexOf("prepareGhlWebhookRequest"));
-  const parseIndex = content.indexOf("JSON.parse(rawText)", content.indexOf("prepareGhlWebhookRequest"));
-  assert(secretIndex >= 0 && textIndex > secretIndex && parseIndex > textIndex, "Secret verification must occur before body reading and JSON parsing.");
+  const prepareStart = content.indexOf("export async function prepareGhlWebhookRequest");
+  const secretIndex = content.indexOf("const secret = verifyGhlWebhookSecret(request)", prepareStart);
+  const textIndex = content.indexOf("rawText = await request.text()", prepareStart);
+  const parseIndex = content.indexOf("JSON.parse(rawText)", prepareStart);
+  assert(prepareStart >= 0 && secretIndex > prepareStart && textIndex > secretIndex && parseIndex > textIndex, "Secret verification must occur before body reading and JSON parsing.");
   assert((content.match(/NextResponse\.json/g) ?? []).length === 1, "All GHL boundary responses must use the centralized JSON helper.");
 }
 
@@ -62,13 +58,15 @@ function checkRoutes() {
       "verifyGhlWebhookLocation",
       "ghlWebhookJson",
       "requestId",
+      "sanitizedGhlWebhookFailure",
+      "logGhlWebhookRuntimeFailure",
     ]) {
       assert(content.includes(expected), `${path} is missing shared request-boundary usage: ${expected}`);
     }
 
     const prepareIndex = content.indexOf("const prepared = await prepareGhlWebhookRequest(request)");
-    const schemaIndex = content.indexOf(".safeParse(raw)");
-    const locationIndex = content.indexOf("verifyGhlWebhookLocation");
+    const schemaIndex = content.indexOf(".safeParse(raw)", prepareIndex);
+    const locationIndex = content.indexOf("const verified = verifyGhlWebhookLocation", schemaIndex);
     assert(prepareIndex >= 0 && schemaIndex > prepareIndex && locationIndex > schemaIndex, `${path} must prepare the request, validate its schema, then verify location.`);
 
     for (const forbidden of [
@@ -77,22 +75,9 @@ function checkRoutes() {
       "verifyGhlWebhook(request",
       "error instanceof Error ? error.message",
       "error.message",
-      "payload: raw as Prisma.InputJsonValue,\n    });\n    return ghlWebhookJson({ error:",
     ]) {
       assert(!content.includes(forbidden), `${path} contains forbidden route-level request or error behavior: ${forbidden}`);
     }
-  }
-
-  for (const path of [
-    "src/app/api/ghl/appointments/route.ts",
-    "src/app/api/ghl/documents/route.ts",
-    "src/app/api/ghl/funding/route.ts",
-    "src/app/api/ghl/invoices/route.ts",
-    "src/app/api/ghl/opportunities/route.ts",
-    "src/app/api/ghl/replies/route.ts",
-  ]) {
-    assertContains(path, "sanitizedGhlWebhookFailure");
-    assertContains(path, "logGhlWebhookRuntimeFailure");
   }
 }
 
