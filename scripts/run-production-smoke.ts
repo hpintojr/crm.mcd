@@ -85,6 +85,7 @@ function validateSecurityHeaders(response: Response, label: string) {
   assert(contentSecurityPolicy.includes("form-action 'self'"), `${label} is missing the CSP form-action policy.`);
   assert(contentSecurityPolicy.includes("frame-ancestors 'none'"), `${label} is missing the CSP anti-framing policy.`);
   assert(contentSecurityPolicy.includes("object-src 'none'"), `${label} is missing the CSP object policy.`);
+  assert(response.headers.get("x-powered-by") === null, `${label} must not disclose the Next.js framework header.`);
   assert(response.headers.get("x-content-type-options") === "nosniff", `${label} is missing X-Content-Type-Options: nosniff.`);
   assert(response.headers.get("x-frame-options") === "DENY", `${label} is missing X-Frame-Options: DENY.`);
   assert(response.headers.get("referrer-policy") === "strict-origin-when-cross-origin", `${label} has an unexpected Referrer-Policy.`);
