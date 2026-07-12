@@ -8,11 +8,10 @@ type StatusPayload = {
   git?: {
     branch?: unknown;
     commitSha?: unknown;
+    commitMessage?: unknown;
   };
-  deployment?: {
-    url?: unknown;
-    region?: unknown;
-  };
+  deployment?: unknown;
+  timestamp?: unknown;
 };
 
 type SmokeResult = {
@@ -103,6 +102,7 @@ function validateStatusPayload(payload: StatusPayload, response: Response) {
   assert(response.status === 200, `/api/status returned HTTP ${response.status}.`);
   assert(response.headers.get("content-type")?.includes("application/json"), "/api/status did not return JSON.");
   assert(response.headers.get("cache-control")?.includes("no-store"), "/api/status must remain no-store.");
+  assert(response.headers.get("x-robots-tag") === "noindex, nofollow, noarchive", "/api/status must remain excluded from indexing.");
   validateSecurityHeaders(response, "/api/status");
   assert(payload.ok === true, "/api/status did not report ok=true.");
   assert(payload.service === "crm-mcd", "/api/status reported an unexpected service name.");
@@ -112,8 +112,9 @@ function validateStatusPayload(payload: StatusPayload, response: Response) {
     typeof payload.git?.commitSha === "string" && /^[0-9a-f]{40}$/i.test(payload.git.commitSha),
     "/api/status did not expose a valid 40-character commit SHA.",
   );
-  assert(typeof payload.deployment?.url === "string" && payload.deployment.url.length > 0, "/api/status did not expose a deployment URL.");
-  assert(typeof payload.deployment?.region === "string" && payload.deployment.region.length > 0, "/api/status did not expose a deployment region.");
+  assert(!payload.git || !("commitMessage" in payload.git), "/api/status must not expose commit messages.");
+  assert(!("deployment" in payload), "/api/status must not expose deployment hostnames or regions.");
+  assert(!("timestamp" in payload), "/api/status must not expose per-request timestamps.");
 }
 
 async function waitForExpectedDeployment() {

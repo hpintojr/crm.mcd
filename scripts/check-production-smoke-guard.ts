@@ -10,7 +10,7 @@ function assertContains(path: string, expected: string) {
 function assertExcludes(path: string, forbidden: string) {
   const content = readFileSync(path, "utf8");
   if (content.includes(forbidden)) {
-    throw new Error(`${path} must remain non-mutating and must not contain: ${forbidden}`);
+    throw new Error(`${path} must remain non-mutating and minimally exposed; forbidden content: ${forbidden}`);
   }
 }
 
@@ -26,11 +26,21 @@ const guards: [string, string][] = [
   [".github/workflows/production-smoke.yml", "EXPECTED_COMMIT_SHA: ${{ github.sha }}"],
   [".github/workflows/production-smoke.yml", "https://crm.mercurycalldesk.com"],
   [".github/workflows/production-smoke.yml", "npm run smoke:production"],
+  ["src/app/api/status/route.ts", 'service: "crm-mcd"'],
+  ["src/app/api/status/route.ts", "VERCEL_ENV"],
+  ["src/app/api/status/route.ts", "VERCEL_GIT_COMMIT_REF"],
+  ["src/app/api/status/route.ts", "VERCEL_GIT_COMMIT_SHA"],
+  ["src/app/api/status/route.ts", '"Cache-Control": "no-store, max-age=0"'],
+  ["src/app/api/status/route.ts", '"X-Robots-Tag": "noindex, nofollow, noarchive"'],
   ["scripts/run-production-smoke.ts", "/api/status"],
   ["scripts/run-production-smoke.ts", 'payload.environment === "production"'],
   ["scripts/run-production-smoke.ts", 'payload.git?.branch === "main"'],
   ["scripts/run-production-smoke.ts", "expectedCommitSha"],
   ["scripts/run-production-smoke.ts", 'response.headers.get("cache-control")?.includes("no-store")'],
+  ["scripts/run-production-smoke.ts", 'response.headers.get("x-robots-tag") === "noindex, nofollow, noarchive"'],
+  ["scripts/run-production-smoke.ts", '!("commitMessage" in payload.git)'],
+  ["scripts/run-production-smoke.ts", '!("deployment" in payload)'],
+  ["scripts/run-production-smoke.ts", '!("timestamp" in payload)'],
   ["scripts/run-production-smoke.ts", "/admin/project-readiness"],
   ["scripts/run-production-smoke.ts", "/api/admin/project-readiness"],
   ["scripts/run-production-smoke.ts", "/admin/servicing/acceptance-command-center"],
@@ -39,6 +49,7 @@ const guards: [string, string][] = [
   ["scripts/run-production-smoke.ts", "GITHUB_STEP_SUMMARY"],
   ["scripts/run-production-smoke.ts", "Unauthenticated request resolves to /login"],
   ["docs/PRODUCTION_SMOKE.md", "Production Smoke"],
+  ["docs/PRODUCTION_SMOKE.md", "minimal public deployment identity"],
   ["docs/PRODUCTION_SMOKE.md", "does not authenticate"],
   ["docs/PRODUCTION_SMOKE.md", "does not mutate"],
   ["docs/INDEX.md", "PRODUCTION_SMOKE.md"],
@@ -66,6 +77,10 @@ for (const forbidden of [
   "authorization:",
 ]) {
   assertExcludes("scripts/run-production-smoke.ts", forbidden);
+}
+
+for (const forbidden of ["VERCEL_GIT_COMMIT_MESSAGE", "VERCEL_URL", "VERCEL_REGION", "new Date().toISOString()"] ) {
+  assertExcludes("src/app/api/status/route.ts", forbidden);
 }
 
 for (const forbidden of ["pull_request_target:", "permissions: write-all", "contents: write", "id-token: write"]) {
