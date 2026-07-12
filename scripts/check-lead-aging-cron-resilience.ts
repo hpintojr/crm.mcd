@@ -103,9 +103,28 @@ function checkRouteContract() {
   }
 }
 
+function checkRepositoryContract() {
+  const packageJson = readFileSync("package.json", "utf8");
+  const deploymentVerification = readFileSync("src/lib/lead-deployment-verification.ts", "utf8");
+  const deploymentGuard = readFileSync("scripts/check-deployment-verification-guard.ts", "utf8");
+  const docs = readFileSync("docs/LEAD_AGING_CRON.md", "utf8");
+  const index = readFileSync("docs/INDEX.md", "utf8");
+  const readme = readFileSync("README.md", "utf8");
+
+  assertContains(packageJson, '"check:lead-aging-cron-resilience": "tsx scripts/check-lead-aging-cron-resilience.ts"', "package.json");
+  assertContains(packageJson, "check-lead-aging-cron-resilience.ts", "package.json build guard chain");
+  assertContains(deploymentVerification, "Lead aging cron resilience guard passed.", "deployment verification");
+  assertContains(deploymentGuard, "Lead aging cron resilience guard passed.", "deployment verification guard");
+  assertContains(docs, "The actual Lead aging sweep is **never retried**", "docs/LEAD_AGING_CRON.md");
+  assertContains(docs, "X-Request-Id", "docs/LEAD_AGING_CRON.md");
+  assertContains(index, "LEAD_AGING_CRON.md", "docs/INDEX.md");
+  assertContains(readme, "never retries the mutating sweep", "README.md");
+}
+
 async function main() {
   await checkRetryHelper();
   checkRouteContract();
+  checkRepositoryContract();
   console.log("Lead aging cron resilience guard passed.");
 }
 
