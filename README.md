@@ -4,6 +4,7 @@ Secure Admin and Agent portals for Mercury Call Desk. GoHighLevel (GHL) is a bac
 
 ## Start here
 
+- [Project Readiness Control Plane](/admin/project-readiness) — deployed commit, feature gates, acceptance, integrations, and live schema readiness in one protected read-only view.
 - [Workspace](./docs/WORKSPACE.md) — current implementation inventory, gates, operational paths, and test plan.
 - [Lead MVP Rollout Status](./docs/LEAD_MVP_ROLLOUT_STATUS.md) — Lead, GHL relay, and servicing handoff status.
 - [Lead MVP Acceptance Test](./docs/LEAD_MVP_ACCEPTANCE_TEST.md) — owner-controlled test sequence.
@@ -15,10 +16,10 @@ Secure Admin and Agent portals for Mercury Call Desk. GoHighLevel (GHL) is a bac
 - `main` is the production source branch.
 - Vercel deploys changes from `main` to `https://crm.mercurycalldesk.com`.
 - Production environment values live in Vercel only; never commit credentials.
-- Neon schema changes use a safety-branch review before an explicit production apply.
+- Neon schema changes use a disposable safety branch before an explicit production apply.
 - Do not enable a database-backed feature until its schema, production build, and controlled live test are complete.
 - Do not run a blanket `prisma migrate deploy` against production.
-- Do not assume a feature-gate value from documentation; verify the deployed environment before activating or describing a module as live.
+- Do not assume a feature-gate value from documentation; verify the deployed environment and `/admin/project-readiness` before activation or status reporting.
 
 ## Stack
 
@@ -41,7 +42,7 @@ Secure Admin and Agent portals for Mercury Call Desk. GoHighLevel (GHL) is a bac
 
 ### Lead operations
 
-- Controlled JSON/CSV import conversion with server-side preview-before-commit.
+- Signed batch import workflow plus controlled JSON/CSV conversion with server-side preview-before-commit.
 - Admin review, duplicate/suppression screening, source/intake validation, and no direct new-import path into Open Pool.
 - Atomic claim controls, agent ownership boundaries, notes, dispositions, callbacks, two-way contact, and audit history.
 - Immediate DNC and admin suppression protections that cancel scheduled callbacks and remove active-work access.
@@ -49,6 +50,7 @@ Secure Admin and Agent portals for Mercury Call Desk. GoHighLevel (GHL) is a bac
 - Open Pool return protections requiring documented prior ownership, two-way contact, non-referral status, eligible lifecycle, and admin reason.
 - Lead detail view with an admin-only verified Closed Won decision.
 - Warm Reply Triage for unassigned verified inbound replies, with atomic manager assignment and immediate callback creation.
+- The 18-step production Lead Flow acceptance runbook and owner production decision are recorded PASS.
 
 ### GHL relays
 
@@ -57,7 +59,7 @@ Secure Admin and Agent portals for Mercury Call Desk. GoHighLevel (GHL) is a bac
 - Inbound SMS/email reply relay at `/api/ghl/replies`.
 - All relay paths use verified webhook handling, location allowlisting, event-ID idempotency, audit events, and Integration Monitor errors.
 - Appointment time parsing has been hardened for GHL date formats and timezone handling.
-- Opportunity and reply relay code is deployed, but each still requires external GHL workflow configuration and controlled acceptance evidence before normal use.
+- Controlled test harness coverage exists; live external GHL workflow configuration remains a separately controlled owner action.
 
 ### Client Servicing
 
@@ -65,11 +67,20 @@ Secure Admin and Agent portals for Mercury Call Desk. GoHighLevel (GHL) is a bac
 - Linked Client Accounts can only be created from active, verified, non-suppressed `CLOSED_WON` Leads; duplicate links are rejected under a transaction lock.
 - Healthy, current-paying accounts are not reassigned merely because they are quiet.
 - Service cases are trigger-based: client request, support issue, payment problem, renewal event, escalation, or documented review.
+- Client/Service raw-SQL tables are present in production; normal Servicing use remains feature-gated pending a separately authorized acceptance window.
+
+### Commission and Finance readiness
+
+- Commission eligibility, agent profile, ledger read models, hold/release policy, review actions, and acceptance-board scaffolding are built behind the Commission feature gate.
+- PR #100 corrected the staged Commission/Payout migration to match the raw SQL used by the application and added `CommissionHold`, `CommissionEligibilityDecision`, and `AgentCommissionProfile`.
+- The exact PR #100 DDL passed disposable-Neon-branch catalog and lifecycle testing, but it has **not** been applied to production.
+- Finance remains a readiness-only boundary. It does not store raw financial-account data, initiate payment-provider actions, or move money.
 
 ### Acceptance, readiness, and audit
 
 - Lead, Servicing, and Commission acceptance boards record Pass, Fail, or Deferred evidence with admin identity, note, and timestamp.
-- Readiness Board summarizes current acceptance evidence and operational queues.
+- `/admin/project-readiness` combines deployment metadata, feature gates, latest acceptance outcomes, integration health, Client/Service schema state, and Commission migration state.
+- Readiness Board summarizes operational queues and acceptance evidence.
 - Audit History surfaces rollout evidence separately from the general event stream.
 - Integration Monitor includes active errors, resolution notes, setup references, and a short-term resolved-history view.
 
@@ -77,12 +88,12 @@ Secure Admin and Agent portals for Mercury Call Desk. GoHighLevel (GHL) is a bac
 
 | Module | Feature gate | Current state |
 |---|---:|---|
-| Leads | `LEADS_ENABLED` | Built for controlled testing; activation requires owner-approved test window and evidence |
-| GHL appointment relay | uses Lead workflow | Built and previously exercised in controlled testing; continue monitoring through Integration Monitor |
-| GHL opportunity relay | uses Lead workflow | Code deployed; GHL workflow configuration and controlled test remain pending |
-| GHL inbound reply relay | uses Lead workflow | Code deployed; GHL workflow configuration and controlled test remain pending |
-| Client Servicing | `SERVICING_ENABLED` | Workflow built; validate after Lead lifecycle acceptance |
-| Commissions | `COMMISSIONS_ENABLED` | Eligibility/readiness workflow staged; Hold management paused pending schema confirmation |
+| Leads | `LEADS_ENABLED` | 18/18 acceptance steps PASS and owner production decision recorded; monitor normal operations and keep external workflow/configuration changes separately controlled |
+| GHL appointment relay | uses Lead workflow | Built, guarded against reopening Closed Won, and covered by controlled testing |
+| GHL opportunity relay | uses Lead workflow | Code and controlled harness deployed; live external GHL workflow configuration remains owner-controlled |
+| GHL inbound reply relay | uses Lead workflow | Code and controlled warm-reply path deployed; live external GHL workflow configuration remains owner-controlled |
+| Client Servicing | `SERVICING_ENABLED` | Workflow and production Client/Service schema present; gate remains locked pending separately authorized acceptance |
+| Commissions | `COMMISSIONS_ENABLED` | Application workflow and corrected migration staged; production Commission/Payout schema remains unapplied and gate locked |
 | Finance | `FINANCE_ENABLED` | Readiness-only boundary; no payout execution or money movement |
 
 ## Core business rules
@@ -92,6 +103,7 @@ Secure Admin and Agent portals for Mercury Call Desk. GoHighLevel (GHL) is a bac
 - DNC and suppression immediately block future sales/marketing workflow and cancel scheduled callbacks.
 - Lead ownership is retained through appointment, opportunity, and reply attribution unless an authorized reassignment occurs.
 - A late GHL Opportunity Lost event cannot reverse a Lead already marked Closed Won.
+- Appointment booking, confirmation, or rescheduling cannot reopen a Lead already marked Closed Won.
 - GHL replies create or expedite owner work; unassigned replies require manager triage.
 - Healthy, current-paying client accounts do not lose servicing ownership for inactivity alone.
 - Good-standing agents may retain service responsibility; House transfer requires an authorized reason. Retired/terminated commission policy is handled through the separately gated Commission phase.
@@ -108,10 +120,9 @@ Secure Admin and Agent portals for Mercury Call Desk. GoHighLevel (GHL) is a bac
 
 ## Immediate next sequence
 
-1. Use the existing individual test agent as the active, document-complete, certified agent.
-2. Create a second active company/entity test agent; record the Company / Entity Name in its Documents page and leave it uncertified initially for the denial test.
-3. Review the actual CSV headers and map them to the controlled import model.
-4. Run a small internal-only Lead acceptance batch through import, review, claim, callback, DNC, Open Pool, appointment, opportunity, and reply-relay checks.
-5. Record Pass/Fail/Deferred evidence at `/admin/leads/testing`.
-6. Run the Servicing acceptance board only after Lead lifecycle acceptance is signed off.
-7. Keep Commission and Finance gated until their separate schema/policy readiness work is approved.
+1. Use `/admin/project-readiness` as the source-derived preflight before any module decision.
+2. Monitor normal Lead Flow and unresolved Integration Monitor items; keep live external GHL workflow/configuration changes separately controlled.
+3. Open a Client Servicing acceptance window only after explicit owner authorization; do not change `SERVICING_ENABLED` as part of ordinary code work.
+4. Apply the PR #100 Commission migration only after a new explicit Hamilton authorization and a fresh production-apply plan; migration apply and feature activation must remain separate decisions.
+5. Run controlled Commission acceptance only after production schema approval; keep Finance locked and readiness-only.
+6. Continue platform hardening separately: preview/production secret isolation, least-privilege database access/RLS decision, structured error tracking, authenticated login smoke coverage, and scaling/backups review.
