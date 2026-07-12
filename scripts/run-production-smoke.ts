@@ -77,10 +77,33 @@ async function fetchWithTimeout(path: string) {
   }
 }
 
+function validateSecurityHeaders(response: Response, label: string) {
+  const contentSecurityPolicy = response.headers.get("content-security-policy") ?? "";
+  const permissionsPolicy = response.headers.get("permissions-policy") ?? "";
+  const strictTransportSecurity = response.headers.get("strict-transport-security") ?? "";
+
+  assert(contentSecurityPolicy.includes("base-uri 'self'"), `${label} is missing the CSP base-uri policy.`);
+  assert(contentSecurityPolicy.includes("form-action 'self'"), `${label} is missing the CSP form-action policy.`);
+  assert(contentSecurityPolicy.includes("frame-ancestors 'none'"), `${label} is missing the CSP anti-framing policy.`);
+  assert(contentSecurityPolicy.includes("object-src 'none'"), `${label} is missing the CSP object policy.`);
+  assert(response.headers.get("x-content-type-options") === "nosniff", `${label} is missing X-Content-Type-Options: nosniff.`);
+  assert(response.headers.get("x-frame-options") === "DENY", `${label} is missing X-Frame-Options: DENY.`);
+  assert(response.headers.get("referrer-policy") === "strict-origin-when-cross-origin", `${label} has an unexpected Referrer-Policy.`);
+  assert(response.headers.get("cross-origin-opener-policy") === "same-origin-allow-popups", `${label} has an unexpected Cross-Origin-Opener-Policy.`);
+  assert(response.headers.get("x-dns-prefetch-control") === "off", `${label} is missing X-DNS-Prefetch-Control: off.`);
+  assert(response.headers.get("x-permitted-cross-domain-policies") === "none", `${label} is missing the cross-domain policy header.`);
+  assert(response.headers.get("x-download-options") === "noopen", `${label} is missing X-Download-Options: noopen.`);
+  for (const directive of ["camera=()", "microphone=()", "geolocation=()", "payment=()", "usb=()", "browsing-topics=()"]) {
+    assert(permissionsPolicy.includes(directive), `${label} is missing Permissions-Policy directive ${directive}.`);
+  }
+  assert(strictTransportSecurity.includes("max-age="), `${label} is missing Strict-Transport-Security.`);
+}
+
 function validateStatusPayload(payload: StatusPayload, response: Response) {
   assert(response.status === 200, `/api/status returned HTTP ${response.status}.`);
   assert(response.headers.get("content-type")?.includes("application/json"), "/api/status did not return JSON.");
   assert(response.headers.get("cache-control")?.includes("no-store"), "/api/status must remain no-store.");
+  validateSecurityHeaders(response, "/api/status");
   assert(payload.ok === true, "/api/status did not report ok=true.");
   assert(payload.service === "crm-mcd", "/api/status reported an unexpected service name.");
   assert(payload.environment === "production", `/api/status reported environment=${String(payload.environment)}.`);
@@ -132,11 +155,12 @@ async function checkLoginSurface() {
   const html = await response.text();
   assert(response.status === 200, `/login returned HTTP ${response.status}.`);
   assert(response.headers.get("content-type")?.includes("text/html"), "/login did not return HTML.");
+  validateSecurityHeaders(response, "/login");
   assert(html.includes("Mercury Call Desk"), "/login is missing the Mercury Call Desk identity.");
   assert(html.includes(">Sign in<"), "/login is missing the sign-in heading.");
   assert(html.includes('name="robots"'), "/login is missing the robots meta tag.");
   assert(html.includes('content="noindex, nofollow"'), "/login must remain noindex, nofollow.");
-  results.push({ check: "Login surface", target: "/login", detail: "HTTP 200, branded, noindex" });
+  results.push({ check: "Login and security headers", target: "/login", detail: "HTTP 200, branded, noindex, hardened headers" });
 }
 
 async function checkProtectedBoundary(path: string, forbiddenMarkers: string[]) {
@@ -147,13 +171,14 @@ async function checkProtectedBoundary(path: string, forbiddenMarkers: string[]) 
 
   assert(response.status === 200, `${path} returned HTTP ${response.status}.`);
   assert(response.headers.get("content-type")?.includes("text/html"), `${path} did not resolve to the login HTML boundary.`);
+  validateSecurityHeaders(response, path);
   assert(finalPath === "/login" || matchedPath === "/login", `${path} did not resolve to /login for an unauthenticated request.`);
   assert(html.includes(">Sign in<"), `${path} did not return the secure sign-in surface.`);
   for (const marker of forbiddenMarkers) {
     assert(!html.includes(marker), `${path} leaked protected marker: ${marker}`);
   }
 
-  results.push({ check: "Protected boundary", target: path, detail: "Unauthenticated request resolves to /login" });
+  results.push({ check: "Protected boundary", target: path, detail: "Unauthenticated request resolves to /login with hardened headers" });
 }
 
 async function writeStepSummary() {
