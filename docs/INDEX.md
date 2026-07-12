@@ -15,6 +15,7 @@
 - [HTTP Security Headers](./HTTP_SECURITY_HEADERS.md) — global anti-framing, MIME, referrer, browser-permission, and opener policies.
 - [Route Tracing](./ROUTE_TRACING.md) — opt-in server diagnostic progress logs and safe metadata boundaries.
 - [Public Partner Signup](./PUBLIC_SIGNUP.md) — request limits, durable reservation, idempotent duplicate handling, GHL ordering, and minimal public responses.
+- [Account Activation](./ACCOUNT_ACTIVATION.md) — token privacy, bounded requests, authenticator preparation, and atomic single-use completion.
 - [Daily Log](./DAILY_LOG.md)
 
 ## Current operational reference
@@ -23,6 +24,7 @@
 - Servicing Acceptance Preflight: `/admin/servicing/acceptance-command-center`
 - Lead Aging Cron: `/api/cron/leads/aging`
 - Public Partner Signup: `/signup`
+- Account Activation: `/activate`
 - Admin Lead Review: `/admin/leads`
 - Lead acceptance evidence: `/admin/leads/testing`
 - Warm Reply Triage: `/admin/leads/replies`
