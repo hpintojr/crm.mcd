@@ -28,6 +28,7 @@ const expectedGuardLines = [
   "Servicing acceptance preflight guard passed.",
   "Production smoke automation guard passed.",
   "Lead aging cron resilience guard passed.",
+  "HTTP security headers guard passed.",
 ];
 
 const guards: [string, string][] = [
