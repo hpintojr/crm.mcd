@@ -1,6 +1,14 @@
+import type { Metadata } from "next";
 import { db } from "@/lib/db";
 import { hashToken } from "@/lib/password";
 import { ActivationForm } from "./activation-form";
+
+export const dynamic = "force-dynamic";
+
+export const metadata: Metadata = {
+  robots: { index: false, follow: false, noarchive: true },
+  referrer: "no-referrer",
+};
 
 type ActivatePageProps = {
   searchParams: Promise<{ token?: string }>;
@@ -16,11 +24,11 @@ export default async function ActivatePage({ searchParams }: ActivatePageProps) 
           usedAt: null,
           expiresAt: { gt: new Date() },
         },
-        include: { user: { select: { email: true } } },
+        include: { user: { select: { email: true, status: true } } },
       })
     : null;
 
-  if (!token || !activation) {
+  if (!token || !activation || activation.user.status === "DISABLED") {
     return (
       <main className="mx-auto flex min-h-screen max-w-lg items-center px-6 py-16">
         <div className="w-full rounded-2xl border border-red-800 bg-ink-900 p-8 text-center">
