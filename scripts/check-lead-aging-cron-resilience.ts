@@ -33,6 +33,17 @@ async function checkRetryHelper() {
   assert(recovered.value === "recovered" && recovered.attempts === 3 && attempts === 3, "Transient database failures should retry within the bound.");
 
   attempts = 0;
+  const delayedRecovery = await retryTransientDatabaseOperation(async () => {
+    attempts += 1;
+    if (attempts < 5) throw transientError();
+    return "recovered-on-final-attempt";
+  }, { maxAttempts: 5, initialDelayMs: 0, maxDelayMs: 0 });
+  assert(
+    delayedRecovery.value === "recovered-on-final-attempt" && delayedRecovery.attempts === 5 && attempts === 5,
+    "The readiness helper must support recovery on the fifth and final bounded attempt.",
+  );
+
+  attempts = 0;
   let nonTransient: unknown;
   try {
     await retryTransientDatabaseOperation(async () => {
@@ -51,12 +62,12 @@ async function checkRetryHelper() {
     await retryTransientDatabaseOperation(async () => {
       attempts += 1;
       throw transientError("P2024");
-    }, { maxAttempts: 3, initialDelayMs: 0, maxDelayMs: 0 });
+    }, { maxAttempts: 5, initialDelayMs: 0, maxDelayMs: 0 });
   } catch (error) {
     exhausted = error;
   }
   assert(exhausted instanceof TransientDatabaseRetryExhaustedError, "Exhausted transient failures must use the typed error.");
-  assert(exhausted.attempts === 3 && attempts === 3 && exhausted.retryable, "Exhaustion must report the bounded attempt count and retryability.");
+  assert(exhausted.attempts === 5 && attempts === 5 && exhausted.retryable, "Exhaustion must report the bounded five-attempt count and retryability.");
 
   assert(isTransientDatabaseError({ cause: transientError() }), "Wrapped transient database failures must be detected.");
   assert(isTransientDatabaseError(new Error("connection pool timeout")), "Pool timeout messages must be detected.");
@@ -73,7 +84,12 @@ function checkRouteContract() {
   const helper = readFileSync("src/lib/transient-database-retry.ts", "utf8");
 
   for (const expected of [
-    "DATABASE_PROBE_MAX_ATTEMPTS = 3",
+    'export const maxDuration = 90',
+    "DATABASE_PROBE_MAX_ATTEMPTS = 5",
+    "DATABASE_PROBE_INITIAL_DELAY_MS = 1_000",
+    "DATABASE_PROBE_MAX_DELAY_MS = 8_000",
+    "initialDelayMs: DATABASE_PROBE_INITIAL_DELAY_MS",
+    "maxDelayMs: DATABASE_PROBE_MAX_DELAY_MS",
     "SELECT 1 AS \"ready\"",
     "retryTransientDatabaseOperation",
     "The mutating sweep runs exactly once",
@@ -116,6 +132,8 @@ function checkRepositoryContract() {
   assertContains(deploymentVerification, "Lead aging cron resilience guard passed.", "deployment verification");
   assertContains(deploymentGuard, "Lead aging cron resilience guard passed.", "deployment verification guard");
   assertContains(docs, "The actual Lead aging sweep is **never retried**", "docs/LEAD_AGING_CRON.md");
+  assertContains(docs, "1, 2, 4, and 8 seconds", "docs/LEAD_AGING_CRON.md");
+  assertContains(docs, "90-second", "docs/LEAD_AGING_CRON.md");
   assertContains(docs, "X-Request-Id", "docs/LEAD_AGING_CRON.md");
   assertContains(index, "LEAD_AGING_CRON.md", "docs/INDEX.md");
   assertContains(readme, "never retries the mutating sweep", "README.md");
