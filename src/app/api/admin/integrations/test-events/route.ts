@@ -1,7 +1,12 @@
-import { NextRequest, NextResponse } from "next/server";
+import { NextRequest } from "next/server";
 import { z } from "zod";
+import { expectedControlledGhlTestFailure } from "@/lib/admin-controlled-test-boundary";
+import {
+  authenticatedJson,
+  authenticatedRequestId,
+  prepareAuthenticatedJson,
+} from "@/lib/authenticated-json-boundary";
 import { ADMIN_ROLES, requireRole } from "@/lib/authz";
-import { features } from "@/lib/features";
 import {
   applyControlledGhlTestEvent,
   controlledAppointmentEventTypes,
@@ -9,6 +14,7 @@ import {
   previewControlledGhlTestEvent,
   type ControlledGhlTestEventType,
 } from "@/lib/controlled-ghl-test-events";
+import { features } from "@/lib/features";
 
 export const dynamic = "force-dynamic";
 
@@ -28,11 +34,17 @@ function normalizeEventType(family: "appointment" | "opportunity", eventType: st
 }
 
 export async function POST(request: NextRequest) {
-  if (!features.leads) return NextResponse.json({ error: "Not found." }, { status: 404 });
+  const requestId = authenticatedRequestId(request);
+  if (!features.leads) return authenticatedJson({ error: "Not found." }, 404, requestId);
+
   const actor = await requireRole(ADMIN_ROLES);
-  const raw: unknown = await request.json().catch(() => null);
-  const parsed = schema.safeParse(raw);
-  if (!parsed.success) return NextResponse.json({ error: "Invalid controlled test event request." }, { status: 422 });
+  const prepared = await prepareAuthenticatedJson(request, requestId);
+  if (!prepared.ok) return prepared.response;
+
+  const parsed = schema.safeParse(prepared.raw);
+  if (!parsed.success) {
+    return authenticatedJson({ error: "Invalid controlled test event request." }, 422, requestId);
+  }
 
   try {
     const eventType = normalizeEventType(parsed.data.family, parsed.data.eventType);
@@ -45,7 +57,7 @@ export async function POST(request: NextRequest) {
       note: parsed.data.note,
     };
     const result = parsed.data.mode === "apply" ? await applyControlledGhlTestEvent(input) : await previewControlledGhlTestEvent(input);
-    return NextResponse.json(
+    return authenticatedJson(
       {
         ok: true,
         reportType: "controlled-ghl-test-event",
@@ -54,9 +66,12 @@ export async function POST(request: NextRequest) {
         generatedByRole: actor.role,
         result,
       },
-      { headers: { "Cache-Control": "no-store, max-age=0" } },
+      200,
+      requestId,
     );
   } catch (error) {
-    return NextResponse.json({ error: error instanceof Error ? error.message : "Controlled GHL test event failed." }, { status: 400 });
+    const expected = expectedControlledGhlTestFailure(error);
+    if (expected) return authenticatedJson({ error: expected.error }, expected.status, requestId);
+    throw error;
   }
 }
