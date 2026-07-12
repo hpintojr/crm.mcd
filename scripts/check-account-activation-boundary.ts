@@ -39,6 +39,7 @@ function checkSchema() {
     totpSecret: "JBSWY3DPEHPK3PXP",
     totp: "123456",
   });
+  if (complete.action !== "complete") throw new Error("Complete activation input did not retain its discriminant.");
   assert(complete.totp === "123456", "Six-digit TOTP must be accepted.");
 
   assert(!activationRequestSchema.safeParse({ action: "prepare", token: "   ", password: "valid password here", confirmPassword: "valid password here" }).success, "Empty activation tokens must fail.");
