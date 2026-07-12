@@ -20,6 +20,7 @@
 - [GHL Webhook Request Boundary](./GHL_WEBHOOK_REQUEST_BOUNDARY.md) — secret-first authentication, bounded JSON intake, response metadata, and sanitized failures.
 - [Portal Write Request Boundary](./PORTAL_WRITE_REQUEST_BOUNDARY.md) — authenticated body ordering, 16 KiB limits, hardened responses, and expected-error handling.
 - [Admin Controlled Test Request Boundary](./ADMIN_CONTROLLED_TEST_REQUEST_BOUNDARY.md) — Admin-first parsing, bounded requests, controlled-test error mapping, and unchanged preview/apply semantics.
+- [Legacy Admin Lead Import Retirement](./LEGACY_ADMIN_LEAD_IMPORT_RETIREMENT.md) — retired duplicate writer, HTTP 410 contract, and supported guarded preview/commit paths.
 - [Daily Log](./DAILY_LOG.md)
 
 ## Current operational reference
@@ -30,6 +31,9 @@
 - Public Partner Signup: `/signup`
 - Account Activation: `/activate`
 - Admin Lead Review: `/admin/leads`
+- Supported Lead import preview: `/api/admin/leads/import/preview`
+- Supported Lead import commit: `/api/admin/leads/import`
+- Retired legacy Lead import: `POST /api/admin/leads` (HTTP 410)
 - Lead acceptance evidence: `/admin/leads/testing`
 - Warm Reply Triage: `/admin/leads/replies`
 - Integration Monitor: `/admin/integrations`

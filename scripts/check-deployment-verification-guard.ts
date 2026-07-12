@@ -39,6 +39,7 @@ const expectedGuardLines = [
   "GHL webhook request boundary guard passed.",
   "Portal write request boundary guard passed.",
   "Admin controlled test request boundary guard passed.",
+  "Legacy Admin Lead import retirement guard passed.",
 ];
 
 const guards: [string, string][] = [
