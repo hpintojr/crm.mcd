@@ -45,8 +45,26 @@ async function auditMfaFailure(userId: string, role: string, ipAddress: string |
   });
 }
 
+function expectedCredentialsCode(error: unknown): string | null {
+  if (error instanceof CredentialsSignin) return error.code || "credentials";
+  if (!error || typeof error !== "object") return null;
+  const candidate = error as { type?: unknown; code?: unknown };
+  if (candidate.type !== "CredentialsSignin") return null;
+  return typeof candidate.code === "string" && candidate.code ? candidate.code : "credentials";
+}
+
 export const { handlers, auth, signIn, signOut } = NextAuth({
   ...authConfig,
+  logger: {
+    error(error) {
+      const code = expectedCredentialsCode(error);
+      if (code) {
+        console.info("[auth] credentials rejected", { type: "CredentialsSignin", code });
+        return;
+      }
+      console.error("[auth][error]", error);
+    },
+  },
   providers: [
     Credentials({
       name: "Email and password",
