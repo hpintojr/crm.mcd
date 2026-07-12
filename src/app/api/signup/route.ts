@@ -12,6 +12,8 @@ import {
 
 export const dynamic = "force-dynamic";
 
+const ACCEPTED_STATUS = 202;
+
 function requestId(req: NextRequest) {
   const supplied = req.headers.get("x-request-id")?.trim();
   return supplied && supplied.length <= 128 && /^[A-Za-z0-9._:-]+$/.test(supplied) ? supplied : randomUUID();
@@ -26,6 +28,10 @@ function json(body: unknown, status: number, id: string) {
       "X-Robots-Tag": "noindex, nofollow, noarchive",
     },
   });
+}
+
+function accepted(id: string) {
+  return json({ ok: true }, ACCEPTED_STATUS, id);
 }
 
 function logDatabaseFailure(event: string, id: string, error: unknown, agentId?: string) {
@@ -77,7 +83,7 @@ export async function POST(req: NextRequest) {
   }
 
   const data = normalizePublicSignupInput(parsed.data);
-  if (data.company_url) return json({ ok: true }, 200, id);
+  if (data.company_url) return accepted(id);
 
   const ip = req.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ?? null;
   const companyName = data.companyName || null;
@@ -127,7 +133,7 @@ export async function POST(req: NextRequest) {
   } catch (error) {
     if (isDuplicateAgentEmailError(error)) {
       // Treat retries and concurrent duplicate submissions as idempotent success without revealing account existence.
-      return json({ ok: true }, 200, id);
+      return accepted(id);
     }
 
     logDatabaseFailure("reservation failed", id, error);
@@ -187,5 +193,5 @@ export async function POST(req: NextRequest) {
     );
   }
 
-  return json({ ok: true }, 201, id);
+  return accepted(id);
 }
