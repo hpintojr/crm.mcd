@@ -8,8 +8,9 @@ Secure Admin and Agent portals for Mercury Call Desk. GoHighLevel (GHL) is a bac
 - [Workspace](./docs/WORKSPACE.md) — current implementation inventory, gates, operational paths, and test plan.
 - [Lead MVP Rollout Status](./docs/LEAD_MVP_ROLLOUT_STATUS.md) — Lead, GHL relay, and servicing handoff status.
 - [Lead MVP Acceptance Test](./docs/LEAD_MVP_ACCEPTANCE_TEST.md) — owner-controlled test sequence.
-- [Production Smoke](./docs/PRODUCTION_SMOKE.md) — deployed-SHA, status, login, and protected-boundary verification.
+- [Production Smoke](./docs/PRODUCTION_SMOKE.md) — deployed-SHA, status, login, HTTP security header, and protected-boundary verification.
 - [Lead Aging Cron](./docs/LEAD_AGING_CRON.md) — secured schedule, transient database readiness behavior, and unchanged aging rules.
+- [HTTP Security Headers](./docs/HTTP_SECURITY_HEADERS.md) — anti-framing, MIME, referrer, browser-permission, and opener policy baseline.
 - [Documentation Index](./docs/INDEX.md)
 - [Working Instructions](./CLAUDE.md)
 
@@ -17,7 +18,8 @@ Secure Admin and Agent portals for Mercury Call Desk. GoHighLevel (GHL) is a bac
 
 - `main` is the production source branch.
 - Vercel deploys changes from `main` to `https://crm.mercurycalldesk.com`.
-- The read-only Production Smoke workflow waits for the exact merged SHA, validates `/api/status`, and verifies login/protected-route boundaries after each `main` push and every six hours.
+- The read-only Production Smoke workflow waits for the exact merged SHA, validates `/api/status`, and verifies login, HTTP security headers, and protected-route boundaries after each `main` push and every six hours.
+- Global HTTP security headers are emitted from `next.config.mjs`; Vercel supplies HSTS and Production Smoke verifies the combined deployed baseline.
 - Production environment values live in Vercel only; never commit credentials.
 - Neon schema changes use a disposable safety branch before an explicit production apply.
 - Do not enable a database-backed feature until its schema, production build, and controlled live test are complete.
@@ -85,7 +87,7 @@ Secure Admin and Agent portals for Mercury Call Desk. GoHighLevel (GHL) is a bac
 - Lead, Servicing, and Commission acceptance boards record Pass, Fail, or Deferred evidence with admin identity, note, and timestamp.
 - `/admin/project-readiness` combines deployment metadata, feature gates, latest acceptance outcomes, integration health, Client/Service schema state, and Commission migration state.
 - `/admin/servicing/acceptance-command-center` provides an aggregate-only preflight before any owner-authorized Servicing window.
-- Production Smoke validates the deployed `main` SHA, public status contract, login surface, and unauthenticated protection of readiness pages and APIs.
+- Production Smoke validates the deployed `main` SHA, public status contract, login surface, HTTP security headers, and unauthenticated protection of readiness pages and APIs.
 - Lead aging cron failures return request-correlated, no-store, sanitized `503` or `500` responses; transient database readiness is retried only before the sweep begins.
 - Readiness Board summarizes operational queues and acceptance evidence.
 - Audit History surfaces rollout evidence separately from the general event stream.
@@ -123,12 +125,13 @@ Secure Admin and Agent portals for Mercury Call Desk. GoHighLevel (GHL) is a bac
 - Secrets are server-only environment values.
 - Sensitive actions write to `AuditLog`.
 - All protected actions authorize server-side; client input is not trusted.
+- Global HTTP security headers block framing, MIME sniffing, unsafe base/form/object behavior, and unused browser capabilities without changing application data flows.
 - GHL links, other-client data, confidential wholesale pricing, commission mechanics, scripts, and ICP data are not exposed to agents by default.
 
 ## Immediate next sequence
 
 1. Use `/admin/project-readiness` as the source-derived preflight before any module decision.
-2. Treat Production Smoke as the automatic post-deploy baseline and investigate any failed SHA, status, login, or protected-boundary check before considering a release healthy.
+2. Treat Production Smoke as the automatic post-deploy baseline and investigate any failed SHA, status, login, HTTP security header, or protected-boundary check before considering a release healthy.
 3. Monitor normal Lead Flow, the Lead aging cron, and unresolved Integration Monitor items; correlate cron failures by `X-Request-Id` and keep live external GHL workflow/configuration changes separately controlled.
 4. Open a Client Servicing acceptance window only after explicit owner authorization; do not change `SERVICING_ENABLED` as part of ordinary code work.
 5. Apply the PR #100 Commission migration only after a new explicit Hamilton authorization and a fresh production-apply plan; migration apply and feature activation must remain separate decisions.
