@@ -1,6 +1,6 @@
 # Mercury Call Desk — Portal Write Request Boundary
 
-Authenticated portal write routes use one shared request and response boundary in `src/lib/portal-request-boundary.ts`.
+Authenticated portal write routes use the generic parser/response contract in `src/lib/authenticated-json-boundary.ts` through the portal-specific adapter in `src/lib/portal-request-boundary.ts`.
 
 ## Covered routes
 
@@ -58,6 +58,7 @@ This boundary does not change:
 
 `npm run check:portal-write-request-boundary` protects:
 
+- the generic authenticated JSON parser and portal adapter relationship;
 - the 16 KiB declared and actual body limits;
 - no-store/noindex/request-ID response metadata;
 - authentication ordering before body parsing;

@@ -13,16 +13,15 @@ function assertContains(path: string, expected: string) {
 }
 
 function checkSharedBoundary() {
-  const path = "src/lib/portal-request-boundary.ts";
-  const content = read(path);
+  const genericPath = "src/lib/authenticated-json-boundary.ts";
+  const generic = read(genericPath);
 
   for (const expected of [
-    "MAX_PORTAL_WRITE_BODY_BYTES = 16_384",
-    "portalRequestId",
-    "portalJson",
-    "portalNoContent",
-    "preparePortalJson",
-    "expectedColdLeadCallFailure",
+    "MAX_AUTHENTICATED_JSON_BODY_BYTES = 16_384",
+    "authenticatedRequestId",
+    "authenticatedJson",
+    "authenticatedNoContent",
+    "prepareAuthenticatedJson",
     "const declaredLength = Number(request.headers.get(\"content-length\")",
     "rawText = await request.text()",
     "new TextEncoder().encode(rawText).byteLength",
@@ -30,21 +29,36 @@ function checkSharedBoundary() {
     '"Cache-Control": "no-store, max-age=0"',
     '"X-Request-Id": requestId',
     '"X-Robots-Tag": "noindex, nofollow, noarchive"',
-    "This action is not available for this Lead.",
   ]) {
-    assert(content.includes(expected), `${path} is missing shared boundary behavior: ${expected}`);
+    assert(generic.includes(expected), `${genericPath} is missing shared boundary behavior: ${expected}`);
   }
 
-  const prepareIndex = content.indexOf("export async function preparePortalJson");
-  const declaredIndex = content.indexOf("const declaredLength", prepareIndex);
-  const textIndex = content.indexOf("rawText = await request.text()", prepareIndex);
-  const actualIndex = content.indexOf("new TextEncoder().encode(rawText).byteLength", prepareIndex);
-  const parseIndex = content.indexOf("JSON.parse(rawText)", prepareIndex);
+  const prepareIndex = generic.indexOf("export async function prepareAuthenticatedJson");
+  const declaredIndex = generic.indexOf("const declaredLength", prepareIndex);
+  const textIndex = generic.indexOf("rawText = await request.text()", prepareIndex);
+  const actualIndex = generic.indexOf("new TextEncoder().encode(rawText).byteLength", prepareIndex);
+  const parseIndex = generic.indexOf("JSON.parse(rawText)", prepareIndex);
   assert(
     prepareIndex >= 0 && declaredIndex > prepareIndex && textIndex > declaredIndex && actualIndex > textIndex && parseIndex > actualIndex,
-    "Portal JSON must enforce declared size, read, enforce actual size, then parse.",
+    "Authenticated JSON must enforce declared size, read, enforce actual size, then parse.",
   );
-  assert((content.match(/NextResponse\.json/g) ?? []).length === 1, "Portal JSON responses must use one centralized helper.");
+  assert((generic.match(/NextResponse\.json/g) ?? []).length === 1, "Authenticated JSON responses must use one centralized helper.");
+
+  const portalPath = "src/lib/portal-request-boundary.ts";
+  const portal = read(portalPath);
+  for (const expected of [
+    "MAX_PORTAL_WRITE_BODY_BYTES = MAX_AUTHENTICATED_JSON_BODY_BYTES",
+    "portalRequestId = authenticatedRequestId",
+    "portalJson = authenticatedJson",
+    "portalNoContent = authenticatedNoContent",
+    "preparePortalJson = prepareAuthenticatedJson",
+    "expectedColdLeadCallFailure",
+    "This action is not available for this Lead.",
+  ]) {
+    assert(portal.includes(expected), `${portalPath} is missing portal adapter behavior: ${expected}`);
+  }
+  assert(!portal.includes("request.text()"), "The portal adapter must not duplicate body parsing.");
+  assert(!portal.includes("NextResponse"), "The portal adapter must not duplicate response construction.");
 }
 
 function checkLeadWriteRoutes() {
