@@ -25,6 +25,7 @@ const expectedGuardLines = [
   "Appointment Closed Won guard passed.",
   "Commission schema migration guard passed.",
   "Project readiness guard passed.",
+  "Servicing acceptance preflight guard passed.",
 ];
 
 const guards: [string, string][] = [
