@@ -45,24 +45,51 @@ assert.equal(previewLeadImportResponseSchema.safeParse({
   ],
 }).success, true);
 
-const routes = [
+const routePaths = [
   "src/app/api/lead-imports/route.ts",
+  "src/app/api/lead-imports/[batchId]/route.ts",
+  "src/app/api/lead-imports/[batchId]/owner-acquisition/route.ts",
   "src/app/api/lead-imports/[batchId]/rows/route.ts",
   "src/app/api/lead-imports/[batchId]/preview/route.ts",
   "src/app/api/lead-imports/[batchId]/submit/route.ts",
-  "src/app/api/lead-imports/[batchId]/route.ts",
-].map((path) => readFileSync(path, "utf8"));
+];
 
-for (const route of routes) {
-  assert.equal(route.includes("(error as Error).message"), false);
-  assert.match(route, /LEAD_IMPORT_INTERNAL_ERROR/);
+for (const path of routePaths) {
+  const route = readFileSync(path, "utf8");
+  assert.equal(route.includes("(error as Error).message"), false, `${path} exposes a raw exception message.`);
+  assert.equal(route.includes("NextResponse"), false, `${path} bypasses the shared response helper.`);
+  assert.equal(route.includes("request.json()"), false, `${path} parses JSON outside the signed request guard.`);
+  assert.equal(route.includes("request.text()"), false, `${path} reads the body outside the signed request guard.`);
+  assert.match(route, /LEAD_IMPORT_INTERNAL_ERROR/, `${path} is missing its generic internal error contract.`);
+  assert.match(route, /leadImportJson/, `${path} does not use the shared response helper.`);
+  assert.match(route, /guard\.requestId/, `${path} does not propagate the signed request ID.`);
 }
 
 const guard = readFileSync("src/lib/lead-import-route-guard.ts", "utf8");
-assert.match(guard, /LEAD_IMPORT_UNAVAILABLE/);
-assert.match(guard, /status: 503/);
-assert.match(guard, /LEAD_IMPORT_PAYLOAD_TOO_LARGE/);
-assert.match(guard, /status: 413/);
-assert.match(guard, /MAX_LEAD_IMPORT_BODY_BYTES = 1_000_000/);
+for (const expected of [
+  "LEAD_IMPORT_UNAVAILABLE",
+  "LEAD_IMPORT_PAYLOAD_TOO_LARGE",
+  "LEAD_IMPORT_BODY_READ_ERROR",
+  "LEAD_IMPORT_INVALID_JSON",
+  "MAX_LEAD_IMPORT_BODY_BYTES = 1_000_000",
+  "MAX_LEAD_IMPORT_REQUEST_ID_LENGTH = 128",
+  "leadImportRequestId(request)",
+  "leadImportHeaderNames.requestId",
+  '"Cache-Control": "no-store, max-age=0"',
+  '"X-Request-Id": requestId',
+  '"X-Robots-Tag": "noindex, nofollow, noarchive"',
+  "new TextEncoder().encode(bodyText).byteLength",
+  "verifyLeadImportTransportRequest",
+]) {
+  assert.ok(guard.includes(expected), `Lead import guard is missing response-boundary behavior: ${expected}`);
+}
 
-console.log("Lead import response contract checks passed.");
+const configIndex = guard.indexOf("requireLeadImportHmacConfig()");
+const bodyReadIndex = guard.indexOf("bodyText = await request.text()");
+const verificationIndex = guard.indexOf("verifyLeadImportTransportRequest");
+const parseIndex = guard.indexOf("JSON.parse(bodyText)");
+assert.ok(configIndex >= 0 && bodyReadIndex > configIndex, "Lead import HMAC configuration must be resolved before body consumption.");
+assert.ok(verificationIndex > bodyReadIndex, "Lead import signature verification must follow the bounded body read.");
+assert.ok(parseIndex > verificationIndex, "Lead import JSON parsing must occur only after transport verification.");
+
+console.log("Lead import response boundary checks passed.");
