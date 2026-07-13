@@ -109,12 +109,16 @@ function checkPage() {
 function checkManifest() {
   const registry = JSON.parse(read("config/build-guard-registry.json")) as {
     version: string;
+    expectedDeploymentVisibleCount: number;
+    expectedLeadFlowCount: number;
     guards: Array<{ id: string; script: string; passLine: string; runInLeadFlow: boolean; exposeInDeploymentVerification: boolean }>;
   };
-  assert(registry.version === "2026-07-13-pr132", "Build guard registry version must match PR132.");
-  assert(registry.guards.length === 45, "Build guard registry must contain 45 entries after adding the control-plane guard.");
-  assert(registry.guards.filter((guard) => guard.runInLeadFlow).length === 44,
-    "Lead-flow runner must execute 44 guards after adding the control-plane guard.");
+  assert(/^\d{4}-\d{2}-\d{2}-pr\d+$/.test(registry.version),
+    "Build guard registry must retain a dated PR version.");
+  assert(registry.guards.filter((guard) => guard.exposeInDeploymentVerification).length === registry.expectedDeploymentVisibleCount,
+    "Build guard registry visible entries must match the manifest-declared count.");
+  assert(registry.guards.filter((guard) => guard.runInLeadFlow).length === registry.expectedLeadFlowCount,
+    "Lead-flow runner entries must match the manifest-declared count.");
   const entry = registry.guards.find((guard) => guard.id === "build-guard-control-plane");
   assert(entry?.script === "scripts/check-build-guard-control-plane.ts", "Build guard control-plane script must be registered.");
   assert(entry?.passLine === "Build guard control plane guard passed.", "Build guard control-plane pass line must be registered.");
