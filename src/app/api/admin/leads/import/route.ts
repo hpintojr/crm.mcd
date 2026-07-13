@@ -1,16 +1,37 @@
-import { NextRequest, NextResponse } from "next/server";
+import { NextRequest } from "next/server";
+import { ADMIN_ROLES, requireRole } from "@/lib/authz";
+import { requireFeature } from "@/lib/features";
+import {
+  adminLeadImportJson,
+  adminLeadImportRequestId,
+  expectedAdminLeadImportFailure,
+  prepareAdminLeadImportJson,
+  readAdminLeadImportRows,
+  recordAdminLeadImportFailure,
+} from "@/lib/admin-lead-import-request-boundary";
 import { commitLeadImport } from "@/lib/lead-import-commit";
 
+export const dynamic = "force-dynamic";
+
 export async function POST(request: NextRequest) {
-  const body: unknown = await request.json().catch(() => null);
-  if (!body || typeof body !== "object" || !Array.isArray((body as { rows?: unknown }).rows)) {
-    return NextResponse.json({ error: "Provide an object containing a rows array." }, { status: 422 });
-  }
+  const requestId = adminLeadImportRequestId(request);
+  requireFeature("leads");
+  await requireRole(ADMIN_ROLES);
+
+  const prepared = await prepareAdminLeadImportJson(request, requestId);
+  if (!prepared.ok) return prepared.response;
+
+  const input = readAdminLeadImportRows(prepared.raw);
+  if (!input.ok) return adminLeadImportJson({ error: input.error }, 422, requestId);
 
   try {
-    const result = await commitLeadImport((body as { rows: unknown[] }).rows);
-    return NextResponse.json(result, { status: 201 });
+    const result = await commitLeadImport(input.rows);
+    return adminLeadImportJson(result, 201, requestId);
   } catch (error) {
-    return NextResponse.json({ error: error instanceof Error ? error.message : "Lead import failed." }, { status: 400 });
+    const expected = expectedAdminLeadImportFailure(error);
+    if (expected) return adminLeadImportJson({ error: expected.error }, expected.status, requestId);
+
+    recordAdminLeadImportFailure("commit", requestId, error);
+    return adminLeadImportJson({ error: "Lead import failed." }, 500, requestId);
   }
 }
