@@ -1,48 +1,20 @@
 {
-  "version": "2026-07-13-pr128",
+  "version": "2026-07-13-pr129",
   "reviewedAt": "2026-07-13",
   "findings": [
     {
       "path": "src/app/api/activate/route.ts",
-      "primitive": "DIRECT_NEXT_JSON",
-      "count": 1,
-      "classification": "APPROVED_EXCEPTION",
-      "rationale": "Public activation uses a route-local response helper with no-store, request-ID, and noindex headers; this route predates authenticated session helpers and has a dedicated activation boundary guard."
-    },
-    {
-      "path": "src/app/api/activate/route.ts",
       "primitive": "REQUEST_TEXT",
       "count": 1,
       "classification": "APPROVED_EXCEPTION",
-      "rationale": "Public activation must read the raw body to enforce declared and actual UTF-8 byte limits before JSON parsing; its dedicated guard verifies this exact ordering."
-    },
-    {
-      "path": "src/app/api/cron/leads/aging/route.ts",
-      "primitive": "DIRECT_NEXT_JSON",
-      "count": 1,
-      "classification": "APPROVED_EXCEPTION",
-      "rationale": "The secret-authenticated cron route uses a route-local response helper because it conditionally adds Retry-After and request-ID headers while preserving no-store behavior."
-    },
-    {
-      "path": "src/app/api/signup/route.ts",
-      "primitive": "DIRECT_NEXT_JSON",
-      "count": 1,
-      "classification": "APPROVED_EXCEPTION",
-      "rationale": "Public signup uses a route-local response helper with no-store, request-ID, and noindex headers plus a deliberately minimal accepted response that avoids account-existence disclosure."
+      "rationale": "Public activation must read the raw body to enforce declared and actual UTF-8 byte limits before JSON parsing; its dedicated guard verifies this exact ordering while responses use the shared route JSON boundary."
     },
     {
       "path": "src/app/api/signup/route.ts",
       "primitive": "REQUEST_TEXT",
       "count": 1,
       "classification": "APPROVED_EXCEPTION",
-      "rationale": "Public signup reads the raw body to enforce declared and actual UTF-8 byte limits before JSON parsing; its dedicated public-signup guard verifies this ordering."
-    },
-    {
-      "path": "src/app/api/status/route.ts",
-      "primitive": "DIRECT_NEXT_JSON",
-      "count": 1,
-      "classification": "APPROVED_EXCEPTION",
-      "rationale": "The intentionally minimal public status endpoint has no authentication context and returns only service/environment/git metadata with no-store and noindex headers."
+      "rationale": "Public signup must read the raw body to enforce declared and actual UTF-8 byte limits before JSON parsing; its dedicated guard verifies this exact ordering while responses use the shared route JSON boundary."
     }
   ]
 }
