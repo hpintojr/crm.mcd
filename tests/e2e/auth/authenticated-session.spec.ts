@@ -1,21 +1,42 @@
 import { expect, test, type Page } from "@playwright/test";
 import { authenticator } from "otplib";
+import {
+  closeDisposableAuthState,
+  setSyntheticUserRole,
+  setSyntheticUserStatus,
+} from "./disposable-auth-state";
 
 const OWNER_EMAIL = "e2e.owner@mercurycalldesk.test";
 const AGENT_EMAIL = "e2e.agent@mercurycalldesk.test";
 const MFA_EMAIL = "e2e.mfa@mercurycalldesk.test";
 const LOCKOUT_EMAIL = "e2e.lockout@mercurycalldesk.test";
+const SUSPENDED_SESSION_EMAIL = "e2e.suspended-session@mercurycalldesk.test";
+const ROLE_CHANGE_EMAIL = "e2e.role-change@mercurycalldesk.test";
 const UNKNOWN_EMAIL = "e2e.unknown@mercurycalldesk.test";
 
 const ownerPassword = process.env.E2E_OWNER_PASSWORD;
 const agentPassword = process.env.E2E_AGENT_PASSWORD;
 const mfaPassword = process.env.E2E_MFA_PASSWORD;
 const lockoutPassword = process.env.E2E_LOCKOUT_PASSWORD;
+const suspendedSessionPassword = process.env.E2E_SUSPENDED_SESSION_PASSWORD;
+const roleChangePassword = process.env.E2E_ROLE_CHANGE_PASSWORD;
 const mfaTotpSecret = process.env.E2E_MFA_TOTP_SECRET;
 
-if (!ownerPassword || !agentPassword || !mfaPassword || !lockoutPassword || !mfaTotpSecret) {
+if (
+  !ownerPassword ||
+  !agentPassword ||
+  !mfaPassword ||
+  !lockoutPassword ||
+  !suspendedSessionPassword ||
+  !roleChangePassword ||
+  !mfaTotpSecret
+) {
   throw new Error("Synthetic passwords and the MFA TOTP secret are required for authenticated browser tests.");
 }
+
+test.afterAll(async () => {
+  await closeDisposableAuthState();
+});
 
 function loginAlert(page: Page) {
   return page.locator("form [role='alert']");
@@ -98,6 +119,28 @@ test("synthetic Agent reaches the portal but cannot cross the Admin boundary", a
 
   await page.goto("/portal");
   await expect(page.getByRole("heading", { name: "Welcome back, E2E Agent" })).toBeVisible();
+});
+
+test("suspending the underlying User revokes an already-issued Owner session", async ({ page }) => {
+  await signIn(page, SUSPENDED_SESSION_EMAIL, suspendedSessionPassword, /\/admin(?:\?|$)/);
+  await expect(page.getByRole("heading", { name: "Applicant review" })).toBeVisible();
+
+  await setSyntheticUserStatus(SUSPENDED_SESSION_EMAIL, "SUSPENDED");
+  await page.goto("/admin/build-guards");
+  await expect(page).toHaveURL(/\/login\?e=forbidden/, { timeout: 20_000 });
+  await expect(page.getByRole("heading", { name: "Sign in" })).toBeVisible();
+});
+
+test("changing the underlying role immediately removes Admin access and enables the Agent portal", async ({ page }) => {
+  await signIn(page, ROLE_CHANGE_EMAIL, roleChangePassword, /\/admin(?:\?|$)/);
+  await expect(page.getByRole("heading", { name: "Applicant review" })).toBeVisible();
+
+  await setSyntheticUserRole(ROLE_CHANGE_EMAIL, "AGENT");
+  await page.goto("/admin/build-guards");
+  await expect(page).toHaveURL(/\/login\?e=forbidden/, { timeout: 20_000 });
+
+  await page.goto("/portal");
+  await expect(page.getByRole("heading", { name: "Welcome back, Role Change Agent" })).toBeVisible();
 });
 
 test("synthetic MFA Owner requires a code, rejects an invalid code, and accepts the current TOTP", async ({ page }) => {
