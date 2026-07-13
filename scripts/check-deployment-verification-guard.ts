@@ -44,6 +44,7 @@ Route boundary control plane guard passed.
 Signed Lead import domain error mapping guard passed.
 Shared route JSON response boundary guard passed.
 Public JSON body boundary guard passed.
+Build guard control plane guard passed.
 Build guard registry guard passed.
 BUILD_GUARD_REGISTRY_EVIDENCE_END */
 
@@ -59,22 +60,33 @@ type RegisteredGuard = {
   exposeInDeploymentVerification: boolean;
 };
 
-const registry = JSON.parse(readFileSync("config/build-guard-registry.json", "utf8")) as {
+type BuildGuardRegistry = {
   version: string;
+  expectedDeploymentVisibleCount: number;
   guards: RegisteredGuard[];
 };
+
+const registry = JSON.parse(readFileSync("config/build-guard-registry.json", "utf8")) as BuildGuardRegistry;
 const expectedGuardLines = registry.guards
   .filter((guard) => guard.exposeInDeploymentVerification)
   .map((guard) => guard.passLine);
 
-if (registry.version !== "2026-07-13-pr131") {
-  throw new Error("Deployment verification must use the PR131 build guard registry.");
+if (!/^\d{4}-\d{2}-\d{2}-pr\d+$/.test(registry.version)) {
+  throw new Error("Deployment verification requires a dated PR-versioned build guard registry.");
 }
-if (expectedGuardLines.length !== 44) {
-  throw new Error("Deployment verification must expose the exact 44 registered pass lines.");
+if (!Number.isInteger(registry.expectedDeploymentVisibleCount) || registry.expectedDeploymentVisibleCount < 1) {
+  throw new Error("Deployment verification requires a positive declared visible-guard count.");
+}
+if (expectedGuardLines.length !== registry.expectedDeploymentVisibleCount) {
+  throw new Error(
+    `Deployment verification expected ${registry.expectedDeploymentVisibleCount} visible guards but found ${expectedGuardLines.length}.`,
+  );
 }
 if (!expectedGuardLines.includes("Deployment verification guard passed.")) {
   throw new Error("Deployment verification guard must remain registered.");
+}
+if (!expectedGuardLines.includes("Build guard control plane guard passed.")) {
+  throw new Error("Build guard control-plane validation must remain deployment-visible.");
 }
 if (!expectedGuardLines.includes("Build guard registry guard passed.")) {
   throw new Error("Build guard registry self-validation must be deployment-visible.");
@@ -95,6 +107,7 @@ const guards: [string, string][] = [
   ["src/lib/lead-deployment-verification.ts", "VERCEL_GIT_COMMIT_SHA"],
   ["src/lib/lead-deployment-verification.ts", "VERCEL_ENV"],
   ["src/lib/lead-deployment-verification.ts", "VERCEL_DEPLOYMENT_ID"],
+  ["src/lib/lead-deployment-verification.ts", "BUILD_GUARD_REGISTRY_VERSION"],
   ["src/lib/lead-deployment-verification.ts", "DEPLOYMENT_GUARD_PASS_LINES"],
   ["src/lib/lead-deployment-verification.ts", "EXPECTED_LEAD_FLOW_GUARD_LINES"],
   ["src/lib/lead-deployment-verification.ts", "getLeadDeploymentVerificationSnapshot"],
