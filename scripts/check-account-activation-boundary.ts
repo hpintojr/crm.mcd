@@ -59,11 +59,13 @@ function checkRoute() {
 
   for (const expected of [
     "MAX_ACTIVATION_BODY_BYTES",
-    "activationRequestSchema.safeParse",
-    "new TextEncoder().encode(rawText).byteLength",
+    "preparePublicJsonBody(req",
+    "maxBodyBytes: MAX_ACTIVATION_BODY_BYTES",
+    "requestId: id",
+    "if (!prepared.ok) return prepared.response",
+    "activationRequestSchema.safeParse(prepared.body)",
     "routeRequestId(req)",
     "routeJsonResponse",
-    "requestId: id",
     "noindex: true",
     "tx.activationToken.updateMany",
     "usedAt: null",
@@ -78,9 +80,7 @@ function checkRoute() {
     'return json({ ok: true, qrDataUrl, totpSecret }, 200, id)',
     'metadata: { requestId: id }',
     "password hashing failed",
-  ]) {
-    assertContains(path, expected);
-  }
+  ]) assertContains(path, expected);
 
   const consumeIndex = route.indexOf("tx.activationToken.updateMany");
   const currentUserIndex = route.indexOf("const currentUser = await tx.user.findUnique");
@@ -90,28 +90,47 @@ function checkRoute() {
   assert((route.match(/tx\.activationToken\.updateMany/g) ?? []).length === 1, "Activation token must be consumed exactly once.");
   assert((route.match(/await tx\.user\.update/g) ?? []).length === 1, "Activation must update the User exactly once.");
   assert((route.match(/db\.\$transaction\(async \(tx\)/g) ?? []).length === 1, "Activation completion must use one interactive transaction.");
-  assert(!route.includes("NextResponse"), "Activation route must not construct responses directly.");
 
   for (const forbidden of [
+    "req.text()",
+    "request.text()",
+    "JSON.parse(",
+    "TextEncoder",
+    "content-length",
+    "NextResponse",
     "db.$transaction([",
     "db.activationToken.update({",
     "error.message",
     "stack:",
     "email: activation.user.email",
-  ]) {
-    assertExcludes(path, forbidden);
-  }
+  ]) assertExcludes(path, forbidden);
 }
 
-function checkSharedResponseBoundary() {
-  const path = "src/lib/route-json-response.ts";
+function checkSharedBoundaries() {
+  const responsePath = "src/lib/route-json-response.ts";
   for (const expected of [
     '"Cache-Control": "no-store, max-age=0"',
     'headers["X-Request-Id"] = requestId',
     'headers["X-Robots-Tag"] = "noindex, nofollow, noarchive"',
     "MAX_REQUEST_ID_LENGTH = 128",
     "REQUEST_ID_PATTERN",
-  ]) assertContains(path, expected);
+  ]) assertContains(responsePath, expected);
+
+  const bodyPath = "src/lib/public-json-body-boundary.ts";
+  for (const expected of [
+    "Number(request.headers.get(\"content-length\") ?? \"0\")",
+    "declaredLength > maxBodyBytes",
+    "rawText = await request.text()",
+    "new TextEncoder().encode(rawText).byteLength > maxBodyBytes",
+    "JSON.parse(rawText)",
+    '{ error: "Request too large." }',
+    '{ error: "Unable to read request." }',
+    '{ error: "Invalid JSON" }',
+    "status: 413",
+    "status: 400",
+    "requestId",
+    "noindex: true",
+  ]) assertContains(bodyPath, expected);
 }
 
 function checkPageAndClient() {
@@ -126,9 +145,7 @@ function checkPageAndClient() {
     "rawToken.length <= 512",
     'activation.user.status === "DISABLED"',
     "<ActivationForm token={rawToken} />",
-  ]) {
-    assertContains(pagePath, expected);
-  }
+  ]) assertContains(pagePath, expected);
 
   for (const expected of [
     'window.history.replaceState(null, "", "/activate")',
@@ -139,9 +156,7 @@ function checkPageAndClient() {
     'setPassword("")',
     'setConfirmPassword("")',
     'setCode("")',
-  ]) {
-    assertContains(clientPath, expected);
-  }
+  ]) assertContains(clientPath, expected);
 }
 
 function checkRepository() {
@@ -154,15 +169,13 @@ function checkRepository() {
     ["package.json", "check-account-activation-boundary.ts"],
     ["src/lib/lead-deployment-verification.ts", "Account activation boundary guard passed."],
     ["scripts/check-deployment-verification-guard.ts", "Account activation boundary guard passed."],
-  ] as const) {
-    assertContains(path, expected);
-  }
+  ] as const) assertContains(path, expected);
 }
 
 function main() {
   checkSchema();
   checkRoute();
-  checkSharedResponseBoundary();
+  checkSharedBoundaries();
   checkPageAndClient();
   checkRepository();
   console.log("Account activation boundary guard passed.");
