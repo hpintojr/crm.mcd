@@ -5,6 +5,7 @@ Secure Admin and Agent portals for Mercury Call Desk. GoHighLevel (GHL) is a bac
 ## Start here
 
 - [Project Readiness Control Plane](/admin/project-readiness) — deployed commit, feature gates, acceptance, integrations, and live schema readiness in one protected read-only view.
+- [Build Guard Registry Control Plane](/admin/build-guards) — protected source-derived guard order, scripts, pass lines, execution membership, and deployment visibility.
 - [Workspace](./docs/WORKSPACE.md) — current implementation inventory, gates, operational paths, and test plan.
 - [Lead MVP Rollout Status](./docs/LEAD_MVP_ROLLOUT_STATUS.md) — Lead, GHL relay, and servicing handoff status.
 - [Lead MVP Acceptance Test](./docs/LEAD_MVP_ACCEPTANCE_TEST.md) — owner-controlled test sequence.
@@ -21,6 +22,7 @@ Secure Admin and Agent portals for Mercury Call Desk. GoHighLevel (GHL) is a bac
 - Vercel deploys changes from `main` to `https://crm.mercurycalldesk.com`.
 - The read-only Production Smoke workflow waits for the exact merged SHA, validates `/api/status`, and verifies login, HTTP security headers, and protected-route boundaries after each `main` push and every six hours.
 - Lead-flow build guards run sequentially from `config/build-guard-registry.json`; every registered guard must exit successfully and emit its registered pass line.
+- The manifest declares expected Lead-flow and deployment-visible counts, and deployment verification derives its version directly from the manifest.
 - Global HTTP security headers are emitted from `next.config.mjs`; Vercel supplies HSTS and Production Smoke verifies the combined deployed baseline.
 - Production environment values live in Vercel only; never commit credentials.
 - Neon schema changes use a disposable safety branch before an explicit production apply.
