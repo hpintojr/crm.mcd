@@ -22,7 +22,7 @@ The suite covers:
 12. a synthetic MFA Owner receives the required-code challenge, rejects an invalid TOTP, and accepts the current generated TOTP;
 13. five failed password attempts lock a dedicated synthetic account, and the correct password remains blocked during the active lockout window;
 14. after a verified lock expiry on a separate synthetic Owner, the correct password signs in and resets its lock state;
-15. suspended and offboarded synthetic accounts reject their correct passwords without creating a session.
+15. suspended and disabled synthetic accounts reject their correct passwords without creating a session.
 
 ## Disposable environment
 
@@ -60,11 +60,13 @@ The seed uses only idempotent `User` and `Agent` upserts for:
 - `e2e.mfa@mercurycalldesk.test`;
 - `e2e.lockout@mercurycalldesk.test`;
 - `e2e.lockout-recovery@mercurycalldesk.test`;
-- `e2e.offboarded@mercurycalldesk.test`;
+- `e2e.disabled@mercurycalldesk.test`;
 - `e2e.suspended-session@mercurycalldesk.test`;
 - `e2e.role-change@mercurycalldesk.test`.
 
-Every run resets role, failed-login, and lockout fields on the synthetic users before the browser suite begins; all but the dedicated offboarded identity start `ACTIVE`, while that identity is deliberately seeded `OFFBOARDED`. The MFA identity is the only synthetic user with `mfaEnabled=true`. The role-change identity starts as Owner but already has a disabled-claim Agent profile so a mid-session role change can be tested without creating business records during the browser run.
+Every run resets role, failed-login, and lockout fields on the synthetic users before the browser suite begins; all but the dedicated disabled identity start `ACTIVE`, while that identity is deliberately seeded `DISABLED`. The MFA identity is the only synthetic user with `mfaEnabled=true`. The role-change identity starts as Owner but already has a disabled-claim Agent profile so a mid-session role change can be tested without creating business records during the browser run.
+
+The authenticated User enum has no `OFFBOARDED` member (that state exists only for Agent profiles). This suite therefore proves the terminal User state the authentication layer actually evaluates: `DISABLED`. Adding an `OFFBOARDED` User status would require a schema migration and is intentionally outside this disposable-test PR.
 
 The seed does not delete data, execute raw SQL, create Leads, create Client Accounts or Service Cases, touch Commission/Payout records, or call external services.
 
@@ -103,7 +105,7 @@ It verifies:
 - exactly one `ACCOUNT_LOCKED` row exists and its ISO timestamp matches `User.lockedUntil`;
 - the locked identity has no successful-login timestamp or `LOGIN_SUCCESS` audit row;
 - the recovery identity has five ordered failed-login counters, one lock event, then exactly one successful Owner login after the verified expiry, with reset lock state;
-- the offboarded identity remains `OFFBOARDED`, has no session timestamp or lock state, and creates no authentication audit event when its correct password is denied;
+- the disabled identity remains `DISABLED`, has no session timestamp or lock state, and creates no authentication audit event when its correct password is denied;
 - the suspended-session identity retains exactly one Owner login evidence row but persists `SUSPENDED` status without lockout state;
 - the role-change identity persists current role `AGENT`, remains active and unlocked, and retains Owner-role login evidence from the session issuance event.
 
