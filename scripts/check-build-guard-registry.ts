@@ -102,12 +102,18 @@ function checkEvidenceBlock(path: string, expectedEvidenceBlock: string) {
 
 function checkRepositoryWiring() {
   const packageJson = read("package.json");
+  const packageData = JSON.parse(packageJson) as { buildGuardCompatibilityScripts?: string };
   assert(packageJson.includes('"check:lead-flow-alignment": "tsx scripts/run-build-guards.ts"'),
     "package.json must route lead-flow verification through the manifest runner.");
   assert(packageJson.includes('"check:build-guard-registry": "tsx scripts/check-build-guard-registry.ts"'),
     "package.json must expose the build guard registry check.");
   assert(!packageJson.includes('"check:lead-flow-alignment": "tsx scripts/check-lead-flow-alignment.ts &&'),
     "package.json must not retain the duplicated lead-flow shell chain.");
+
+  const registry = loadRegistry();
+  const expectedCompatibilityScripts = registry.guards.map((guard) => guard.script).join(" ");
+  assert(packageData.buildGuardCompatibilityScripts === expectedCompatibilityScripts,
+    "package.json compatibility script index must exactly mirror the source manifest.");
 
   const registryLib = read("src/lib/build-guard-registry.ts");
   for (const expected of [
@@ -122,7 +128,6 @@ function checkRepositoryWiring() {
   assert(!deployment.includes("export const EXPECTED_LEAD_FLOW_GUARD_LINES = ["),
     "Deployment verification must not retain a copied executable pass-line array.");
 
-  const registry = loadRegistry();
   const evidenceLines = registry.guards
     .filter((guard) => guard.exposeInDeploymentVerification)
     .map((guard) => guard.passLine);
