@@ -24,6 +24,7 @@
 - [Legacy Admin Lead Import Retirement](./LEGACY_ADMIN_LEAD_IMPORT_RETIREMENT.md) — retired duplicate writer, HTTP 410 contract, and supported guarded preview/commit paths.
 - [Admin Lead Import Request Boundary](./ADMIN_LEAD_IMPORT_REQUEST_BOUNDARY.md) — Admin-first authorization, a dedicated 1 MiB JSON profile, shared 500-row validation, and generic failure responses for the supported preview/commit endpoints.
 - [Signed Lead Import Response Boundary](./LEAD_IMPORT_RESPONSE_BOUNDARY.md) — HMAC-gated bounded body handling and consistent no-store/noindex/request-ID responses across the lifecycle API.
+- [Signed Lead Import Domain Errors](./SIGNED_IMPORT_DOMAIN_ERRORS.md) — centralized typed domain-error mapping that preserves exact messages/statuses and removes route-level raw-error findings.
 - [Integration Health Control Plane](./INTEGRATION_HEALTH_CONTROL_PLANE.md) — protected aggregate webhook/error health, configuration readiness, privacy contract, and read-failure behavior.
 - [Protected Admin Read Report Boundary](./ADMIN_READ_REPORT_BOUNDARY.md) — shared request-ID/no-store/noindex responses and role-only viewer metadata for operational JSON reports.
 - [Lead Acceptance Report Boundary](./LEAD_ACCEPTANCE_REPORT_BOUNDARY.md) — standardized non-download acceptance JSON responses while preserving report calculations and separate CSV contracts.
