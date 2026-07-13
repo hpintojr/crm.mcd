@@ -65,6 +65,10 @@ Established guards also verify that their script filename remains discoverable f
 
 Neither compatibility representation controls execution or runtime output. The JSON registry remains the only source used by the runner and deployment-verification data model.
 
+## Protected control plane
+
+The Admin-only Build Guard Registry control plane is available at `/admin/build-guards` with JSON at `/api/admin/build-guards`. Both surfaces derive static metadata from the checked-in manifest, expose role-only viewer metadata, and do not execute guards, read source contents, query databases, inspect secrets, access customer data, invoke application endpoints, or perform mutations.
+
 ## Deployment verification
 
 `src/lib/build-guard-registry.ts` derives:
