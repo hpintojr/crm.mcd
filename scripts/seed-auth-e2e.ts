@@ -8,6 +8,8 @@ const OWNER_EMAIL = "e2e.owner@mercurycalldesk.test";
 const AGENT_EMAIL = "e2e.agent@mercurycalldesk.test";
 const MFA_EMAIL = "e2e.mfa@mercurycalldesk.test";
 const LOCKOUT_EMAIL = "e2e.lockout@mercurycalldesk.test";
+const LOCKOUT_RECOVERY_EMAIL = "e2e.lockout-recovery@mercurycalldesk.test";
+const OFFBOARDED_EMAIL = "e2e.offboarded@mercurycalldesk.test";
 const SUSPENDED_SESSION_EMAIL = "e2e.suspended-session@mercurycalldesk.test";
 const ROLE_CHANGE_EMAIL = "e2e.role-change@mercurycalldesk.test";
 
@@ -16,6 +18,8 @@ const inputSchema = z.object({
   agentPassword: z.string().min(12),
   mfaPassword: z.string().min(12),
   lockoutPassword: z.string().min(12),
+  lockoutRecoveryPassword: z.string().min(12),
+  offboardedPassword: z.string().min(12),
   suspendedSessionPassword: z.string().min(12),
   roleChangePassword: z.string().min(12),
   mfaTotpSecret: z.string().regex(/^[A-Z2-7]{16,}$/),
@@ -48,6 +52,7 @@ async function upsertSyntheticUser(input: {
   email: string;
   passwordHash: string;
   role: "OWNER" | "AGENT";
+  status?: "ACTIVE" | "OFFBOARDED";
   mfaEnabled: boolean;
   totpSecret?: string | null;
 }) {
@@ -57,14 +62,14 @@ async function upsertSyntheticUser(input: {
       email: input.email,
       passwordHash: input.passwordHash,
       role: input.role,
-      status: "ACTIVE",
+      status: input.status ?? "ACTIVE",
       mfaEnabled: input.mfaEnabled,
       totpSecret: input.totpSecret ?? null,
     },
     update: {
       passwordHash: input.passwordHash,
       role: input.role,
-      status: "ACTIVE",
+      status: input.status ?? "ACTIVE",
       mfaEnabled: input.mfaEnabled,
       totpSecret: input.totpSecret ?? null,
       failedLogins: 0,
@@ -118,6 +123,8 @@ async function main() {
     agentPassword: process.env.E2E_AGENT_PASSWORD,
     mfaPassword: process.env.E2E_MFA_PASSWORD,
     lockoutPassword: process.env.E2E_LOCKOUT_PASSWORD,
+    lockoutRecoveryPassword: process.env.E2E_LOCKOUT_RECOVERY_PASSWORD,
+    offboardedPassword: process.env.E2E_OFFBOARDED_PASSWORD,
     suspendedSessionPassword: process.env.E2E_SUSPENDED_SESSION_PASSWORD,
     roleChangePassword: process.env.E2E_ROLE_CHANGE_PASSWORD,
     mfaTotpSecret: process.env.E2E_MFA_TOTP_SECRET,
@@ -131,6 +138,8 @@ async function main() {
     agentPasswordHash,
     mfaPasswordHash,
     lockoutPasswordHash,
+    lockoutRecoveryPasswordHash,
+    offboardedPasswordHash,
     suspendedSessionPasswordHash,
     roleChangePasswordHash,
   ] = await Promise.all([
@@ -138,11 +147,13 @@ async function main() {
     hash(parsed.data.agentPassword, passwordOptions),
     hash(parsed.data.mfaPassword, passwordOptions),
     hash(parsed.data.lockoutPassword, passwordOptions),
+    hash(parsed.data.lockoutRecoveryPassword, passwordOptions),
+    hash(parsed.data.offboardedPassword, passwordOptions),
     hash(parsed.data.suspendedSessionPassword, passwordOptions),
     hash(parsed.data.roleChangePassword, passwordOptions),
   ]);
 
-  const [owner, agentUser, mfaUser, lockoutUser, suspendedSessionUser, roleChangeUser] = await Promise.all([
+  const [owner, agentUser, mfaUser, lockoutUser, lockoutRecoveryUser, offboardedUser, suspendedSessionUser, roleChangeUser] = await Promise.all([
     upsertSyntheticUser({
       email: OWNER_EMAIL,
       passwordHash: ownerPasswordHash,
@@ -166,6 +177,19 @@ async function main() {
       email: LOCKOUT_EMAIL,
       passwordHash: lockoutPasswordHash,
       role: "AGENT",
+      mfaEnabled: false,
+    }),
+    upsertSyntheticUser({
+      email: LOCKOUT_RECOVERY_EMAIL,
+      passwordHash: lockoutRecoveryPasswordHash,
+      role: "OWNER",
+      mfaEnabled: false,
+    }),
+    upsertSyntheticUser({
+      email: OFFBOARDED_EMAIL,
+      passwordHash: offboardedPasswordHash,
+      role: "OWNER",
+      status: "OFFBOARDED",
       mfaEnabled: false,
     }),
     upsertSyntheticUser({
@@ -205,6 +229,8 @@ async function main() {
     agentId: agent.id,
     mfaUserId: mfaUser.id,
     lockoutUserId: lockoutUser.id,
+    lockoutRecoveryUserId: lockoutRecoveryUser.id,
+    offboardedUserId: offboardedUser.id,
     suspendedSessionUserId: suspendedSessionUser.id,
     roleChangeUserId: roleChangeUser.id,
     roleChangeAgentId: roleChangeAgent.id,
