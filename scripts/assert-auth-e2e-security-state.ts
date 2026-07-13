@@ -136,7 +136,6 @@ async function assertLockoutState() {
   assert(!audit.some((entry) => entry.actionType === "LOGIN_SUCCESS"), "Locked identity must not record LOGIN_SUCCESS.");
 }
 
-
 async function assertLockoutRecoveryState() {
   const recoveryUser = await syntheticUser(LOCKOUT_RECOVERY_EMAIL);
   assert(recoveryUser.role === "OWNER" && recoveryUser.status === "ACTIVE",
@@ -169,11 +168,11 @@ async function assertDisabledState() {
   assert(disabledUser.role === "OWNER" && disabledUser.status === "DISABLED",
     "Disabled identity must remain DISABLED.");
   assert(disabledUser.failedLogins === 0 && disabledUser.lockedUntil === null && disabledUser.lastLoginAt === null,
-    "Correct-password denial for an disabled account must not issue a session or alter lock state.");
+    "Correct-password denial for a disabled account must not issue a session or alter lock state.");
 
   const audit = await userAudit(disabledUser.id);
   assert(audit.length === 0,
-    "Correct-password denial for an disabled account must not create authentication audit events.");
+    "Correct-password denial for a disabled account must not create authentication audit events.");
 }
 
 async function assertSuspendedSessionState() {
