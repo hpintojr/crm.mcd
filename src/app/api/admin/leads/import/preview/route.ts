@@ -1,22 +1,32 @@
-import { NextRequest, NextResponse } from "next/server";
+import { NextRequest } from "next/server";
 import { ADMIN_ROLES, requireRole } from "@/lib/authz";
 import { requireFeature } from "@/lib/features";
+import {
+  adminLeadImportJson,
+  adminLeadImportRequestId,
+  prepareAdminLeadImportJson,
+  readAdminLeadImportRows,
+  recordAdminLeadImportFailure,
+} from "@/lib/admin-lead-import-request-boundary";
 import { previewLeadImport } from "@/lib/lead-import-preview";
 
+export const dynamic = "force-dynamic";
+
 export async function POST(request: NextRequest) {
-  const body: unknown = await request.json().catch(() => null);
-  if (!body || typeof body !== "object" || !Array.isArray((body as { rows?: unknown }).rows)) {
-    return NextResponse.json({ error: "Provide an object containing a rows array." }, { status: 422 });
-  }
+  const requestId = adminLeadImportRequestId(request);
+  requireFeature("leads");
+  await requireRole(ADMIN_ROLES);
+
+  const prepared = await prepareAdminLeadImportJson(request, requestId);
+  if (!prepared.ok) return prepared.response;
+
+  const input = readAdminLeadImportRows(prepared.raw);
+  if (!input.ok) return adminLeadImportJson({ error: input.error }, 422, requestId);
 
   try {
-    requireFeature("leads");
-    await requireRole(ADMIN_ROLES);
-    const rows = (body as { rows: unknown[] }).rows;
-    if (rows.length === 0) return NextResponse.json({ error: "Provide at least one import row." }, { status: 422 });
-    if (rows.length > 500) return NextResponse.json({ error: "Import batches are limited to 500 rows." }, { status: 422 });
-    return NextResponse.json({ rows: previewLeadImport(rows) });
+    return adminLeadImportJson({ rows: previewLeadImport(input.rows) }, 200, requestId);
   } catch (error) {
-    return NextResponse.json({ error: error instanceof Error ? error.message : "Lead preview failed." }, { status: 400 });
+    recordAdminLeadImportFailure("preview", requestId, error);
+    return adminLeadImportJson({ error: "Lead preview failed." }, 500, requestId);
   }
 }
