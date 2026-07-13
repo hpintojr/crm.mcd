@@ -45,24 +45,30 @@ function checkHelper() {
 function checkRoute(path: string, expected: string[]) {
   const content = read(path);
   for (const value of expected) assert(content.includes(value), `${path} is missing shared route JSON adoption: ${value}`);
-  for (const forbidden of ["NextResponse.json", "new NextResponse", 'from "next/server";\nimport { NextResponse']) {
-    assert(!content.includes(forbidden), `${path} retains direct response construction: ${forbidden}`);
-  }
+  for (const forbidden of [
+    "NextResponse.json",
+    "new NextResponse",
+    "request.text()",
+    "req.text()",
+    "request.json()",
+    "req.json()",
+    "error.message",
+  ]) assert(!content.includes(forbidden), `${path} retains direct route-boundary behavior: ${forbidden}`);
 }
 
 function checkRoutes() {
   checkRoute("src/app/api/activate/route.ts", [
     "routeRequestId(req)",
     "routeJsonResponse(body, { status, requestId: id, noindex: true })",
-    "await req.text()",
-    "MAX_ACTIVATION_BODY_BYTES",
+    "preparePublicJsonBody(req",
+    "maxBodyBytes: MAX_ACTIVATION_BODY_BYTES",
   ]);
 
   checkRoute("src/app/api/signup/route.ts", [
     "routeRequestId(req)",
     "routeJsonResponse(body, { status, requestId: id, noindex: true })",
-    "await req.text()",
-    "MAX_PUBLIC_SIGNUP_BODY_BYTES",
+    "preparePublicJsonBody(req",
+    "maxBodyBytes: MAX_PUBLIC_SIGNUP_BODY_BYTES",
     "const ACCEPTED_STATUS = 202",
   ]);
 
@@ -85,22 +91,18 @@ function checkRoutes() {
 function checkRegistry() {
   const registry = JSON.parse(read("config/route-boundary-registry.json")) as {
     version: string;
-    findings: Array<{ path: string; primitive: string; count: number; classification: string }>;
+    findings: unknown[];
   };
 
-  assert(registry.version === "2026-07-13-pr129", "Route Boundary Registry must identify PR129.");
-  assert(registry.findings.length === 2, "Shared JSON responses must reduce the registry from 6 findings to 2.");
-  assert(registry.findings.every((finding) => finding.primitive === "REQUEST_TEXT" && finding.count === 1),
-    "Only the two bounded raw-body reads may remain.");
-  assert(registry.findings.every((finding) => finding.classification === "APPROVED_EXCEPTION"),
-    "Both remaining raw-body reads must remain explicitly reviewed.");
+  assert(registry.version === "2026-07-13-pr130", "Route Boundary Registry must identify PR130.");
+  assert(registry.findings.length === 0, "Shared public body handling must establish a zero-finding registry.");
 }
 
 function checkRepositoryContract() {
   for (const [path, expected] of [
     ["docs/SHARED_ROUTE_JSON_BOUNDARY.md", "Exact route contracts"],
-    ["docs/SHARED_ROUTE_JSON_BOUNDARY.md", "do not invoke"],
-    ["docs/ROUTE_BOUNDARY_REGISTRY.md", "2 approved findings"],
+    ["docs/SHARED_ROUTE_JSON_BOUNDARY.md", "zero reviewed findings"],
+    ["docs/ROUTE_BOUNDARY_REGISTRY.md", "zero reviewed findings"],
     ["docs/INDEX.md", "SHARED_ROUTE_JSON_BOUNDARY.md"],
     ["package.json", '"check:shared-route-json-boundary": "tsx scripts/check-shared-route-json-boundary.ts"'],
     ["package.json", "check-shared-route-json-boundary.ts"],

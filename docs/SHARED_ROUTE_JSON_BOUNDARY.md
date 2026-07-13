@@ -1,6 +1,6 @@
 # Mercury Call Desk — Shared Route JSON Boundary
 
-`routeJsonResponse` in `src/lib/route-json-response.ts` is the shared constructor for the remaining public and secret-authenticated JSON route responses that do not use an authenticated session boundary.
+`routeJsonResponse` in `src/lib/route-json-response.ts` is the shared constructor for public and secret-authenticated JSON route responses that do not use an authenticated session boundary.
 
 ## Exact route contracts
 
@@ -8,14 +8,14 @@ The helper centralizes only response metadata and request-ID normalization. Each
 
 ### Public account activation
 
-- Retains bounded raw-body reading before JSON parsing.
+- Uses the shared public JSON body boundary before schema validation.
 - Retains all existing 200, 400, 413, 422, and 500 outcomes.
 - Retains `X-Request-Id`, `Cache-Control: no-store, max-age=0`, and `X-Robots-Tag: noindex, nofollow, noarchive`.
 - Does not change token consumption, password hashing, TOTP preparation, transaction ordering, or audit events.
 
 ### Public partner signup
 
-- Retains bounded raw-body reading before JSON parsing.
+- Uses the shared public JSON body boundary before schema validation.
 - Retains the privacy-preserving HTTP 202 accepted response for new, duplicate, and honeypot submissions.
 - Retains validation and internal-error statuses.
 - Retains `X-Request-Id`, no-store, and noindex headers.
@@ -41,14 +41,9 @@ The helper centralizes only response metadata and request-ID normalization. Each
 
 ## Route Boundary Registry reduction
 
-The shared constructor removes four direct `NextResponse.json()` route findings:
+PR #129 removed four direct response-constructor findings. PR #130 moves the final two bounded raw-body reads into `preparePublicJsonBody` outside route files.
 
-- account activation;
-- public partner signup;
-- Lead aging cron;
-- public deployment status.
-
-The reviewed registry changes from 6 findings across 4 routes to 2 approved findings across 2 routes. The only remaining findings are the required bounded `request.text()` reads for activation and signup.
+The source-derived registry now contains zero reviewed findings and zero frozen debt. Any future direct route parser, response constructor, or route-level raw error message fails CI until reviewed.
 
 ## Regression coverage
 
@@ -56,10 +51,12 @@ The reviewed registry changes from 6 findings across 4 routes to 2 approved find
 
 - exact shared no-store, request-ID, noindex, and retry-after behavior;
 - route-specific option usage;
-- absence of direct response construction in the four routes;
-- preservation of bounded raw-body reads;
-- the two-finding Route Boundary Registry baseline;
+- absence of direct response construction and body parsing in the four routes;
+- activation/signup adoption of the shared body helper;
+- the zero-finding Route Boundary Registry baseline;
 - documentation, build, and deployment-verification wiring.
+
+`npm run check:public-json-body-boundary` separately protects the declared/read/actual/parse ordering and exact public body-failure contracts.
 
 Existing activation, signup, cron, and Production Smoke guards continue protecting their route-specific behavior and deployed headers.
 
