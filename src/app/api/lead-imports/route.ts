@@ -1,10 +1,8 @@
 import { ZodError } from "zod";
 import { createLeadImportBatchSchema, leadImportApiPaths } from "@/lib/lead-import-contract";
 import { serializeLeadImportBatch } from "@/lib/lead-import-batch";
-import {
-  createLeadImportBatchWithConcurrencyRecovery,
-  LeadImportBatchReplayConflictError,
-} from "@/lib/lead-import-concurrency";
+import { createLeadImportBatchWithConcurrencyRecovery } from "@/lib/lead-import-concurrency";
+import { leadImportDomainErrorResponse } from "@/lib/lead-import-domain-error-response";
 import { guardLeadImportRequest, leadImportJson } from "@/lib/lead-import-route-guard";
 import { requireLeadImportHmacConfig } from "@/lib/lead-import-env";
 
@@ -21,9 +19,9 @@ export async function POST(request: Request) {
     if (error instanceof ZodError) {
       return leadImportJson({ error: "LEAD_IMPORT_VALIDATION_ERROR", issues: error.issues }, 422, guard.requestId);
     }
-    if (error instanceof LeadImportBatchReplayConflictError) {
-      return leadImportJson({ error: "LEAD_IMPORT_REPLAY_CONFLICT", message: error.message }, 409, guard.requestId);
-    }
+    const domainError = leadImportDomainErrorResponse(error, guard.requestId);
+    if (domainError) return domainError;
+
     return leadImportJson(
       { error: "LEAD_IMPORT_INTERNAL_ERROR", message: "Unable to create lead-import batch." },
       500,
