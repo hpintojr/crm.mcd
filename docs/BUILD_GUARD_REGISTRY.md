@@ -93,4 +93,4 @@ The top-level build still runs the existing Lead-import prelude checks before th
 
 ## Safety boundary
 
-The manifest, runner, and checks operate on repository source and local child processes only. This work does not run production application endpoints, authenticate into production, query or mutate production data, invoke production imports, exports, controlled tests, cron, signup, activation, or webhooks, call GHL, change feature flags or settings, apply migrations, activate Servicing or Commissions, store financial-account data, release payouts, or move money.
+The manifest, runner, and checks operate on repository source and local child processes only. This work does not run application endpoints outside the disposable localhost harness, authenticate into production, query or mutate production data, invoke production imports, exports, controlled tests, cron, signup, activation, or webhooks, call GHL, change feature flags or settings, apply migrations, activate Servicing or Commissions, store financial-account data, release payouts, or move money.
