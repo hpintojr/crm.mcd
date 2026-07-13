@@ -53,12 +53,15 @@ function checkRouteContract() {
 
   for (const expected of [
     "MAX_PUBLIC_SIGNUP_BODY_BYTES",
+    "preparePublicJsonBody(req",
+    "maxBodyBytes: MAX_PUBLIC_SIGNUP_BODY_BYTES",
+    "requestId: id",
+    "if (!prepared.ok) return prepared.response",
+    "signupSchema.safeParse(prepared.body)",
     "normalizePublicSignupInput",
     "isDuplicateAgentEmailError",
-    "new TextEncoder().encode(rawText).byteLength",
     "routeRequestId(req)",
     "routeJsonResponse",
-    "requestId: id",
     "noindex: true",
     "const ACCEPTED_STATUS = 202",
     "return json({ ok: true }, ACCEPTED_STATUS, id)",
@@ -74,9 +77,7 @@ function checkRouteContract() {
     "return accepted(id);",
     "integration finalization failed",
     "The application and initial audit are already durable",
-  ]) {
-    assertContains(routePath, expected);
-  }
+  ]) assertContains(routePath, expected);
 
   const reservationIndex = route.indexOf("reservation = await db.$transaction");
   const ghlIndex = route.indexOf("const ghl = await upsertSalesHqContact");
@@ -85,9 +86,14 @@ function checkRouteContract() {
   assert((route.match(/tx\.agent\.create/g) ?? []).length === 1, "Signup route must create the Agent exactly once.");
   assert((route.match(/tx\.auditLog\.create/g) ?? []).length === 1, "Signup route must create the initial audit exactly once.");
   assert((route.match(/return accepted\(id\)/g) ?? []).length === 3, "New, duplicate, and honeypot accepted outcomes must share one response contract.");
-  assert(!route.includes("NextResponse"), "Signup route must not construct responses directly.");
 
   for (const forbidden of [
+    "req.text()",
+    "request.text()",
+    "JSON.parse(",
+    "TextEncoder",
+    "content-length",
+    "NextResponse",
     "db.agent.findUnique",
     "db.agent.findFirst",
     "ghlError:",
@@ -96,20 +102,34 @@ function checkRouteContract() {
     "ghl: ghl.ok",
     "Please check whether this email already exists",
     "status: 409",
-  ]) {
-    assertExcludes(routePath, forbidden);
-  }
+  ]) assertExcludes(routePath, forbidden);
 }
 
-function checkSharedResponseBoundary() {
-  const path = "src/lib/route-json-response.ts";
+function checkSharedBoundaries() {
+  const responsePath = "src/lib/route-json-response.ts";
   for (const expected of [
     '"Cache-Control": "no-store, max-age=0"',
     'headers["X-Request-Id"] = requestId',
     'headers["X-Robots-Tag"] = "noindex, nofollow, noarchive"',
     "MAX_REQUEST_ID_LENGTH = 128",
     "REQUEST_ID_PATTERN",
-  ]) assertContains(path, expected);
+  ]) assertContains(responsePath, expected);
+
+  const bodyPath = "src/lib/public-json-body-boundary.ts";
+  for (const expected of [
+    "Number(request.headers.get(\"content-length\") ?? \"0\")",
+    "declaredLength > maxBodyBytes",
+    "rawText = await request.text()",
+    "new TextEncoder().encode(rawText).byteLength > maxBodyBytes",
+    "JSON.parse(rawText)",
+    '{ error: "Request too large." }',
+    '{ error: "Unable to read request." }',
+    '{ error: "Invalid JSON" }',
+    "status: 413",
+    "status: 400",
+    "requestId",
+    "noindex: true",
+  ]) assertContains(bodyPath, expected);
 }
 
 function checkRepositoryContract() {
@@ -124,15 +144,13 @@ function checkRepositoryContract() {
     ["package.json", "check-public-signup-boundary.ts"],
     ["src/lib/lead-deployment-verification.ts", "Public signup boundary guard passed."],
     ["scripts/check-deployment-verification-guard.ts", "Public signup boundary guard passed."],
-  ] as const) {
-    assertContains(path, expected);
-  }
+  ] as const) assertContains(path, expected);
 }
 
 function main() {
   checkPureBoundaryHelpers();
   checkRouteContract();
-  checkSharedResponseBoundary();
+  checkSharedBoundaries();
   checkRepositoryContract();
   console.log("Public signup boundary guard passed.");
 }
