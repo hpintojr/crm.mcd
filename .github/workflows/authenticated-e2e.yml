@@ -1,0 +1,93 @@
+name: Authenticated E2E
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: authenticated-e2e-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  authenticated-browser:
+    name: Authenticated browser boundaries
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+
+    services:
+      postgres:
+        image: postgres:17
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: crm_e2e
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd="pg_isready -U postgres -d crm_e2e"
+          --health-interval=10s
+          --health-timeout=5s
+          --health-retries=5
+
+    env:
+      CI: "true"
+      DATABASE_URL: postgresql://postgres:postgres@127.0.0.1:5432/crm_e2e
+      DIRECT_URL: postgresql://postgres:postgres@127.0.0.1:5432/crm_e2e
+      E2E_ALLOW_DISPOSABLE_DB: "true"
+      E2E_BASE_URL: http://127.0.0.1:3000
+      E2E_OWNER_PASSWORD: Owner-E2E-Only-2026!
+      E2E_AGENT_PASSWORD: Agent-E2E-Only-2026!
+      APP_URL: http://127.0.0.1:3000
+      AUTH_URL: http://127.0.0.1:3000
+      NEXTAUTH_URL: http://127.0.0.1:3000
+      AUTH_SECRET: authenticated-e2e-localhost-only-secret-2026
+      AUTH_TRUST_HOST: "true"
+      LEADS_ENABLED: "false"
+      SERVICING_ENABLED: "false"
+      COMMISSIONS_ENABLED: "false"
+      FINANCE_ENABLED: "false"
+      GHL_PRIVATE_TOKEN: ""
+      GHL_WEBHOOK_SECRET: ""
+      EMAIL_SMTP_USER: ""
+      EMAIL_SMTP_PASSWORD: ""
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Use Node.js 24
+        uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+
+      - name: Install dependencies
+        run: npm install
+
+      - name: Create disposable schema
+        run: npx prisma db push
+
+      - name: Seed synthetic authenticated users
+        run: npm run seed:e2e-auth
+
+      - name: Install Chromium
+        run: npx playwright install --with-deps chromium
+
+      - name: Run authenticated browser boundaries
+        run: npm run test:e2e:auth
+
+      - name: Upload Playwright failure evidence
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: authenticated-e2e-failure-${{ github.run_id }}
+          path: |
+            playwright-report
+            test-results
+          if-no-files-found: ignore
+          retention-days: 7
