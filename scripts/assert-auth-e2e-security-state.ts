@@ -6,6 +6,8 @@ const OWNER_EMAIL = "e2e.owner@mercurycalldesk.test";
 const AGENT_EMAIL = "e2e.agent@mercurycalldesk.test";
 const MFA_EMAIL = "e2e.mfa@mercurycalldesk.test";
 const LOCKOUT_EMAIL = "e2e.lockout@mercurycalldesk.test";
+const SUSPENDED_SESSION_EMAIL = "e2e.suspended-session@mercurycalldesk.test";
+const ROLE_CHANGE_EMAIL = "e2e.role-change@mercurycalldesk.test";
 
 function assert(condition: unknown, message: string): asserts condition {
   if (!condition) throw new Error(message);
@@ -132,6 +134,36 @@ async function assertLockoutState() {
   assert(!audit.some((entry) => entry.actionType === "LOGIN_SUCCESS"), "Locked identity must not record LOGIN_SUCCESS.");
 }
 
+async function assertSuspendedSessionState() {
+  const suspendedUser = await syntheticUser(SUSPENDED_SESSION_EMAIL);
+  assert(suspendedUser.role === "OWNER", "Suspended-session identity must retain its Owner role.");
+  assert(suspendedUser.status === "SUSPENDED", "Browser test must persist SUSPENDED status after session issuance.");
+  assert(suspendedUser.lastLoginAt !== null, "Suspended-session identity must prove a session was issued before suspension.");
+  assert(suspendedUser.failedLogins === 0 && suspendedUser.lockedUntil === null,
+    "Suspension enforcement must be independent of failed-login lockout state.");
+
+  const audit = await userAudit(suspendedUser.id);
+  assert(audit.some((entry) => entry.actionType === "LOGIN_SUCCESS" && entry.actorRole === "OWNER"),
+    "Suspended-session identity must have Owner LOGIN_SUCCESS evidence before suspension.");
+  assert(!audit.some((entry) => entry.actionType === "ACCOUNT_LOCKED"),
+    "Suspended-session enforcement must not create lockout evidence.");
+}
+
+async function assertRoleChangeState() {
+  const roleChangeUser = await syntheticUser(ROLE_CHANGE_EMAIL);
+  assert(roleChangeUser.status === "ACTIVE", "Role-change identity must remain ACTIVE.");
+  assert(roleChangeUser.role === "AGENT", "Browser test must persist the current AGENT role after Owner session issuance.");
+  assert(roleChangeUser.lastLoginAt !== null, "Role-change identity must prove an Owner session was issued first.");
+  assert(roleChangeUser.failedLogins === 0 && roleChangeUser.lockedUntil === null,
+    "Role-change enforcement must not alter failed-login state.");
+
+  const audit = await userAudit(roleChangeUser.id);
+  assert(audit.some((entry) => entry.actionType === "LOGIN_SUCCESS" && entry.actorRole === "OWNER"),
+    "Role-change identity must retain Owner LOGIN_SUCCESS evidence from the issued session.");
+  assert(!audit.some((entry) => entry.actionType === "ACCOUNT_LOCKED"),
+    "Role-change enforcement must not create lockout evidence.");
+}
+
 async function main() {
   assert(process.env.E2E_ALLOW_DISPOSABLE_DB === "true",
     "E2E_ALLOW_DISPOSABLE_DB=true is required for authenticated E2E state assertions.");
@@ -143,6 +175,8 @@ async function main() {
   await assertAgentState();
   await assertMfaState();
   await assertLockoutState();
+  await assertSuspendedSessionState();
+  await assertRoleChangeState();
 
   console.log("Authenticated E2E persisted security state passed.");
 }
