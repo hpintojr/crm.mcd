@@ -1,5 +1,7 @@
 # Mercury Call Desk — Build Guard Registry
 
+## Single source of truth
+
 `config/build-guard-registry.json` is the single source of truth for the ordered Lead-flow build guards and the pass lines shown by deployment verification.
 
 ## Why it exists
