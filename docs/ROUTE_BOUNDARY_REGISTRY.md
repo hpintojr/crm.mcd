@@ -18,40 +18,32 @@ Any added primitive, removed primitive, or changed count fails the build until t
 
 ## Classifications
 
-Each finding must be classified as:
+A non-empty finding must be classified as:
 
 - `APPROVED_EXCEPTION` — a purpose-built boundary with documented safeguards and a reviewed reason not to use a shared helper;
 - `FROZEN_EXISTING` — known debt that must not grow and should be prioritized for removal.
 
-Every finding requires a non-empty rationale. Duplicate entries, invalid classifications, invalid counts, missing review dates, and drift all fail CI.
+Every non-empty finding requires a rationale. Duplicate entries, invalid classifications, invalid counts, missing review dates, and drift all fail CI.
 
-The current PR #129 baseline contains **2 approved findings across 2 routes** and zero frozen findings.
+The current PR #130 baseline contains **zero reviewed findings** and zero frozen debt.
 
 Baseline history:
 
 - PR #127: 11 findings across 8 routes;
 - PR #128: 6 findings across 4 routes after centralizing signed-import typed domain errors;
-- PR #129: 2 findings across 2 routes after centralizing public/cron/status JSON response construction.
+- PR #129: 2 findings across 2 routes after centralizing public/cron/status JSON response construction;
+- PR #130: 0 findings after centralizing the final bounded public raw-body reads.
 
-## Current reviewed exceptions
+## Zero-finding state
 
-The only current findings are:
+No `src/app/**/route.ts` file currently contains a scanned direct primitive.
 
-- public account activation's bounded raw-body read before JSON parsing;
-- public partner signup's bounded raw-body read before JSON parsing.
+- Public activation and signup use `preparePublicJsonBody` for declared-size checks, bounded raw reads, actual UTF-8 checks, and JSON parsing.
+- Public activation, signup, Lead-aging cron, and status use `routeJsonResponse` for response construction.
+- Signed Lead-import typed errors use `leadImportDomainErrorResponse`.
+- Other authenticated route families use their existing shared request/response boundaries.
 
-Both reads are required to enforce declared and actual UTF-8 byte limits before JSON parsing. Dedicated guards protect their exact ordering and size limits.
-
-All four prior direct JSON response findings now use `routeJsonResponse`:
-
-- public account activation;
-- public partner signup;
-- secret-authenticated Lead aging cron;
-- minimal public deployment status.
-
-Signed Lead-import typed errors no longer appear as route-level findings. They are mapped centrally by `leadImportDomainErrorResponse`, while unknown failures remain generic.
-
-These classifications are not permanent exemptions. Any code or count change requires a new source review, and a safe bounded-body helper may remove the final findings in a future separately reviewed change.
+The zero-finding state is not a scanner bypass. The scanner still walks every route and fails CI if a future direct parser, response constructor, or route-level raw error message appears without a matching reviewed registry update.
 
 ## Protected control plane
 
@@ -69,13 +61,15 @@ The control plane exposes only:
 - reviewed rationales;
 - aggregate totals.
 
+With a zero-finding baseline, the current totals are zero and the findings list is empty.
+
 It does not expose route source contents, request bodies, runtime payloads, database records, credentials, customer information, or internal user IDs.
 
 ## Regression coverage
 
 `npm run check:route-boundary-control-plane` protects:
 
-- the exact reviewed baseline;
+- the exact reviewed baseline, including zero findings;
 - static JSON import rather than runtime filesystem scanning;
 - aggregate snapshot fields;
 - protected page and API contracts;
@@ -84,7 +78,9 @@ It does not expose route source contents, request bodies, runtime payloads, data
 - Settings navigation;
 - documentation, build, and deployment-verification wiring.
 
-`npm run check:shared-route-json-boundary` additionally protects the four-route shared response migration and the two-finding baseline.
+`npm run check:shared-route-json-boundary` protects shared response adoption and the zero-finding baseline.
+
+`npm run check:public-json-body-boundary` protects the final public request-body extraction and exact failure contracts.
 
 ## Safety boundary
 
