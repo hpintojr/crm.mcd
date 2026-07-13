@@ -11,7 +11,7 @@
 - [Lead MVP Rollout Status](./LEAD_MVP_ROLLOUT_STATUS.md)
 - [Lead MVP Acceptance Test](./LEAD_MVP_ACCEPTANCE_TEST.md)
 - [Production Smoke](./PRODUCTION_SMOKE.md) — automated deployed-SHA, status, login, security-header, and protected-boundary verification.
-- [Build Guard Registry](./BUILD_GUARD_REGISTRY.md) — single ordered manifest for Lead-flow guard execution and deployment-verification pass lines.
+- [Build Guard Registry](./BUILD_GUARD_REGISTRY.md) — single ordered manifest for Lead-flow guard execution, deployment-verification pass lines, and the protected Admin control plane.
 - [Lead Aging Cron](./LEAD_AGING_CRON.md) — secured schedule, bounded database readiness retries, failure contracts, and unchanged aging rules.
 - [HTTP Security Headers](./HTTP_SECURITY_HEADERS.md) — global anti-framing, MIME, referrer, browser-permission, and opener policies.
 - [Route Tracing](./ROUTE_TRACING.md) — opt-in server diagnostic progress logs and safe metadata boundaries.
@@ -38,6 +38,8 @@
 
 - Project Readiness: `/admin/project-readiness`
 - Project Readiness API: `/api/admin/project-readiness`
+- Build Guard Registry: `/admin/build-guards`
+- Build Guard Registry API: `/api/admin/build-guards`
 - Route Boundary Registry: `/admin/route-boundaries`
 - Route Boundary Registry API: `/api/admin/route-boundaries`
 - Integration Health: `/admin/integrations/health`

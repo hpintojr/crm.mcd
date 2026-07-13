@@ -1,6 +1,8 @@
 {
   "version": "2026-07-13-pr132",
   "reviewedAt": "2026-07-13",
+  "expectedDeploymentVisibleCount": 45,
+  "expectedLeadFlowCount": 44,
   "guards": [
     {"id":"lead-import-response-contract","script":"scripts/check-lead-import-response-contract.ts","passLine":"Lead import response boundary checks passed.","runInLeadFlow":false,"exposeInDeploymentVerification":true},
     {"id":"lead-flow-alignment","script":"scripts/check-lead-flow-alignment.ts","passLine":"Lead flow alignment guard passed.","runInLeadFlow":true,"exposeInDeploymentVerification":true},

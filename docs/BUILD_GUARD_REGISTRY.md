@@ -16,13 +16,15 @@ That duplication made safe guard or documentation refactors vulnerable to stale 
 
 ## Current inventory
 
-The PR #131 registry contains:
+The current registry contains:
 
-- 44 deployment-visible pass lines;
-- 43 scripts executed by the Lead-flow runner;
+- 45 deployment-visible pass lines;
+- 44 scripts executed by the Lead-flow runner;
 - one build-prelude guard, `check-lead-import-response-contract.ts`, which remains executed earlier by the top-level build and is included in deployment verification.
 
 The final Lead-flow guard is the registry's own self-check.
+
+The manifest declares `expectedDeploymentVisibleCount` and `expectedLeadFlowCount`. Validation compares those declarations with the actual filtered entries, so adding or removing a guard requires one reviewed manifest update rather than synchronized count literals across executable scripts.
 
 ## Sequential runner
 
@@ -42,8 +44,9 @@ The runner does not use a shell, `eval`, dynamic remote commands, or secret-spec
 
 `npm run check:build-guard-registry` protects:
 
-- exact version and review metadata;
-- exact 44-entry and 43-runner counts;
+- dated PR-version and ISO review metadata;
+- manifest-declared deployment-visible and Lead-flow counts;
+- exact agreement between declared counts and filtered guard entries;
 - unique IDs, script paths, and pass lines;
 - local `scripts/check-*.ts` path constraints;
 - existence of every registered script;
@@ -51,7 +54,7 @@ The runner does not use a shell, `eval`, dynamic remote commands, or secret-spec
 - build-prelude and self-check ordering;
 - non-shell runner behavior;
 - package-script wiring;
-- deployment-verification derivation from the manifest;
+- deployment-verification version and pass-line derivation from the manifest;
 - documentation and index wiring.
 
 ## Compatibility evidence
@@ -62,14 +65,19 @@ Established guards also verify that their script filename remains discoverable f
 
 Neither compatibility representation controls execution or runtime output. The JSON registry remains the only source used by the runner and deployment-verification data model.
 
+## Protected control plane
+
+The Admin-only Build Guard Registry control plane is available at `/admin/build-guards` with JSON at `/api/admin/build-guards`. Both surfaces derive static metadata from the checked-in manifest, expose role-only viewer metadata, and do not execute guards, read source contents, query databases, inspect secrets, access customer data, invoke application endpoints, or perform mutations.
+
 ## Deployment verification
 
 `src/lib/build-guard-registry.ts` derives:
 
+- `BUILD_GUARD_REGISTRY_VERSION` for deployment-verification versioning;
 - `LEAD_FLOW_BUILD_GUARDS` for the sequential runner;
 - `DEPLOYMENT_GUARD_PASS_LINES` for the protected deployment-verification page and API.
 
-Deployment verification no longer contains a copied executable pass-line array. Its guard reads the source manifest and verifies the expected count and required self-check entries.
+Deployment verification no longer contains a copied version literal or executable pass-line array. Its guard reads the source manifest, verifies the manifest-declared visible count, and protects the required control-plane and self-check entries.
 
 ## Unchanged behavior
 
