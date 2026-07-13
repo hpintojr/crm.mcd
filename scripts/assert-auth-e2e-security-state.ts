@@ -6,6 +6,8 @@ const OWNER_EMAIL = "e2e.owner@mercurycalldesk.test";
 const AGENT_EMAIL = "e2e.agent@mercurycalldesk.test";
 const MFA_EMAIL = "e2e.mfa@mercurycalldesk.test";
 const LOCKOUT_EMAIL = "e2e.lockout@mercurycalldesk.test";
+const LOCKOUT_RECOVERY_EMAIL = "e2e.lockout-recovery@mercurycalldesk.test";
+const OFFBOARDED_EMAIL = "e2e.offboarded@mercurycalldesk.test";
 const SUSPENDED_SESSION_EMAIL = "e2e.suspended-session@mercurycalldesk.test";
 const ROLE_CHANGE_EMAIL = "e2e.role-change@mercurycalldesk.test";
 
@@ -134,6 +136,46 @@ async function assertLockoutState() {
   assert(!audit.some((entry) => entry.actionType === "LOGIN_SUCCESS"), "Locked identity must not record LOGIN_SUCCESS.");
 }
 
+
+async function assertLockoutRecoveryState() {
+  const recoveryUser = await syntheticUser(LOCKOUT_RECOVERY_EMAIL);
+  assert(recoveryUser.role === "OWNER" && recoveryUser.status === "ACTIVE",
+    "Lockout-recovery identity must remain an ACTIVE Owner.");
+  assert(recoveryUser.failedLogins === 0 && recoveryUser.lockedUntil === null,
+    "Successful recovery after lock expiry must reset failedLogins and clear lockedUntil.");
+  assert(recoveryUser.lastLoginAt !== null,
+    "Successful recovery after lock expiry must persist lastLoginAt.");
+
+  const audit = await userAudit(recoveryUser.id);
+  const failures = audit.filter((entry) => entry.actionType === "LOGIN_FAILED");
+  const locks = audit.filter((entry) => entry.actionType === "ACCOUNT_LOCKED");
+  const successes = audit.filter((entry) => entry.actionType === "LOGIN_SUCCESS");
+  assert(failures.length === 5,
+    `Recovery audit must contain exactly five LOGIN_FAILED rows, found ${failures.length}.`);
+  assert(locks.length === 1,
+    `Recovery audit must contain exactly one ACCOUNT_LOCKED row, found ${locks.length}.`);
+  assert(successes.length === 1,
+    `Recovery audit must contain exactly one LOGIN_SUCCESS row, found ${successes.length}.`);
+  assert(JSON.stringify(failures.map((entry) => metadataObject(entry.metadata).failedLogins)) === JSON.stringify([1, 2, 3, 4, 5]),
+    "Recovery failures must persist counters [1,2,3,4,5].");
+  assert(audit.indexOf(locks[0]) < audit.indexOf(successes[0]),
+    "Recovery LOGIN_SUCCESS must follow the active-lock rejection and lock expiry.");
+  assert(audit.every((entry) => entry.actorRole === "OWNER"),
+    "Recovery audit role metadata must remain OWNER.");
+}
+
+async function assertOffboardedState() {
+  const offboardedUser = await syntheticUser(OFFBOARDED_EMAIL);
+  assert(offboardedUser.role === "OWNER" && offboardedUser.status === "OFFBOARDED",
+    "Offboarded identity must remain OFFBOARDED.");
+  assert(offboardedUser.failedLogins === 0 && offboardedUser.lockedUntil === null && offboardedUser.lastLoginAt === null,
+    "Correct-password denial for an offboarded account must not issue a session or alter lock state.");
+
+  const audit = await userAudit(offboardedUser.id);
+  assert(audit.length === 0,
+    "Correct-password denial for an offboarded account must not create authentication audit events.");
+}
+
 async function assertSuspendedSessionState() {
   const suspendedUser = await syntheticUser(SUSPENDED_SESSION_EMAIL);
   assert(suspendedUser.role === "OWNER", "Suspended-session identity must retain its Owner role.");
@@ -143,8 +185,9 @@ async function assertSuspendedSessionState() {
     "Suspension enforcement must be independent of failed-login lockout state.");
 
   const audit = await userAudit(suspendedUser.id);
-  assert(audit.some((entry) => entry.actionType === "LOGIN_SUCCESS" && entry.actorRole === "OWNER"),
-    "Suspended-session identity must have Owner LOGIN_SUCCESS evidence before suspension.");
+  const successes = audit.filter((entry) => entry.actionType === "LOGIN_SUCCESS");
+  assert(successes.length === 1 && successes[0]?.actorRole === "OWNER",
+    "Suspended-session identity must have exactly one Owner LOGIN_SUCCESS before suspension.");
   assert(!audit.some((entry) => entry.actionType === "ACCOUNT_LOCKED"),
     "Suspended-session enforcement must not create lockout evidence.");
 }
@@ -175,6 +218,8 @@ async function main() {
   await assertAgentState();
   await assertMfaState();
   await assertLockoutState();
+  await assertLockoutRecoveryState();
+  await assertOffboardedState();
   await assertSuspendedSessionState();
   await assertRoleChangeState();
 
