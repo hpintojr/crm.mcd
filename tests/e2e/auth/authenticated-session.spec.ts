@@ -12,7 +12,7 @@ const AGENT_EMAIL = "e2e.agent@mercurycalldesk.test";
 const MFA_EMAIL = "e2e.mfa@mercurycalldesk.test";
 const LOCKOUT_EMAIL = "e2e.lockout@mercurycalldesk.test";
 const LOCKOUT_RECOVERY_EMAIL = "e2e.lockout-recovery@mercurycalldesk.test";
-const OFFBOARDED_EMAIL = "e2e.offboarded@mercurycalldesk.test";
+const DISABLED_EMAIL = "e2e.disabled@mercurycalldesk.test";
 const SUSPENDED_SESSION_EMAIL = "e2e.suspended-session@mercurycalldesk.test";
 const ROLE_CHANGE_EMAIL = "e2e.role-change@mercurycalldesk.test";
 const UNKNOWN_EMAIL = "e2e.unknown@mercurycalldesk.test";
@@ -22,7 +22,7 @@ const agentPassword = process.env.E2E_AGENT_PASSWORD;
 const mfaPassword = process.env.E2E_MFA_PASSWORD;
 const lockoutPassword = process.env.E2E_LOCKOUT_PASSWORD;
 const lockoutRecoveryPassword = process.env.E2E_LOCKOUT_RECOVERY_PASSWORD;
-const offboardedPassword = process.env.E2E_OFFBOARDED_PASSWORD;
+const disabledPassword = process.env.E2E_DISABLED_PASSWORD;
 const suspendedSessionPassword = process.env.E2E_SUSPENDED_SESSION_PASSWORD;
 const roleChangePassword = process.env.E2E_ROLE_CHANGE_PASSWORD;
 const mfaTotpSecret = process.env.E2E_MFA_TOTP_SECRET;
@@ -33,7 +33,7 @@ if (
   !mfaPassword ||
   !lockoutPassword ||
   !lockoutRecoveryPassword ||
-  !offboardedPassword ||
+  !disabledPassword ||
   !suspendedSessionPassword ||
   !roleChangePassword ||
   !mfaTotpSecret
@@ -138,10 +138,10 @@ test("suspending the underlying User revokes an already-issued Owner session", a
   await expect(page.getByRole("heading", { name: "Sign in" })).toBeVisible();
 });
 
-test("suspended and offboarded accounts reject correct passwords without creating sessions", async ({ page }) => {
+test("suspended and disabled accounts reject correct passwords without creating sessions", async ({ page }) => {
   for (const account of [
     { email: SUSPENDED_SESSION_EMAIL, password: suspendedSessionPassword },
-    { email: OFFBOARDED_EMAIL, password: offboardedPassword },
+    { email: DISABLED_EMAIL, password: disabledPassword },
   ]) {
     await page.goto("/login");
     await fillCredentials(page, account.email, account.password);
