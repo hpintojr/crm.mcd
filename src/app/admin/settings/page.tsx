@@ -12,7 +12,10 @@ export default async function SettingsPage() {
           <h1 className="mt-2 text-3xl font-semibold text-white">Module readiness</h1>
           <p className="mt-2 max-w-3xl text-gray-400">Feature-gate values only. Open Project Readiness for deployment, acceptance, integration, and schema evidence before making any owner-gated decision.</p>
         </div>
-        <Link className="rounded-lg border border-brand-500 px-3 py-2 text-sm text-brand-200" href="/admin/project-readiness">Project readiness</Link>
+        <div className="flex flex-wrap gap-2">
+          <Link className="rounded-lg border border-brand-500 px-3 py-2 text-sm text-brand-200" href="/admin/project-readiness">Project readiness</Link>
+          <Link className="rounded-lg border border-ink-700 px-3 py-2 text-sm text-gray-200" href="/admin/route-boundaries">Route boundaries</Link>
+        </div>
       </div>
       <div className="mt-8 space-y-3 text-sm text-gray-300">
         <p>Lead engine: {features.leads ? "enabled" : "staged"}</p>
