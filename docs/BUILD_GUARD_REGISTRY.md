@@ -61,7 +61,9 @@ The runner does not use a shell, `eval`, dynamic remote commands, or secret-spec
 - `LEAD_FLOW_BUILD_GUARDS` for the sequential runner;
 - `DEPLOYMENT_GUARD_PASS_LINES` for the protected deployment-verification page and API.
 
-Deployment verification no longer contains a copied pass-line array. Its guard reads the source manifest and verifies the expected count and required self-check entries.
+Deployment verification no longer contains a copied executable pass-line array. Its guard reads the source manifest and verifies the expected count and required self-check entries.
+
+Several established feature guards still verify their own pass-line presence by reading the deployment-verification source. A clearly marked non-executable compatibility evidence block preserves those mature assertions. The registry self-check constructs the expected block from the manifest and requires an exact one-to-one match, so the block cannot silently drift or omit a registered line.
 
 ## Unchanged behavior
 
