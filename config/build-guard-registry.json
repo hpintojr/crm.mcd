@@ -1,314 +1,51 @@
 {
-  "version": "2026-07-13-pr131",
+  "version": "2026-07-13-pr132",
   "reviewedAt": "2026-07-13",
   "guards": [
-    {
-      "id": "lead-import-response-contract",
-      "script": "scripts/check-lead-import-response-contract.ts",
-      "passLine": "Lead import response boundary checks passed.",
-      "runInLeadFlow": false,
-      "exposeInDeploymentVerification": true
-    },
-    {
-      "id": "lead-flow-alignment",
-      "script": "scripts/check-lead-flow-alignment.ts",
-      "passLine": "Lead flow alignment guard passed.",
-      "runInLeadFlow": true,
-      "exposeInDeploymentVerification": true
-    },
-    {
-      "id": "owner-decision-prep",
-      "script": "scripts/check-owner-decision-prep-guard.ts",
-      "passLine": "Owner decision prep guard passed.",
-      "runInLeadFlow": true,
-      "exposeInDeploymentVerification": true
-    },
-    {
-      "id": "deferred-acceptance-runbook",
-      "script": "scripts/check-deferred-acceptance-runbook-guard.ts",
-      "passLine": "Deferred acceptance runbook guard passed.",
-      "runInLeadFlow": true,
-      "exposeInDeploymentVerification": true
-    },
-    {
-      "id": "acceptance-summary-csv",
-      "script": "scripts/check-acceptance-summary-csv-guard.ts",
-      "passLine": "Acceptance summary CSV guard passed.",
-      "runInLeadFlow": true,
-      "exposeInDeploymentVerification": true
-    },
-    {
-      "id": "print-runbook",
-      "script": "scripts/check-print-runbook-guard.ts",
-      "passLine": "Print runbook guard passed.",
-      "runInLeadFlow": true,
-      "exposeInDeploymentVerification": true
-    },
-    {
-      "id": "controlled-test-data-history",
-      "script": "scripts/check-controlled-test-data-history-guard.ts",
-      "passLine": "Controlled test data history guard passed.",
-      "runInLeadFlow": true,
-      "exposeInDeploymentVerification": true
-    },
-    {
-      "id": "acceptance-diff",
-      "script": "scripts/check-acceptance-diff-guard.ts",
-      "passLine": "Acceptance diff guard passed.",
-      "runInLeadFlow": true,
-      "exposeInDeploymentVerification": true
-    },
-    {
-      "id": "overview-deferred-summary",
-      "script": "scripts/check-overview-deferred-summary-guard.ts",
-      "passLine": "Overview deferred summary guard passed.",
-      "runInLeadFlow": true,
-      "exposeInDeploymentVerification": true
-    },
-    {
-      "id": "deployment-verification",
-      "script": "scripts/check-deployment-verification-guard.ts",
-      "passLine": "Deployment verification guard passed.",
-      "runInLeadFlow": true,
-      "exposeInDeploymentVerification": true
-    },
-    {
-      "id": "deep-links",
-      "script": "scripts/check-deep-links-guard.ts",
-      "passLine": "Deep links guard passed.",
-      "runInLeadFlow": true,
-      "exposeInDeploymentVerification": true
-    },
-    {
-      "id": "deep-links-api",
-      "script": "scripts/check-deep-links-api-guard.ts",
-      "passLine": "Deep links API guard passed.",
-      "runInLeadFlow": true,
-      "exposeInDeploymentVerification": true
-    },
-    {
-      "id": "deployment-verification-api",
-      "script": "scripts/check-deployment-verification-api-guard.ts",
-      "passLine": "Deployment verification API guard passed.",
-      "runInLeadFlow": true,
-      "exposeInDeploymentVerification": true
-    },
-    {
-      "id": "controlled-warm-reply",
-      "script": "scripts/check-controlled-warm-reply-guard.ts",
-      "passLine": "Controlled warm reply guard passed.",
-      "runInLeadFlow": true,
-      "exposeInDeploymentVerification": true
-    },
-    {
-      "id": "latest-production-commit",
-      "script": "scripts/check-latest-production-commit-guard.ts",
-      "passLine": "Latest production commit guard passed.",
-      "runInLeadFlow": true,
-      "exposeInDeploymentVerification": true
-    },
-    {
-      "id": "appointment-closed-won",
-      "script": "scripts/check-appointment-closed-won-guard.ts",
-      "passLine": "Appointment Closed Won guard passed.",
-      "runInLeadFlow": true,
-      "exposeInDeploymentVerification": true
-    },
-    {
-      "id": "commission-schema-migration",
-      "script": "scripts/check-commission-payout-migration-guard.ts",
-      "passLine": "Commission schema migration guard passed.",
-      "runInLeadFlow": true,
-      "exposeInDeploymentVerification": true
-    },
-    {
-      "id": "project-readiness",
-      "script": "scripts/check-project-readiness-guard.ts",
-      "passLine": "Project readiness guard passed.",
-      "runInLeadFlow": true,
-      "exposeInDeploymentVerification": true
-    },
-    {
-      "id": "servicing-acceptance-preflight",
-      "script": "scripts/check-servicing-acceptance-preflight-guard.ts",
-      "passLine": "Servicing acceptance preflight guard passed.",
-      "runInLeadFlow": true,
-      "exposeInDeploymentVerification": true
-    },
-    {
-      "id": "production-smoke",
-      "script": "scripts/check-production-smoke-guard.ts",
-      "passLine": "Production smoke automation guard passed.",
-      "runInLeadFlow": true,
-      "exposeInDeploymentVerification": true
-    },
-    {
-      "id": "lead-aging-cron-resilience",
-      "script": "scripts/check-lead-aging-cron-resilience.ts",
-      "passLine": "Lead aging cron resilience guard passed.",
-      "runInLeadFlow": true,
-      "exposeInDeploymentVerification": true
-    },
-    {
-      "id": "http-security-headers",
-      "script": "scripts/check-http-security-headers.ts",
-      "passLine": "HTTP security headers guard passed.",
-      "runInLeadFlow": true,
-      "exposeInDeploymentVerification": true
-    },
-    {
-      "id": "auth-telemetry-hygiene",
-      "script": "scripts/check-auth-telemetry-hygiene.ts",
-      "passLine": "Auth telemetry hygiene guard passed.",
-      "runInLeadFlow": true,
-      "exposeInDeploymentVerification": true
-    },
-    {
-      "id": "certification-preconditions",
-      "script": "scripts/check-certification-preconditions.ts",
-      "passLine": "Certification precondition UX guard passed.",
-      "runInLeadFlow": true,
-      "exposeInDeploymentVerification": true
-    },
-    {
-      "id": "manager-claim-boundary",
-      "script": "scripts/check-manager-claim-boundary.ts",
-      "passLine": "Manager claim action boundary guard passed.",
-      "runInLeadFlow": true,
-      "exposeInDeploymentVerification": true
-    },
-    {
-      "id": "route-trace-hygiene",
-      "script": "scripts/check-route-trace-hygiene.ts",
-      "passLine": "Route trace hygiene guard passed.",
-      "runInLeadFlow": true,
-      "exposeInDeploymentVerification": true
-    },
-    {
-      "id": "public-signup-boundary",
-      "script": "scripts/check-public-signup-boundary.ts",
-      "passLine": "Public signup boundary guard passed.",
-      "runInLeadFlow": true,
-      "exposeInDeploymentVerification": true
-    },
-    {
-      "id": "account-activation-boundary",
-      "script": "scripts/check-account-activation-boundary.ts",
-      "passLine": "Account activation boundary guard passed.",
-      "runInLeadFlow": true,
-      "exposeInDeploymentVerification": true
-    },
-    {
-      "id": "ghl-webhook-replay-claim",
-      "script": "scripts/check-ghl-webhook-replay-claim.ts",
-      "passLine": "GHL webhook replay claim guard passed.",
-      "runInLeadFlow": true,
-      "exposeInDeploymentVerification": true
-    },
-    {
-      "id": "ghl-webhook-request-boundary",
-      "script": "scripts/check-ghl-webhook-request-boundary.ts",
-      "passLine": "GHL webhook request boundary guard passed.",
-      "runInLeadFlow": true,
-      "exposeInDeploymentVerification": true
-    },
-    {
-      "id": "portal-write-request-boundary",
-      "script": "scripts/check-portal-write-request-boundary.ts",
-      "passLine": "Portal write request boundary guard passed.",
-      "runInLeadFlow": true,
-      "exposeInDeploymentVerification": true
-    },
-    {
-      "id": "admin-controlled-test-boundary",
-      "script": "scripts/check-admin-controlled-test-boundary.ts",
-      "passLine": "Admin controlled test request boundary guard passed.",
-      "runInLeadFlow": true,
-      "exposeInDeploymentVerification": true
-    },
-    {
-      "id": "legacy-admin-lead-import-retirement",
-      "script": "scripts/check-legacy-admin-lead-import-retirement.ts",
-      "passLine": "Legacy Admin Lead import retirement guard passed.",
-      "runInLeadFlow": true,
-      "exposeInDeploymentVerification": true
-    },
-    {
-      "id": "integration-health-control-plane",
-      "script": "scripts/check-integration-health-control-plane.ts",
-      "passLine": "Integration health control plane guard passed.",
-      "runInLeadFlow": true,
-      "exposeInDeploymentVerification": true
-    },
-    {
-      "id": "admin-read-report-boundary",
-      "script": "scripts/check-admin-read-report-boundary.ts",
-      "passLine": "Admin read report response boundary guard passed.",
-      "runInLeadFlow": true,
-      "exposeInDeploymentVerification": true
-    },
-    {
-      "id": "lead-acceptance-report-boundary",
-      "script": "scripts/check-lead-acceptance-report-boundary.ts",
-      "passLine": "Lead acceptance report response boundary guard passed.",
-      "runInLeadFlow": true,
-      "exposeInDeploymentVerification": true
-    },
-    {
-      "id": "protected-csv-download-boundary",
-      "script": "scripts/check-protected-csv-download-boundary.ts",
-      "passLine": "Protected CSV download response boundary guard passed.",
-      "runInLeadFlow": true,
-      "exposeInDeploymentVerification": true
-    },
-    {
-      "id": "admin-lead-import-request-boundary",
-      "script": "scripts/check-admin-lead-import-request-boundary.ts",
-      "passLine": "Admin Lead import request boundary guard passed.",
-      "runInLeadFlow": true,
-      "exposeInDeploymentVerification": true
-    },
-    {
-      "id": "route-boundary-registry",
-      "script": "scripts/check-route-boundary-registry.ts",
-      "passLine": "Route boundary registry guard passed.",
-      "runInLeadFlow": true,
-      "exposeInDeploymentVerification": true
-    },
-    {
-      "id": "route-boundary-control-plane",
-      "script": "scripts/check-route-boundary-control-plane.ts",
-      "passLine": "Route boundary control plane guard passed.",
-      "runInLeadFlow": true,
-      "exposeInDeploymentVerification": true
-    },
-    {
-      "id": "signed-import-domain-errors",
-      "script": "scripts/check-signed-import-domain-error-mapping.ts",
-      "passLine": "Signed Lead import domain error mapping guard passed.",
-      "runInLeadFlow": true,
-      "exposeInDeploymentVerification": true
-    },
-    {
-      "id": "shared-route-json-boundary",
-      "script": "scripts/check-shared-route-json-boundary.ts",
-      "passLine": "Shared route JSON response boundary guard passed.",
-      "runInLeadFlow": true,
-      "exposeInDeploymentVerification": true
-    },
-    {
-      "id": "public-json-body-boundary",
-      "script": "scripts/check-public-json-body-boundary.ts",
-      "passLine": "Public JSON body boundary guard passed.",
-      "runInLeadFlow": true,
-      "exposeInDeploymentVerification": true
-    },
-    {
-      "id": "build-guard-registry",
-      "script": "scripts/check-build-guard-registry.ts",
-      "passLine": "Build guard registry guard passed.",
-      "runInLeadFlow": true,
-      "exposeInDeploymentVerification": true
-    }
+    {"id":"lead-import-response-contract","script":"scripts/check-lead-import-response-contract.ts","passLine":"Lead import response boundary checks passed.","runInLeadFlow":false,"exposeInDeploymentVerification":true},
+    {"id":"lead-flow-alignment","script":"scripts/check-lead-flow-alignment.ts","passLine":"Lead flow alignment guard passed.","runInLeadFlow":true,"exposeInDeploymentVerification":true},
+    {"id":"owner-decision-prep","script":"scripts/check-owner-decision-prep-guard.ts","passLine":"Owner decision prep guard passed.","runInLeadFlow":true,"exposeInDeploymentVerification":true},
+    {"id":"deferred-acceptance-runbook","script":"scripts/check-deferred-acceptance-runbook-guard.ts","passLine":"Deferred acceptance runbook guard passed.","runInLeadFlow":true,"exposeInDeploymentVerification":true},
+    {"id":"acceptance-summary-csv","script":"scripts/check-acceptance-summary-csv-guard.ts","passLine":"Acceptance summary CSV guard passed.","runInLeadFlow":true,"exposeInDeploymentVerification":true},
+    {"id":"print-runbook","script":"scripts/check-print-runbook-guard.ts","passLine":"Print runbook guard passed.","runInLeadFlow":true,"exposeInDeploymentVerification":true},
+    {"id":"controlled-test-data-history","script":"scripts/check-controlled-test-data-history-guard.ts","passLine":"Controlled test data history guard passed.","runInLeadFlow":true,"exposeInDeploymentVerification":true},
+    {"id":"acceptance-diff","script":"scripts/check-acceptance-diff-guard.ts","passLine":"Acceptance diff guard passed.","runInLeadFlow":true,"exposeInDeploymentVerification":true},
+    {"id":"overview-deferred-summary","script":"scripts/check-overview-deferred-summary-guard.ts","passLine":"Overview deferred summary guard passed.","runInLeadFlow":true,"exposeInDeploymentVerification":true},
+    {"id":"deployment-verification","script":"scripts/check-deployment-verification-guard.ts","passLine":"Deployment verification guard passed.","runInLeadFlow":true,"exposeInDeploymentVerification":true},
+    {"id":"deep-links","script":"scripts/check-deep-links-guard.ts","passLine":"Deep links guard passed.","runInLeadFlow":true,"exposeInDeploymentVerification":true},
+    {"id":"deep-links-api","script":"scripts/check-deep-links-api-guard.ts","passLine":"Deep links API guard passed.","runInLeadFlow":true,"exposeInDeploymentVerification":true},
+    {"id":"deployment-verification-api","script":"scripts/check-deployment-verification-api-guard.ts","passLine":"Deployment verification API guard passed.","runInLeadFlow":true,"exposeInDeploymentVerification":true},
+    {"id":"controlled-warm-reply","script":"scripts/check-controlled-warm-reply-guard.ts","passLine":"Controlled warm reply guard passed.","runInLeadFlow":true,"exposeInDeploymentVerification":true},
+    {"id":"latest-production-commit","script":"scripts/check-latest-production-commit-guard.ts","passLine":"Latest production commit guard passed.","runInLeadFlow":true,"exposeInDeploymentVerification":true},
+    {"id":"appointment-closed-won","script":"scripts/check-appointment-closed-won-guard.ts","passLine":"Appointment Closed Won guard passed.","runInLeadFlow":true,"exposeInDeploymentVerification":true},
+    {"id":"commission-schema-migration","script":"scripts/check-commission-payout-migration-guard.ts","passLine":"Commission schema migration guard passed.","runInLeadFlow":true,"exposeInDeploymentVerification":true},
+    {"id":"project-readiness","script":"scripts/check-project-readiness-guard.ts","passLine":"Project readiness guard passed.","runInLeadFlow":true,"exposeInDeploymentVerification":true},
+    {"id":"servicing-acceptance-preflight","script":"scripts/check-servicing-acceptance-preflight-guard.ts","passLine":"Servicing acceptance preflight guard passed.","runInLeadFlow":true,"exposeInDeploymentVerification":true},
+    {"id":"production-smoke","script":"scripts/check-production-smoke-guard.ts","passLine":"Production smoke automation guard passed.","runInLeadFlow":true,"exposeInDeploymentVerification":true},
+    {"id":"lead-aging-cron-resilience","script":"scripts/check-lead-aging-cron-resilience.ts","passLine":"Lead aging cron resilience guard passed.","runInLeadFlow":true,"exposeInDeploymentVerification":true},
+    {"id":"http-security-headers","script":"scripts/check-http-security-headers.ts","passLine":"HTTP security headers guard passed.","runInLeadFlow":true,"exposeInDeploymentVerification":true},
+    {"id":"auth-telemetry-hygiene","script":"scripts/check-auth-telemetry-hygiene.ts","passLine":"Auth telemetry hygiene guard passed.","runInLeadFlow":true,"exposeInDeploymentVerification":true},
+    {"id":"certification-preconditions","script":"scripts/check-certification-preconditions.ts","passLine":"Certification precondition UX guard passed.","runInLeadFlow":true,"exposeInDeploymentVerification":true},
+    {"id":"manager-claim-boundary","script":"scripts/check-manager-claim-boundary.ts","passLine":"Manager claim action boundary guard passed.","runInLeadFlow":true,"exposeInDeploymentVerification":true},
+    {"id":"route-trace-hygiene","script":"scripts/check-route-trace-hygiene.ts","passLine":"Route trace hygiene guard passed.","runInLeadFlow":true,"exposeInDeploymentVerification":true},
+    {"id":"public-signup-boundary","script":"scripts/check-public-signup-boundary.ts","passLine":"Public signup boundary guard passed.","runInLeadFlow":true,"exposeInDeploymentVerification":true},
+    {"id":"account-activation-boundary","script":"scripts/check-account-activation-boundary.ts","passLine":"Account activation boundary guard passed.","runInLeadFlow":true,"exposeInDeploymentVerification":true},
+    {"id":"ghl-webhook-replay-claim","script":"scripts/check-ghl-webhook-replay-claim.ts","passLine":"GHL webhook replay claim guard passed.","runInLeadFlow":true,"exposeInDeploymentVerification":true},
+    {"id":"ghl-webhook-request-boundary","script":"scripts/check-ghl-webhook-request-boundary.ts","passLine":"GHL webhook request boundary guard passed.","runInLeadFlow":true,"exposeInDeploymentVerification":true},
+    {"id":"portal-write-request-boundary","script":"scripts/check-portal-write-request-boundary.ts","passLine":"Portal write request boundary guard passed.","runInLeadFlow":true,"exposeInDeploymentVerification":true},
+    {"id":"admin-controlled-test-boundary","script":"scripts/check-admin-controlled-test-boundary.ts","passLine":"Admin controlled test request boundary guard passed.","runInLeadFlow":true,"exposeInDeploymentVerification":true},
+    {"id":"legacy-admin-lead-import-retirement","script":"scripts/check-legacy-admin-lead-import-retirement.ts","passLine":"Legacy Admin Lead import retirement guard passed.","runInLeadFlow":true,"exposeInDeploymentVerification":true},
+    {"id":"integration-health-control-plane","script":"scripts/check-integration-health-control-plane.ts","passLine":"Integration health control plane guard passed.","runInLeadFlow":true,"exposeInDeploymentVerification":true},
+    {"id":"admin-read-report-boundary","script":"scripts/check-admin-read-report-boundary.ts","passLine":"Admin read report response boundary guard passed.","runInLeadFlow":true,"exposeInDeploymentVerification":true},
+    {"id":"lead-acceptance-report-boundary","script":"scripts/check-lead-acceptance-report-boundary.ts","passLine":"Lead acceptance report response boundary guard passed.","runInLeadFlow":true,"exposeInDeploymentVerification":true},
+    {"id":"protected-csv-download-boundary","script":"scripts/check-protected-csv-download-boundary.ts","passLine":"Protected CSV download response boundary guard passed.","runInLeadFlow":true,"exposeInDeploymentVerification":true},
+    {"id":"admin-lead-import-request-boundary","script":"scripts/check-admin-lead-import-request-boundary.ts","passLine":"Admin Lead import request boundary guard passed.","runInLeadFlow":true,"exposeInDeploymentVerification":true},
+    {"id":"route-boundary-registry","script":"scripts/check-route-boundary-registry.ts","passLine":"Route boundary registry guard passed.","runInLeadFlow":true,"exposeInDeploymentVerification":true},
+    {"id":"route-boundary-control-plane","script":"scripts/check-route-boundary-control-plane.ts","passLine":"Route boundary control plane guard passed.","runInLeadFlow":true,"exposeInDeploymentVerification":true},
+    {"id":"signed-import-domain-errors","script":"scripts/check-signed-import-domain-error-mapping.ts","passLine":"Signed Lead import domain error mapping guard passed.","runInLeadFlow":true,"exposeInDeploymentVerification":true},
+    {"id":"shared-route-json-boundary","script":"scripts/check-shared-route-json-boundary.ts","passLine":"Shared route JSON response boundary guard passed.","runInLeadFlow":true,"exposeInDeploymentVerification":true},
+    {"id":"public-json-body-boundary","script":"scripts/check-public-json-body-boundary.ts","passLine":"Public JSON body boundary guard passed.","runInLeadFlow":true,"exposeInDeploymentVerification":true},
+    {"id":"build-guard-control-plane","script":"scripts/check-build-guard-control-plane.ts","passLine":"Build guard control plane guard passed.","runInLeadFlow":true,"exposeInDeploymentVerification":true},
+    {"id":"build-guard-registry","script":"scripts/check-build-guard-registry.ts","passLine":"Build guard registry guard passed.","runInLeadFlow":true,"exposeInDeploymentVerification":true}
   ]
 }
