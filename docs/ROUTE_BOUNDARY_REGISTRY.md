@@ -25,20 +25,33 @@ Each finding must be classified as:
 
 Every finding requires a non-empty rationale. Duplicate entries, invalid classifications, invalid counts, missing review dates, and drift all fail CI.
 
-The current PR #128 baseline contains **6 approved findings across 4 routes** and zero frozen findings. PR #127 initially established 11 findings across 8 routes; five signed-import route findings were removed by centralizing typed domain-error mapping.
+The current PR #129 baseline contains **2 approved findings across 2 routes** and zero frozen findings.
+
+Baseline history:
+
+- PR #127: 11 findings across 8 routes;
+- PR #128: 6 findings across 4 routes after centralizing signed-import typed domain errors;
+- PR #129: 2 findings across 2 routes after centralizing public/cron/status JSON response construction.
 
 ## Current reviewed exceptions
 
-The current findings cover only:
+The only current findings are:
 
-- public account activation raw-body limits and its route-local response helper;
-- public partner signup raw-body limits and minimal privacy-preserving response helper;
-- the secret-authenticated aging cron's conditional `Retry-After` response helper;
-- the intentionally minimal public deployment-status response.
+- public account activation's bounded raw-body read before JSON parsing;
+- public partner signup's bounded raw-body read before JSON parsing.
+
+Both reads are required to enforce declared and actual UTF-8 byte limits before JSON parsing. Dedicated guards protect their exact ordering and size limits.
+
+All four prior direct JSON response findings now use `routeJsonResponse`:
+
+- public account activation;
+- public partner signup;
+- secret-authenticated Lead aging cron;
+- minimal public deployment status.
 
 Signed Lead-import typed errors no longer appear as route-level findings. They are mapped centrally by `leadImportDomainErrorResponse`, while unknown failures remain generic.
 
-These classifications are not permanent exemptions. Any code or count change requires a new source review, and a shared-helper migration may remove a finding from the baseline.
+These classifications are not permanent exemptions. Any code or count change requires a new source review, and a safe bounded-body helper may remove the final findings in a future separately reviewed change.
 
 ## Protected control plane
 
@@ -70,6 +83,8 @@ It does not expose route source contents, request bodies, runtime payloads, data
 - absence of database access and mutation primitives;
 - Settings navigation;
 - documentation, build, and deployment-verification wiring.
+
+`npm run check:shared-route-json-boundary` additionally protects the four-route shared response migration and the two-finding baseline.
 
 ## Safety boundary
 
