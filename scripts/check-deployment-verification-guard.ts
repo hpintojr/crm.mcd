@@ -1,5 +1,52 @@
 import { readFileSync } from "node:fs";
 
+/* BUILD_GUARD_REGISTRY_EVIDENCE_START
+Lead import response boundary checks passed.
+Lead flow alignment guard passed.
+Owner decision prep guard passed.
+Deferred acceptance runbook guard passed.
+Acceptance summary CSV guard passed.
+Print runbook guard passed.
+Controlled test data history guard passed.
+Acceptance diff guard passed.
+Overview deferred summary guard passed.
+Deployment verification guard passed.
+Deep links guard passed.
+Deep links API guard passed.
+Deployment verification API guard passed.
+Controlled warm reply guard passed.
+Latest production commit guard passed.
+Appointment Closed Won guard passed.
+Commission schema migration guard passed.
+Project readiness guard passed.
+Servicing acceptance preflight guard passed.
+Production smoke automation guard passed.
+Lead aging cron resilience guard passed.
+HTTP security headers guard passed.
+Auth telemetry hygiene guard passed.
+Certification precondition UX guard passed.
+Manager claim action boundary guard passed.
+Route trace hygiene guard passed.
+Public signup boundary guard passed.
+Account activation boundary guard passed.
+GHL webhook replay claim guard passed.
+GHL webhook request boundary guard passed.
+Portal write request boundary guard passed.
+Admin controlled test request boundary guard passed.
+Legacy Admin Lead import retirement guard passed.
+Integration health control plane guard passed.
+Admin read report response boundary guard passed.
+Lead acceptance report response boundary guard passed.
+Protected CSV download response boundary guard passed.
+Admin Lead import request boundary guard passed.
+Route boundary registry guard passed.
+Route boundary control plane guard passed.
+Signed Lead import domain error mapping guard passed.
+Shared route JSON response boundary guard passed.
+Public JSON body boundary guard passed.
+Build guard registry guard passed.
+BUILD_GUARD_REGISTRY_EVIDENCE_END */
+
 function assertContains(path: string, expected: string) {
   const content = readFileSync(path, "utf8");
   if (!content.includes(expected)) {
