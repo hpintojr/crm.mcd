@@ -198,7 +198,6 @@ test("five failed passwords lock the synthetic account and block the correct pas
   await expect(page).toHaveURL(/\/login(?:\?|$)/);
 });
 
-
 test("an expired synthetic lockout accepts the correct password and resets the account", async ({ page }) => {
   await page.goto("/login");
   await fillCredentials(page, LOCKOUT_RECOVERY_EMAIL, "Wrong-E2E-Password-2026!");
