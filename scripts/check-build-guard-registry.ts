@@ -19,6 +19,8 @@ type Guard = {
 type Registry = {
   version: string;
   reviewedAt: string;
+  expectedDeploymentVisibleCount: number;
+  expectedLeadFlowCount: number;
   guards: Guard[];
 };
 
@@ -28,11 +30,21 @@ function loadRegistry() {
 
 function checkManifest() {
   const registry = loadRegistry();
-  assert(registry.version === "2026-07-13-pr131", "Build guard registry version must match PR131.");
-  assert(registry.reviewedAt === "2026-07-13", "Build guard registry review date must be explicit.");
-  assert(registry.guards.length === 44, "Build guard registry must contain the exact 44 deployment-visible guards.");
-  assert(registry.guards.filter((guard) => guard.runInLeadFlow).length === 43,
-    "Lead-flow runner must preserve the exact 43-guard execution chain.");
+  assert(/^\d{4}-\d{2}-\d{2}-pr\d+$/.test(registry.version),
+    "Build guard registry version must be a dated PR version.");
+  assert(/^\d{4}-\d{2}-\d{2}$/.test(registry.reviewedAt),
+    "Build guard registry review date must be explicit ISO format.");
+  assert(Number.isInteger(registry.expectedDeploymentVisibleCount) && registry.expectedDeploymentVisibleCount > 0,
+    "Build guard registry must declare a positive deployment-visible count.");
+  assert(Number.isInteger(registry.expectedLeadFlowCount) && registry.expectedLeadFlowCount > 0,
+    "Build guard registry must declare a positive Lead-flow count.");
+
+  const deploymentVisibleCount = registry.guards.filter((guard) => guard.exposeInDeploymentVerification).length;
+  const leadFlowCount = registry.guards.filter((guard) => guard.runInLeadFlow).length;
+  assert(deploymentVisibleCount === registry.expectedDeploymentVisibleCount,
+    `Build guard registry declares ${registry.expectedDeploymentVisibleCount} deployment-visible guards but contains ${deploymentVisibleCount}.`);
+  assert(leadFlowCount === registry.expectedLeadFlowCount,
+    `Build guard registry declares ${registry.expectedLeadFlowCount} Lead-flow guards but contains ${leadFlowCount}.`);
   assert(registry.guards.every((guard) => guard.exposeInDeploymentVerification),
     "Every registered guard must remain visible in deployment verification.");
 
@@ -118,13 +130,18 @@ function checkRepositoryWiring() {
   const registryLib = read("src/lib/build-guard-registry.ts");
   for (const expected of [
     'import registryData from "../../config/build-guard-registry.json"',
+    "BUILD_GUARD_REGISTRY_VERSION",
     "LEAD_FLOW_BUILD_GUARDS",
     "DEPLOYMENT_GUARD_PASS_LINES",
   ]) assert(registryLib.includes(expected), `Build guard registry library is missing: ${expected}`);
 
   const deployment = read("src/lib/lead-deployment-verification.ts");
+  assert(deployment.includes("BUILD_GUARD_REGISTRY_VERSION"),
+    "Deployment verification must derive its version from the build guard registry.");
   assert(deployment.includes("DEPLOYMENT_GUARD_PASS_LINES"),
     "Deployment verification must derive executable pass lines from the build guard registry.");
+  assert(!deployment.includes("export const LEAD_DEPLOYMENT_VERIFICATION_VERSION = \""),
+    "Deployment verification must not retain a copied version literal.");
   assert(!deployment.includes("export const EXPECTED_LEAD_FLOW_GUARD_LINES = ["),
     "Deployment verification must not retain a copied executable pass-line array.");
 
@@ -140,8 +157,12 @@ function checkRepositoryWiring() {
   checkEvidenceBlock("scripts/check-deployment-verification-guard.ts", expectedEvidenceBlock);
 
   const deploymentGuard = read("scripts/check-deployment-verification-guard.ts");
+  assert(deploymentGuard.includes("expectedDeploymentVisibleCount"),
+    "Deployment verification guard must validate the manifest-declared visible count.");
   assert(deploymentGuard.includes('config/build-guard-registry.json'),
     "Deployment verification guard must validate the source manifest.");
+  assert(!deploymentGuard.includes("PR131 build guard registry"),
+    "Deployment verification guard must not retain a stale PR-specific version assertion.");
   assert(!deploymentGuard.includes('const expectedGuardLines = ['),
     "Deployment verification guard must not retain a copied executable pass-line array.");
 
