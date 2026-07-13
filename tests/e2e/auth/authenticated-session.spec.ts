@@ -17,6 +17,10 @@ if (!ownerPassword || !agentPassword || !mfaPassword || !lockoutPassword || !mfa
   throw new Error("Synthetic passwords and the MFA TOTP secret are required for authenticated browser tests.");
 }
 
+function loginAlert(page: Page) {
+  return page.locator("form [role='alert']");
+}
+
 async function submitCredentials(page: Page) {
   await Promise.all([
     page.waitForResponse(
@@ -60,11 +64,11 @@ test("unknown accounts and wrong passwords share the generic credentials failure
   await page.goto("/login");
   await fillCredentials(page, UNKNOWN_EMAIL, "Unknown-E2E-Only-2026!");
   await submitCredentials(page);
-  await expect(page.getByRole("alert")).toHaveText("We could not sign you in with those credentials.");
+  await expect(loginAlert(page)).toHaveText("We could not sign you in with those credentials.");
 
   await fillCredentials(page, OWNER_EMAIL, "Wrong-E2E-Password-2026!");
   await submitCredentials(page);
-  await expect(page.getByRole("alert")).toHaveText("We could not sign you in with those credentials.");
+  await expect(loginAlert(page)).toHaveText("We could not sign you in with those credentials.");
 });
 
 test("synthetic Owner can sign in, open an Admin control plane, and sign out", async ({ page }) => {
@@ -101,12 +105,12 @@ test("synthetic MFA Owner requires a code, rejects an invalid code, and accepts 
   await fillCredentials(page, MFA_EMAIL, mfaPassword);
   await submitCredentials(page);
 
-  await expect(page.getByRole("alert")).toHaveText("Enter the six-digit code from your authenticator app.");
+  await expect(loginAlert(page)).toHaveText("Enter the six-digit code from your authenticator app.");
   await expect(page.getByLabel("Authentication code")).toBeVisible();
 
   await page.getByLabel("Authentication code").fill(invalidCurrentTotp(mfaTotpSecret));
   await submitCredentials(page);
-  await expect(page.getByRole("alert")).toHaveText("That authentication code is not valid. Try again.");
+  await expect(loginAlert(page)).toHaveText("That authentication code is not valid. Try again.");
 
   await page.getByLabel("Authentication code").fill(authenticator.generate(mfaTotpSecret));
   await page.getByRole("button", { name: "Sign in" }).click();
@@ -120,12 +124,12 @@ test("five failed passwords lock the synthetic account and block the correct pas
 
   for (let attempt = 0; attempt < 5; attempt += 1) {
     await submitCredentials(page);
-    await expect(page.getByRole("alert")).toHaveText("We could not sign you in with those credentials.");
+    await expect(loginAlert(page)).toHaveText("We could not sign you in with those credentials.");
   }
 
   await page.getByLabel("Password").fill(lockoutPassword);
   await submitCredentials(page);
-  await expect(page.getByRole("alert")).toHaveText(
+  await expect(loginAlert(page)).toHaveText(
     "This account is temporarily locked after too many sign-in attempts.",
   );
   await expect(page).toHaveURL(/\/login(?:\?|$)/);
