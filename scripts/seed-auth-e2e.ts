@@ -9,7 +9,7 @@ const AGENT_EMAIL = "e2e.agent@mercurycalldesk.test";
 const MFA_EMAIL = "e2e.mfa@mercurycalldesk.test";
 const LOCKOUT_EMAIL = "e2e.lockout@mercurycalldesk.test";
 const LOCKOUT_RECOVERY_EMAIL = "e2e.lockout-recovery@mercurycalldesk.test";
-const OFFBOARDED_EMAIL = "e2e.offboarded@mercurycalldesk.test";
+const DISABLED_EMAIL = "e2e.disabled@mercurycalldesk.test";
 const SUSPENDED_SESSION_EMAIL = "e2e.suspended-session@mercurycalldesk.test";
 const ROLE_CHANGE_EMAIL = "e2e.role-change@mercurycalldesk.test";
 
@@ -19,7 +19,7 @@ const inputSchema = z.object({
   mfaPassword: z.string().min(12),
   lockoutPassword: z.string().min(12),
   lockoutRecoveryPassword: z.string().min(12),
-  offboardedPassword: z.string().min(12),
+  disabledPassword: z.string().min(12),
   suspendedSessionPassword: z.string().min(12),
   roleChangePassword: z.string().min(12),
   mfaTotpSecret: z.string().regex(/^[A-Z2-7]{16,}$/),
@@ -52,7 +52,7 @@ async function upsertSyntheticUser(input: {
   email: string;
   passwordHash: string;
   role: "OWNER" | "AGENT";
-  status?: "ACTIVE" | "OFFBOARDED";
+  status?: "ACTIVE" | "DISABLED";
   mfaEnabled: boolean;
   totpSecret?: string | null;
 }) {
@@ -124,7 +124,7 @@ async function main() {
     mfaPassword: process.env.E2E_MFA_PASSWORD,
     lockoutPassword: process.env.E2E_LOCKOUT_PASSWORD,
     lockoutRecoveryPassword: process.env.E2E_LOCKOUT_RECOVERY_PASSWORD,
-    offboardedPassword: process.env.E2E_OFFBOARDED_PASSWORD,
+    disabledPassword: process.env.E2E_DISABLED_PASSWORD,
     suspendedSessionPassword: process.env.E2E_SUSPENDED_SESSION_PASSWORD,
     roleChangePassword: process.env.E2E_ROLE_CHANGE_PASSWORD,
     mfaTotpSecret: process.env.E2E_MFA_TOTP_SECRET,
@@ -139,7 +139,7 @@ async function main() {
     mfaPasswordHash,
     lockoutPasswordHash,
     lockoutRecoveryPasswordHash,
-    offboardedPasswordHash,
+    disabledPasswordHash,
     suspendedSessionPasswordHash,
     roleChangePasswordHash,
   ] = await Promise.all([
@@ -148,12 +148,12 @@ async function main() {
     hash(parsed.data.mfaPassword, passwordOptions),
     hash(parsed.data.lockoutPassword, passwordOptions),
     hash(parsed.data.lockoutRecoveryPassword, passwordOptions),
-    hash(parsed.data.offboardedPassword, passwordOptions),
+    hash(parsed.data.disabledPassword, passwordOptions),
     hash(parsed.data.suspendedSessionPassword, passwordOptions),
     hash(parsed.data.roleChangePassword, passwordOptions),
   ]);
 
-  const [owner, agentUser, mfaUser, lockoutUser, lockoutRecoveryUser, offboardedUser, suspendedSessionUser, roleChangeUser] = await Promise.all([
+  const [owner, agentUser, mfaUser, lockoutUser, lockoutRecoveryUser, disabledUser, suspendedSessionUser, roleChangeUser] = await Promise.all([
     upsertSyntheticUser({
       email: OWNER_EMAIL,
       passwordHash: ownerPasswordHash,
@@ -186,10 +186,10 @@ async function main() {
       mfaEnabled: false,
     }),
     upsertSyntheticUser({
-      email: OFFBOARDED_EMAIL,
-      passwordHash: offboardedPasswordHash,
+      email: DISABLED_EMAIL,
+      passwordHash: disabledPasswordHash,
       role: "OWNER",
-      status: "OFFBOARDED",
+      status: "DISABLED",
       mfaEnabled: false,
     }),
     upsertSyntheticUser({
@@ -230,7 +230,7 @@ async function main() {
     mfaUserId: mfaUser.id,
     lockoutUserId: lockoutUser.id,
     lockoutRecoveryUserId: lockoutRecoveryUser.id,
-    offboardedUserId: offboardedUser.id,
+    disabledUserId: disabledUser.id,
     suspendedSessionUserId: suspendedSessionUser.id,
     roleChangeUserId: roleChangeUser.id,
     roleChangeAgentId: roleChangeAgent.id,
