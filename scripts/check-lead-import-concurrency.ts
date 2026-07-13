@@ -37,9 +37,14 @@ const createRoute = readFileSync("src/app/api/lead-imports/route.ts", "utf8");
 const uploadRoute = readFileSync("src/app/api/lead-imports/[batchId]/rows/route.ts", "utf8");
 const helper = readFileSync("src/lib/lead-import-concurrency.ts", "utf8");
 const uploadService = readFileSync("src/lib/lead-import-batch.ts", "utf8");
+const domainErrors = readFileSync("src/lib/lead-import-domain-error-response.ts", "utf8");
 
 assert.match(createRoute, /createLeadImportBatchWithConcurrencyRecovery/);
-assert.match(createRoute, /LEAD_IMPORT_REPLAY_CONFLICT/);
+assert.match(createRoute, /leadImportDomainErrorResponse/);
+assert.doesNotMatch(createRoute, /LEAD_IMPORT_REPLAY_CONFLICT/);
+assert.match(domainErrors, /LeadImportBatchReplayConflictError/);
+assert.match(domainErrors, /LEAD_IMPORT_REPLAY_CONFLICT/);
+assert.match(domainErrors, /409/);
 assert.match(uploadRoute, /uploadLeadImportRowsWithConcurrencyRecovery/);
 assert.match(helper, /assertImmutableLeadImportBatchReplay/);
 assert.match(helper, /localRunId/);
