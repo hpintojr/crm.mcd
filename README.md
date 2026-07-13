@@ -85,6 +85,7 @@ Secure Admin and Agent portals for Mercury Call Desk. GoHighLevel (GHL) is a bac
 - PR #100 corrected the staged Commission/Payout migration to match the raw SQL used by the application and added `CommissionHold`, `CommissionEligibilityDecision`, and `AgentCommissionProfile`.
 - The exact PR #100 DDL passed disposable-Neon-branch catalog and lifecycle testing, but it has **not** been applied to production.
 - Finance remains a readiness-only boundary. It does not store raw financial-account data, initiate payment-provider actions, or move money.
+- Stripe Connect is an optional, staged destination-readiness path. Manual external processing remains the default; the policy requires a connected-account reference, capability checks, Finance readiness, recorded admin approval, and a separately enabled execution release before any future transfer design can proceed.
 
 ### Acceptance, readiness, and audit
 
