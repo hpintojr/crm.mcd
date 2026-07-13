@@ -19,15 +19,9 @@ function checkRegistry() {
     findings: Array<{ path: string; primitive: string; count: number; classification: string; rationale: string }>;
   };
 
-  assert(registry.version === "2026-07-13-pr129", "Route boundary registry version must match PR129.");
+  assert(registry.version === "2026-07-13-pr130", "Route boundary registry version must match PR130.");
   assert(registry.reviewedAt === "2026-07-13", "Route boundary review date must be explicit.");
-  assert(registry.findings.length === 2, "Route boundary baseline must contain the 2 source-derived findings.");
-  assert(registry.findings.every((finding) => finding.classification === "APPROVED_EXCEPTION"),
-    "Every current finding must be explicitly reviewed as an approved exception.");
-  assert(registry.findings.every((finding) => finding.rationale.trim().length > 20),
-    "Every route boundary finding needs a meaningful rationale.");
-  assert(registry.findings.every((finding) => finding.primitive === "REQUEST_TEXT"),
-    "Only required bounded raw-body reads may remain in the current registry.");
+  assert(registry.findings.length === 0, "Route boundary baseline must contain zero source-derived findings.");
 }
 
 function checkSnapshot() {
@@ -118,7 +112,7 @@ function checkRepositoryContract() {
     ["scripts/check-route-boundary-registry.ts", "APPROVED_CLASSIFICATIONS"],
     ["src/app/admin/settings/page.tsx", "/admin/route-boundaries"],
     ["docs/ROUTE_BOUNDARY_REGISTRY.md", "Source-derived inventory"],
-    ["docs/ROUTE_BOUNDARY_REGISTRY.md", "2 approved findings"],
+    ["docs/ROUTE_BOUNDARY_REGISTRY.md", "zero reviewed findings"],
     ["docs/ROUTE_BOUNDARY_REGISTRY.md", "do not invoke any route"],
     ["docs/INDEX.md", "ROUTE_BOUNDARY_REGISTRY.md"],
     ["package.json", '"check:route-boundary-registry": "tsx scripts/check-route-boundary-registry.ts"'],
