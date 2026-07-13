@@ -15,6 +15,7 @@ export default async function SettingsPage() {
         <div className="flex flex-wrap gap-2">
           <Link className="rounded-lg border border-brand-500 px-3 py-2 text-sm text-brand-200" href="/admin/project-readiness">Project readiness</Link>
           <Link className="rounded-lg border border-ink-700 px-3 py-2 text-sm text-gray-200" href="/admin/route-boundaries">Route boundaries</Link>
+          <Link className="rounded-lg border border-ink-700 px-3 py-2 text-sm text-gray-200" href="/admin/build-guards">Build guards</Link>
         </div>
       </div>
       <div className="mt-8 space-y-3 text-sm text-gray-300">

@@ -46,10 +46,11 @@ Route boundary control plane guard passed.
 Signed Lead import domain error mapping guard passed.
 Shared route JSON response boundary guard passed.
 Public JSON body boundary guard passed.
+Build guard control plane guard passed.
 Build guard registry guard passed.
 BUILD_GUARD_REGISTRY_EVIDENCE_END */
 
-export const LEAD_DEPLOYMENT_VERIFICATION_VERSION = "2026-07-13-pr131";
+export const LEAD_DEPLOYMENT_VERIFICATION_VERSION = "2026-07-13-pr132";
 export const EXPECTED_LEAD_FLOW_GUARD_LINES = DEPLOYMENT_GUARD_PASS_LINES;
 
 export type LeadDeploymentVerificationRow = {
