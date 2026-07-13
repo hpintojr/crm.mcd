@@ -1,6 +1,6 @@
 import { NextRequest } from "next/server";
 import { ADMIN_ROLES, requireRole } from "@/lib/authz";
-import { requireFeature } from "@/lib/features";
+import { features } from "@/lib/features";
 import {
   adminLeadImportJson,
   adminLeadImportRequestId,
@@ -14,7 +14,7 @@ export const dynamic = "force-dynamic";
 
 export async function POST(request: NextRequest) {
   const requestId = adminLeadImportRequestId(request);
-  requireFeature("leads");
+  if (!features.leads) return adminLeadImportJson({ error: "Not found." }, 404, requestId);
   await requireRole(ADMIN_ROLES);
 
   const prepared = await prepareAdminLeadImportJson(request, requestId);
