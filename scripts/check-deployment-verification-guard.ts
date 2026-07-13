@@ -46,6 +46,8 @@ const expectedGuardLines = [
   "Lead acceptance report response boundary guard passed.",
   "Protected CSV download response boundary guard passed.",
   "Admin Lead import request boundary guard passed.",
+  "Route boundary registry guard passed.",
+  "Route boundary control plane guard passed.",
 ];
 
 const guards: [string, string][] = [

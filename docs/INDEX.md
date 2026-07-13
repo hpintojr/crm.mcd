@@ -14,6 +14,7 @@
 - [Lead Aging Cron](./LEAD_AGING_CRON.md) — secured schedule, bounded database readiness retries, failure contracts, and unchanged aging rules.
 - [HTTP Security Headers](./HTTP_SECURITY_HEADERS.md) — global anti-framing, MIME, referrer, browser-permission, and opener policies.
 - [Route Tracing](./ROUTE_TRACING.md) — opt-in server diagnostic progress logs and safe metadata boundaries.
+- [Route Boundary Registry](./ROUTE_BOUNDARY_REGISTRY.md) — source-derived direct-parser/response/error inventory, reviewed exceptions, fail-closed drift checks, and protected control plane.
 - [Public Partner Signup](./PUBLIC_SIGNUP.md) — request limits, durable reservation, idempotent duplicate handling, GHL ordering, and minimal public responses.
 - [Account Activation](./ACCOUNT_ACTIVATION.md) — token privacy, bounded requests, authenticator preparation, and atomic single-use completion.
 - [GHL Webhook Replay](./GHL_WEBHOOK_REPLAY.md) — unique event ledger, duplicate handling, and atomic failed-event retry claims.
@@ -33,6 +34,8 @@
 
 - Project Readiness: `/admin/project-readiness`
 - Project Readiness API: `/api/admin/project-readiness`
+- Route Boundary Registry: `/admin/route-boundaries`
+- Route Boundary Registry API: `/api/admin/route-boundaries`
 - Integration Health: `/admin/integrations/health`
 - Integration Health API: `/api/admin/integrations/health`
 - Servicing Acceptance Preflight: `/admin/servicing/acceptance-command-center`
