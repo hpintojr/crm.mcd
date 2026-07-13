@@ -62,7 +62,7 @@ test("unknown accounts and wrong passwords share the generic credentials failure
   await submitCredentials(page);
   await expect(page.getByRole("alert")).toHaveText("We could not sign you in with those credentials.");
 
-  await fillCredentials(page, LOCKOUT_EMAIL, "Wrong-E2E-Password-2026!");
+  await fillCredentials(page, OWNER_EMAIL, "Wrong-E2E-Password-2026!");
   await submitCredentials(page);
   await expect(page.getByRole("alert")).toHaveText("We could not sign you in with those credentials.");
 });
