@@ -1,20 +1,5 @@
 {
-  "version": "2026-07-13-pr129",
+  "version": "2026-07-13-pr130",
   "reviewedAt": "2026-07-13",
-  "findings": [
-    {
-      "path": "src/app/api/activate/route.ts",
-      "primitive": "REQUEST_TEXT",
-      "count": 1,
-      "classification": "APPROVED_EXCEPTION",
-      "rationale": "Public activation must read the raw body to enforce declared and actual UTF-8 byte limits before JSON parsing; its dedicated guard verifies this exact ordering while responses use the shared route JSON boundary."
-    },
-    {
-      "path": "src/app/api/signup/route.ts",
-      "primitive": "REQUEST_TEXT",
-      "count": 1,
-      "classification": "APPROVED_EXCEPTION",
-      "rationale": "Public signup must read the raw body to enforce declared and actual UTF-8 byte limits before JSON parsing; its dedicated guard verifies this exact ordering while responses use the shared route JSON boundary."
-    }
-  ]
+  "findings": []
 }
