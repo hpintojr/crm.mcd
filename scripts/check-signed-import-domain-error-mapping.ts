@@ -98,7 +98,7 @@ function checkRepositoryContract() {
   for (const [path, expected] of [
     ["docs/SIGNED_IMPORT_DOMAIN_ERRORS.md", "Typed domain errors only"],
     ["docs/SIGNED_IMPORT_DOMAIN_ERRORS.md", "does not invoke any import route"],
-    ["docs/ROUTE_BOUNDARY_REGISTRY.md", "Signed Lead-import typed errors no longer appear"],
+    ["docs/ROUTE_BOUNDARY_REGISTRY.md", "Signed Lead-import typed errors use `leadImportDomainErrorResponse`"],
     ["docs/LEAD_IMPORT_RESPONSE_BOUNDARY.md", "leadImportDomainErrorResponse"],
     ["docs/INDEX.md", "SIGNED_IMPORT_DOMAIN_ERRORS.md"],
     ["package.json", '"check:signed-import-domain-errors": "tsx scripts/check-signed-import-domain-error-mapping.ts"'],
