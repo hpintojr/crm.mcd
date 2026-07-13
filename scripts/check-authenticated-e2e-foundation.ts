@@ -36,6 +36,8 @@ function checkWorkflow() {
     "npm run seed:e2e-auth",
     "npx playwright install --with-deps chromium",
     "npm run test:e2e:auth",
+    "Assert persisted authentication security state",
+    "npm run assert:e2e-auth-security",
     "actions/upload-artifact@v4",
   ]) contains(path, expected);
 
@@ -131,9 +133,16 @@ function checkAuthContract() {
     'code = "ACCOUNT_LOCKED"',
     "failedLogins >= MAX_FAILED_LOGINS",
     "authenticator.check(totp, user.totpSecret)",
+    'actionType: "LOGIN_FAILED"',
     'actionType: "ACCOUNT_LOCKED"',
+    'actionType: "LOGIN_SUCCESS"',
+    'actionType: "LOGOUT"',
+    'metadata: { reason }',
+    "metadata: { failedLogins }",
+    "metadata: { lockedUntil: lockedUntil.toISOString() }",
     "failedLogins: 0",
     "lockedUntil: null",
+    "lastLoginAt: now",
   ]) contains(path, expected);
 }
 
@@ -148,6 +157,7 @@ function checkBrowserTests() {
     "synthetic MFA Owner requires a code, rejects an invalid code, and accepts the current TOTP",
     "five failed passwords lock the synthetic account and block the correct password",
     'response.url().includes("/api/auth/callback/credentials")',
+    "form [role='alert']",
     'getByLabel("Authentication code")',
     "authenticator.generate(mfaTotpSecret)",
     "for (let attempt = 0; attempt < 5; attempt += 1)",
@@ -176,15 +186,69 @@ function checkBrowserTests() {
   ]) excludes(path, forbidden);
 }
 
+function checkPersistedSecurityAssertions() {
+  const path = "scripts/assert-auth-e2e-security-state.ts";
+  for (const expected of [
+    "Authenticated E2E persisted security state passed.",
+    'process.env.E2E_ALLOW_DISPOSABLE_DB === "true"',
+    "!process.env.VERCEL_ENV",
+    'assertDisposableDatabase("DATABASE_URL")',
+    'assertDisposableDatabase("DIRECT_URL")',
+    "LOCAL_DATABASE_HOSTS",
+    "database name must contain an isolated e2e token",
+    "db.user.findUnique",
+    "db.auditLog.findMany",
+    'actionType: { in: ["LOGIN_FAILED", "ACCOUNT_LOCKED", "LOGIN_SUCCESS", "LOGOUT"] }',
+    'entityType: "User"',
+    "failedLogins === 0",
+    "actions.includes(\"LOGIN_FAILED\")",
+    "actions.includes(\"LOGIN_SUCCESS\")",
+    "actions.includes(\"LOGOUT\")",
+    'mfaFailureReasons.includes("MFA_REQUIRED")',
+    'mfaFailureReasons.includes("MFA_INVALID")',
+    "lockoutUser.failedLogins === 5",
+    "lockoutUser.lockedUntil.getTime() > Date.now()",
+    "failures.length === 5",
+    "locks.length === 1",
+    "JSON.stringify([1, 2, 3, 4, 5])",
+    "lockMetadata.lockedUntil === lockoutUser.lockedUntil.toISOString()",
+  ]) contains(path, expected);
+
+  for (const forbidden of [
+    "db.user.create",
+    "db.user.update",
+    "db.user.upsert",
+    "db.auditLog.create",
+    "db.auditLog.update",
+    "deleteMany",
+    "$executeRaw",
+    "$queryRaw",
+    "$transaction",
+    "db.lead.",
+    "db.agent.",
+    "db.clientAccount.",
+    "db.serviceCase.",
+    "db.commission",
+    "db.payout",
+    "fetch(",
+    "crm.mercurycalldesk.com",
+    "vercel.app",
+    "neon.tech",
+    "GHL_PRIVATE_TOKEN",
+  ]) excludes(path, forbidden);
+}
+
 function checkRepositoryWiring() {
   for (const [path, expected] of [
     ["package.json", '"seed:e2e-auth": "tsx scripts/seed-auth-e2e.ts"'],
     ["package.json", '"test:e2e:auth": "playwright test --config=playwright.auth.config.ts"'],
+    ["package.json", '"assert:e2e-auth-security": "tsx scripts/assert-auth-e2e-security-state.ts"'],
     ["package.json", '"check:auth-e2e-foundation": "tsx scripts/check-authenticated-e2e-foundation.ts"'],
     ["package.json", '"@playwright/test"'],
     ["docs/AUTHENTICATED_E2E.md", "localhost-only"],
     ["docs/AUTHENTICATED_E2E.md", "MFA"],
     ["docs/AUTHENTICATED_E2E.md", "lockout"],
+    ["docs/AUTHENTICATED_E2E.md", "Persisted security evidence"],
     ["docs/INDEX.md", "AUTHENTICATED_E2E.md"],
     ["src/lib/lead-deployment-verification.ts", "Authenticated E2E foundation guard passed."],
     ["scripts/check-deployment-verification-guard.ts", "Authenticated E2E foundation guard passed."],
@@ -197,6 +261,7 @@ function main() {
   checkPlaywrightConfig();
   checkAuthContract();
   checkBrowserTests();
+  checkPersistedSecurityAssertions();
   checkRepositoryWiring();
   console.log("Authenticated E2E foundation guard passed.");
 }
