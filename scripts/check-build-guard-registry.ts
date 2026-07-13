@@ -22,8 +22,12 @@ type Registry = {
   guards: Guard[];
 };
 
+function loadRegistry() {
+  return JSON.parse(read("config/build-guard-registry.json")) as Registry;
+}
+
 function checkManifest() {
-  const registry = JSON.parse(read("config/build-guard-registry.json")) as Registry;
+  const registry = loadRegistry();
   assert(registry.version === "2026-07-13-pr131", "Build guard registry version must match PR131.");
   assert(registry.reviewedAt === "2026-07-13", "Build guard registry review date must be explicit.");
   assert(registry.guards.length === 44, "Build guard registry must contain the exact 44 deployment-visible guards.");
@@ -104,9 +108,25 @@ function checkRepositoryWiring() {
 
   const deployment = read("src/lib/lead-deployment-verification.ts");
   assert(deployment.includes("DEPLOYMENT_GUARD_PASS_LINES"),
-    "Deployment verification must derive pass lines from the build guard registry.");
-  assert(!deployment.includes('"Lead flow alignment guard passed."'),
-    "Deployment verification must not retain a copied pass-line array.");
+    "Deployment verification must derive executable pass lines from the build guard registry.");
+  assert(!deployment.includes("export const EXPECTED_LEAD_FLOW_GUARD_LINES = ["),
+    "Deployment verification must not retain a copied executable pass-line array.");
+
+  const registry = loadRegistry();
+  const evidenceLines = registry.guards
+    .filter((guard) => guard.exposeInDeploymentVerification)
+    .map((guard) => guard.passLine);
+  const expectedEvidenceBlock = [
+    "/* BUILD_GUARD_REGISTRY_EVIDENCE_START",
+    ...evidenceLines,
+    "BUILD_GUARD_REGISTRY_EVIDENCE_END */",
+  ].join("\n");
+  assert(deployment.includes(expectedEvidenceBlock),
+    "Deployment verification compatibility evidence must exactly mirror the source manifest.");
+  assert((deployment.match(/BUILD_GUARD_REGISTRY_EVIDENCE_START/g) ?? []).length === 1,
+    "Deployment verification must contain exactly one compatibility evidence block.");
+  assert((deployment.match(/BUILD_GUARD_REGISTRY_EVIDENCE_END/g) ?? []).length === 1,
+    "Deployment verification must close exactly one compatibility evidence block.");
 
   const deploymentGuard = read("scripts/check-deployment-verification-guard.ts");
   assert(deploymentGuard.includes('config/build-guard-registry.json'),
