@@ -1,9 +1,9 @@
-import { randomUUID } from "node:crypto";
-import { NextRequest, NextResponse } from "next/server";
+import { NextRequest } from "next/server";
 import { authenticator } from "otplib";
 import QRCode from "qrcode";
 import { db } from "@/lib/db";
 import { hashPassword, hashToken } from "@/lib/password";
+import { routeJsonResponse, routeRequestId } from "@/lib/route-json-response";
 import { databaseErrorCode, databaseErrorName } from "@/lib/transient-database-retry";
 import {
   activationRequestSchema,
@@ -15,19 +15,11 @@ import {
 export const dynamic = "force-dynamic";
 
 function requestId(req: NextRequest) {
-  const supplied = req.headers.get("x-request-id")?.trim();
-  return supplied && supplied.length <= 128 && /^[A-Za-z0-9._:-]+$/.test(supplied) ? supplied : randomUUID();
+  return routeRequestId(req);
 }
 
 function json(body: unknown, status: number, id: string) {
-  return NextResponse.json(body, {
-    status,
-    headers: {
-      "Cache-Control": "no-store, max-age=0",
-      "X-Request-Id": id,
-      "X-Robots-Tag": "noindex, nofollow, noarchive",
-    },
-  });
+  return routeJsonResponse(body, { status, requestId: id, noindex: true });
 }
 
 function unavailable(id: string) {
