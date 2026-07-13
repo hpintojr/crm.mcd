@@ -50,6 +50,7 @@ const expectedGuardLines = [
   "Route boundary control plane guard passed.",
   "Signed Lead import domain error mapping guard passed.",
   "Shared route JSON response boundary guard passed.",
+  "Public JSON body boundary guard passed.",
 ];
 
 const guards: [string, string][] = [
