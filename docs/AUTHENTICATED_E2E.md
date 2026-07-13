@@ -20,7 +20,9 @@ The suite covers:
 10. an already-issued Owner session loses Admin access immediately after the underlying role changes to `AGENT`;
 11. that same role-changed session can reach the Agent portal using the current database role and Agent profile;
 12. a synthetic MFA Owner receives the required-code challenge, rejects an invalid TOTP, and accepts the current generated TOTP;
-13. five failed password attempts lock a dedicated synthetic account, and the correct password remains blocked during the lockout window.
+13. five failed password attempts lock a dedicated synthetic account, and the correct password remains blocked during the active lockout window;
+14. after a verified lock expiry on a separate synthetic Owner, the correct password signs in and resets its lock state;
+15. suspended and offboarded synthetic accounts reject their correct passwords without creating a session.
 
 ## Disposable environment
 
@@ -30,7 +32,7 @@ The workflow:
 
 - installs dependencies;
 - creates the schema with `prisma db push` against the local service only;
-- seeds six synthetic accounts and two synthetic Agent profiles;
+- seeds eight synthetic accounts and two synthetic Agent profiles;
 - installs Chromium;
 - starts the Next.js development server on `127.0.0.1:3000`;
 - runs the Playwright suite with one worker and no retries because lockout and live-session changes are intentionally stateful;
@@ -48,7 +50,7 @@ No repository or account secret is required. All credentials and the TOTP seed a
 - both `DATABASE_URL` and `DIRECT_URL` use PostgreSQL;
 - both database hosts are localhost-only;
 - both database names contain an isolated `e2e` token;
-- all six synthetic passwords are present and at least 12 characters;
+- all eight synthetic passwords are present and at least 12 characters;
 - the synthetic MFA secret satisfies the Base32 format contract.
 
 The seed uses only idempotent `User` and `Agent` upserts for:
@@ -57,10 +59,12 @@ The seed uses only idempotent `User` and `Agent` upserts for:
 - `e2e.agent@mercurycalldesk.test`;
 - `e2e.mfa@mercurycalldesk.test`;
 - `e2e.lockout@mercurycalldesk.test`;
+- `e2e.lockout-recovery@mercurycalldesk.test`;
+- `e2e.offboarded@mercurycalldesk.test`;
 - `e2e.suspended-session@mercurycalldesk.test`;
 - `e2e.role-change@mercurycalldesk.test`.
 
-Every run resets status, role, failed-login, and lockout fields on the synthetic users before the browser suite begins. The MFA identity is the only synthetic user with `mfaEnabled=true`. The role-change identity starts as Owner but already has a disabled-claim Agent profile so a mid-session role change can be tested without creating business records during the browser run.
+Every run resets role, failed-login, and lockout fields on the synthetic users before the browser suite begins; all but the dedicated offboarded identity start `ACTIVE`, while that identity is deliberately seeded `OFFBOARDED`. The MFA identity is the only synthetic user with `mfaEnabled=true`. The role-change identity starts as Owner but already has a disabled-claim Agent profile so a mid-session role change can be tested without creating business records during the browser run.
 
 The seed does not delete data, execute raw SQL, create Leads, create Client Accounts or Service Cases, touch Commission/Payout records, or call external services.
 
@@ -70,7 +74,7 @@ The browser uses `otplib` to generate a current six-digit TOTP from the syntheti
 
 ## Lockout contract
 
-The production authentication source defines five failed logins and a 15-minute lockout. The test uses a dedicated synthetic identity so the account-enumeration and normal login scenarios cannot consume its failure counter. It submits five wrong passwords, then confirms that the correct password receives the temporary-lock public message instead of creating a session.
+The production authentication source defines five failed logins and a 15-minute lockout. One dedicated synthetic identity proves that five wrong passwords cause the correct password to receive the temporary-lock public message instead of creating a session. A separate synthetic Owner proves recovery: after the same five-failure sequence and active-lock denial, the bounded localhost-only helper first verifies the exact state and then sets only its `lockedUntil` value to an already-expired timestamp. The correct password must then sign in and reset `failedLogins` and `lockedUntil`.
 
 ## Live session enforcement
 
@@ -81,7 +85,7 @@ The browser suite proves this behavior after a session has already been issued:
 - a synthetic Owner signs in successfully, is changed to `SUSPENDED` in the disposable database, and is denied on the next protected Admin navigation;
 - a second synthetic Owner signs in successfully, is changed to `AGENT`, loses Admin access, and can then reach the Agent portal without reissuing the session.
 
-`tests/e2e/auth/disposable-auth-state.ts` is the only mutation helper. It repeats the localhost/PostgreSQL/`e2e`/Vercel sentinels, accepts only the two dedicated synthetic email addresses, permits only `ACTIVE`/`SUSPENDED` status and `OWNER`/`AGENT` role values, and updates only `User.status` or `User.role`. It cannot access audit, Lead, Agent, Servicing, Commission, Payout, or integration tables and cannot call external services.
+`tests/e2e/auth/disposable-auth-state.ts` is the only mutation helper. It repeats the localhost/PostgreSQL/`e2e`/Vercel sentinels, accepts only the three dedicated state-change identities, permits only `ACTIVE`/`SUSPENDED` status and `OWNER`/`AGENT` role values, and updates only `User.status`, `User.role`, or the already-verified recovery identity’s `lockedUntil` value. It cannot access audit, Lead, Agent, Servicing, Commission, Payout, or integration tables and cannot call external services.
 
 ## Persisted security evidence
 
@@ -98,10 +102,12 @@ It verifies:
 - the lockout audit counters are exactly `1, 2, 3, 4, 5`;
 - exactly one `ACCOUNT_LOCKED` row exists and its ISO timestamp matches `User.lockedUntil`;
 - the locked identity has no successful-login timestamp or `LOGIN_SUCCESS` audit row;
-- the suspended-session identity retains Owner login evidence but persists `SUSPENDED` status without lockout state;
+- the recovery identity has five ordered failed-login counters, one lock event, then exactly one successful Owner login after the verified expiry, with reset lock state;
+- the offboarded identity remains `OFFBOARDED`, has no session timestamp or lock state, and creates no authentication audit event when its correct password is denied;
+- the suspended-session identity retains exactly one Owner login evidence row but persists `SUSPENDED` status without lockout state;
 - the role-change identity persists current role `AGENT`, remains active and unlocked, and retains Owner-role login evidence from the session issuance event.
 
-The assertion script selects only the six synthetic `User` rows and their `LOGIN_FAILED`, `ACCOUNT_LOCKED`, `LOGIN_SUCCESS`, and `LOGOUT` audit rows. It contains no create, update, upsert, delete, transaction, raw-SQL, business-table, or external-call operation and repeats the same localhost/PostgreSQL/`e2e`/Vercel safety sentinels.
+The assertion script selects only the eight synthetic `User` rows and their `LOGIN_FAILED`, `ACCOUNT_LOCKED`, `LOGIN_SUCCESS`, and `LOGOUT` audit rows. It contains no create, update, upsert, delete, transaction, raw-SQL, business-table, or external-call operation and repeats the same localhost/PostgreSQL/`e2e`/Vercel safety sentinels.
 
 ## Browser target safety
 
