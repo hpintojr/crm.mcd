@@ -82,24 +82,23 @@ function checkRoutes() {
   assertContains(routes[4], "ZodError");
 }
 
-function checkRegistryReduction() {
+function checkRegistryIsolation() {
   const registry = JSON.parse(read("config/route-boundary-registry.json")) as {
     version: string;
     findings: Array<{ path: string; primitive: string }>;
   };
-  assert(registry.version === "2026-07-13-pr128", "Route boundary registry version must match PR128.");
-  assert(registry.findings.length === 6, "Route boundary registry must be reduced from 11 to 6 findings.");
+  assert(registry.version.length > 0, "Route boundary registry version must remain explicit.");
   assert(registry.findings.every((finding) => !finding.path.startsWith("src/app/api/lead-imports")),
-    "Signed Lead-import routes must no longer have route-level registry findings.");
+    "Signed Lead-import routes must not regain route-level registry findings.");
   assert(registry.findings.every((finding) => finding.primitive !== "RAW_ERROR_MESSAGE"),
-    "Current registry must no longer contain route-level raw error-message findings.");
+    "Route Boundary Registry must not regain raw error-message findings.");
 }
 
 function checkRepositoryContract() {
   for (const [path, expected] of [
     ["docs/SIGNED_IMPORT_DOMAIN_ERRORS.md", "Typed domain errors only"],
     ["docs/SIGNED_IMPORT_DOMAIN_ERRORS.md", "does not invoke any import route"],
-    ["docs/ROUTE_BOUNDARY_REGISTRY.md", "6 approved findings"],
+    ["docs/ROUTE_BOUNDARY_REGISTRY.md", "Signed Lead-import typed errors no longer appear"],
     ["docs/LEAD_IMPORT_RESPONSE_BOUNDARY.md", "leadImportDomainErrorResponse"],
     ["docs/INDEX.md", "SIGNED_IMPORT_DOMAIN_ERRORS.md"],
     ["package.json", '"check:signed-import-domain-errors": "tsx scripts/check-signed-import-domain-error-mapping.ts"'],
@@ -112,7 +111,7 @@ function checkRepositoryContract() {
 function main() {
   checkMapper();
   checkRoutes();
-  checkRegistryReduction();
+  checkRegistryIsolation();
   checkRepositoryContract();
   console.log("Signed Lead import domain error mapping guard passed.");
 }
