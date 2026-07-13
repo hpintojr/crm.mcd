@@ -76,7 +76,6 @@ function checkSeed() {
     "e2e.disabled@mercurycalldesk.test",
     "e2e.suspended-session@mercurycalldesk.test",
     "e2e.role-change@mercurycalldesk.test",
-    "e2e.lockout-recovery@mercurycalldesk.test",
     "lockoutRecoveryPassword: process.env.E2E_LOCKOUT_RECOVERY_PASSWORD",
     "disabledPassword: process.env.E2E_DISABLED_PASSWORD",
     "suspendedSessionPassword: process.env.E2E_SUSPENDED_SESSION_PASSWORD",
