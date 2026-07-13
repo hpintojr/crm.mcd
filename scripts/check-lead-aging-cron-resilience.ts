@@ -82,6 +82,7 @@ function checkRouteContract() {
   const routePath = "src/app/api/cron/leads/aging/route.ts";
   const route = readFileSync(routePath, "utf8");
   const helper = readFileSync("src/lib/transient-database-retry.ts", "utf8");
+  const responseBoundary = readFileSync("src/lib/route-json-response.ts", "utf8");
 
   for (const expected of [
     'export const maxDuration = 90',
@@ -94,9 +95,10 @@ function checkRouteContract() {
     "retryTransientDatabaseOperation",
     "The mutating sweep runs exactly once",
     "const result = await runLeadAgingSweep",
-    '"Retry-After"',
-    '"Cache-Control": "no-store, max-age=0"',
-    '"X-Request-Id"',
+    "routeRequestId(request)",
+    "routeJsonResponse",
+    "requestId: id",
+    "retryAfterSeconds: retryable ? RETRY_AFTER_SECONDS : undefined",
     "database-readiness",
     "Lead aging sweep could not complete because the database connection was unavailable.",
     "databaseProbeAttempts",
@@ -104,9 +106,16 @@ function checkRouteContract() {
     assertContains(route, expected, routePath);
   }
 
+  for (const expected of [
+    '"Cache-Control": "no-store, max-age=0"',
+    'headers["X-Request-Id"] = requestId',
+    'headers["Retry-After"] = String(retryAfterSeconds)',
+  ]) assertContains(responseBoundary, expected, "src/lib/route-json-response.ts");
+
   assert((route.match(/await runLeadAgingSweep/g) ?? []).length === 1, "The mutating Lead aging sweep must be awaited exactly once in the route.");
   assert(!/retryTransientDatabaseOperation[\s\S]{0,300}runLeadAgingSweep/.test(route), "The mutating sweep must never be wrapped in the retry helper.");
   assert(!route.includes("error.message"), "Client or structured route handling must not expose raw database error messages.");
+  assert(!route.includes("NextResponse"), "Lead aging cron must not construct JSON responses directly.");
 
   for (const expected of [
     'new Set(["P1001", "P1002", "P1008", "P1017", "P2024"])',
