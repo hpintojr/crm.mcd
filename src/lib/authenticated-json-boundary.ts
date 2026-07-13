@@ -45,9 +45,13 @@ export function authenticatedCsvDownload(csv: string, filename: string, requestI
   });
 }
 
-export async function prepareAuthenticatedJson(request: Request, requestId: string) {
+export async function prepareAuthenticatedJson(
+  request: Request,
+  requestId: string,
+  maxBodyBytes = MAX_AUTHENTICATED_JSON_BODY_BYTES,
+) {
   const declaredLength = Number(request.headers.get("content-length") ?? "0");
-  if (Number.isFinite(declaredLength) && declaredLength > MAX_AUTHENTICATED_JSON_BODY_BYTES) {
+  if (Number.isFinite(declaredLength) && declaredLength > maxBodyBytes) {
     return {
       ok: false as const,
       response: authenticatedJson({ error: "Request too large." }, 413, requestId),
@@ -64,7 +68,7 @@ export async function prepareAuthenticatedJson(request: Request, requestId: stri
     };
   }
 
-  if (new TextEncoder().encode(rawText).byteLength > MAX_AUTHENTICATED_JSON_BODY_BYTES) {
+  if (new TextEncoder().encode(rawText).byteLength > maxBodyBytes) {
     return {
       ok: false as const,
       response: authenticatedJson({ error: "Request too large." }, 413, requestId),
