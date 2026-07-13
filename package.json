@@ -16,6 +16,7 @@
     "seed:admin": "tsx scripts/create-admin.ts",
     "seed:e2e-auth": "tsx scripts/seed-auth-e2e.ts",
     "test:e2e:auth": "playwright test --config=playwright.auth.config.ts",
+    "assert:e2e-auth-security": "tsx scripts/assert-auth-e2e-security-state.ts",
     "test:lead-import-db": "node --conditions=react-server --import tsx scripts/test-lead-import-lifecycle-db.ts",
     "test:lead-import-research-db": "node --conditions=react-server --import tsx scripts/test-lead-import-research-fields-db.ts",
     "smoke:production": "tsx scripts/run-production-smoke.ts",

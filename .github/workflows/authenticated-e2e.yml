@@ -83,6 +83,9 @@ jobs:
       - name: Run authenticated browser boundaries
         run: npm run test:e2e:auth
 
+      - name: Assert persisted authentication security state
+        run: npm run assert:e2e-auth-security
+
       - name: Upload Playwright failure evidence
         if: failure()
         uses: actions/upload-artifact@v4
