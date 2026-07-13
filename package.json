@@ -3,7 +3,7 @@
   "version": "0.1.0",
   "private": true,
   "description": "Mercury Call Desk — Mini CRM (Agent + Admin portals). GHL is a one-way backend.",
-  "buildGuardCompatibilityScripts": "scripts/check-lead-import-response-contract.ts scripts/check-lead-flow-alignment.ts scripts/check-owner-decision-prep-guard.ts scripts/check-deferred-acceptance-runbook-guard.ts scripts/check-acceptance-summary-csv-guard.ts scripts/check-print-runbook-guard.ts scripts/check-controlled-test-data-history-guard.ts scripts/check-acceptance-diff-guard.ts scripts/check-overview-deferred-summary-guard.ts scripts/check-deployment-verification-guard.ts scripts/check-deep-links-guard.ts scripts/check-deep-links-api-guard.ts scripts/check-deployment-verification-api-guard.ts scripts/check-controlled-warm-reply-guard.ts scripts/check-latest-production-commit-guard.ts scripts/check-appointment-closed-won-guard.ts scripts/check-commission-payout-migration-guard.ts scripts/check-project-readiness-guard.ts scripts/check-servicing-acceptance-preflight-guard.ts scripts/check-production-smoke-guard.ts scripts/check-lead-aging-cron-resilience.ts scripts/check-http-security-headers.ts scripts/check-auth-telemetry-hygiene.ts scripts/check-certification-preconditions.ts scripts/check-manager-claim-boundary.ts scripts/check-route-trace-hygiene.ts scripts/check-public-signup-boundary.ts scripts/check-account-activation-boundary.ts scripts/check-ghl-webhook-replay-claim.ts scripts/check-ghl-webhook-request-boundary.ts scripts/check-portal-write-request-boundary.ts scripts/check-admin-controlled-test-boundary.ts scripts/check-legacy-admin-lead-import-retirement.ts scripts/check-integration-health-control-plane.ts scripts/check-admin-read-report-boundary.ts scripts/check-lead-acceptance-report-boundary.ts scripts/check-protected-csv-download-boundary.ts scripts/check-admin-lead-import-request-boundary.ts scripts/check-route-boundary-registry.ts scripts/check-route-boundary-control-plane.ts scripts/check-signed-import-domain-error-mapping.ts scripts/check-shared-route-json-boundary.ts scripts/check-public-json-body-boundary.ts scripts/check-build-guard-control-plane.ts scripts/check-build-guard-registry.ts",
+  "buildGuardCompatibilityScripts": "scripts/check-lead-import-response-contract.ts scripts/check-lead-flow-alignment.ts scripts/check-owner-decision-prep-guard.ts scripts/check-deferred-acceptance-runbook-guard.ts scripts/check-acceptance-summary-csv-guard.ts scripts/check-print-runbook-guard.ts scripts/check-controlled-test-data-history-guard.ts scripts/check-acceptance-diff-guard.ts scripts/check-overview-deferred-summary-guard.ts scripts/check-deployment-verification-guard.ts scripts/check-deep-links-guard.ts scripts/check-deep-links-api-guard.ts scripts/check-deployment-verification-api-guard.ts scripts/check-controlled-warm-reply-guard.ts scripts/check-latest-production-commit-guard.ts scripts/check-appointment-closed-won-guard.ts scripts/check-commission-payout-migration-guard.ts scripts/check-project-readiness-guard.ts scripts/check-servicing-acceptance-preflight-guard.ts scripts/check-production-smoke-guard.ts scripts/check-lead-aging-cron-resilience.ts scripts/check-http-security-headers.ts scripts/check-auth-telemetry-hygiene.ts scripts/check-certification-preconditions.ts scripts/check-manager-claim-boundary.ts scripts/check-route-trace-hygiene.ts scripts/check-public-signup-boundary.ts scripts/check-account-activation-boundary.ts scripts/check-ghl-webhook-replay-claim.ts scripts/check-ghl-webhook-request-boundary.ts scripts/check-portal-write-request-boundary.ts scripts/check-admin-controlled-test-boundary.ts scripts/check-legacy-admin-lead-import-retirement.ts scripts/check-integration-health-control-plane.ts scripts/check-admin-read-report-boundary.ts scripts/check-lead-acceptance-report-boundary.ts scripts/check-protected-csv-download-boundary.ts scripts/check-admin-lead-import-request-boundary.ts scripts/check-route-boundary-registry.ts scripts/check-route-boundary-control-plane.ts scripts/check-signed-import-domain-error-mapping.ts scripts/check-shared-route-json-boundary.ts scripts/check-public-json-body-boundary.ts scripts/check-authenticated-e2e-foundation.ts scripts/check-build-guard-control-plane.ts scripts/check-build-guard-registry.ts",
   "scripts": {
     "dev": "next dev",
     "build": "npx tsx scripts/check-next-dynamic-route-collisions.ts && npx tsx scripts/check-recovery-route-guard.ts && npx tsx scripts/check-login-completion.ts && npx tsx scripts/check-lead-intake-types.ts && npx tsx scripts/check-lead-import-contract.ts && npx tsx scripts/check-lead-import-workflow.ts && npx tsx scripts/check-lead-import-http.ts && npx tsx scripts/check-lead-import-request-verifier.ts && npx tsx scripts/check-lead-import-response-contract.ts && npx tsx scripts/check-lead-import-replay.ts && npx tsx scripts/check-import-audit-outcomes.ts && npx tsx scripts/check-lead-import-concurrency.ts && npx tsx scripts/check-lead-import-db-harness.ts && npx tsx scripts/check-lead-import-research-provenance.ts && npm run check:lead-flow-alignment && prisma generate && next build",
@@ -14,6 +14,8 @@
     "prisma:migrate": "prisma migrate dev",
     "prisma:studio": "prisma studio",
     "seed:admin": "tsx scripts/create-admin.ts",
+    "seed:e2e-auth": "tsx scripts/seed-auth-e2e.ts",
+    "test:e2e:auth": "playwright test --config=playwright.auth.config.ts",
     "test:lead-import-db": "node --conditions=react-server --import tsx scripts/test-lead-import-lifecycle-db.ts",
     "test:lead-import-research-db": "node --conditions=react-server --import tsx scripts/test-lead-import-research-fields-db.ts",
     "smoke:production": "tsx scripts/run-production-smoke.ts",
@@ -63,6 +65,7 @@
     "check:signed-import-domain-errors": "tsx scripts/check-signed-import-domain-error-mapping.ts",
     "check:shared-route-json-boundary": "tsx scripts/check-shared-route-json-boundary.ts",
     "check:public-json-body-boundary": "tsx scripts/check-public-json-body-boundary.ts",
+    "check:auth-e2e-foundation": "tsx scripts/check-authenticated-e2e-foundation.ts",
     "check:build-guard-control-plane": "tsx scripts/check-build-guard-control-plane.ts",
     "check:build-guard-registry": "tsx scripts/check-build-guard-registry.ts"
   },
@@ -80,6 +83,7 @@
     "zod": "^3.24.1"
   },
   "devDependencies": {
+    "@playwright/test": "^1.55.0",
     "@types/node": "^22.10.0",
     "@types/nodemailer": "^6.4.16",
     "@types/qrcode": "^1.5.6",
