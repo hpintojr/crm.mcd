@@ -8,12 +8,16 @@ const OWNER_EMAIL = "e2e.owner@mercurycalldesk.test";
 const AGENT_EMAIL = "e2e.agent@mercurycalldesk.test";
 const MFA_EMAIL = "e2e.mfa@mercurycalldesk.test";
 const LOCKOUT_EMAIL = "e2e.lockout@mercurycalldesk.test";
+const SUSPENDED_SESSION_EMAIL = "e2e.suspended-session@mercurycalldesk.test";
+const ROLE_CHANGE_EMAIL = "e2e.role-change@mercurycalldesk.test";
 
 const inputSchema = z.object({
   ownerPassword: z.string().min(12),
   agentPassword: z.string().min(12),
   mfaPassword: z.string().min(12),
   lockoutPassword: z.string().min(12),
+  suspendedSessionPassword: z.string().min(12),
+  roleChangePassword: z.string().min(12),
   mfaTotpSecret: z.string().regex(/^[A-Z2-7]{16,}$/),
 });
 
@@ -69,6 +73,36 @@ async function upsertSyntheticUser(input: {
   });
 }
 
+async function upsertSyntheticAgentProfile(input: {
+  userId: string;
+  email: string;
+  legalName: string;
+  preferredName: string;
+  mobile: string;
+}) {
+  return db.agent.upsert({
+    where: { personalEmail: input.email },
+    create: {
+      userId: input.userId,
+      legalName: input.legalName,
+      preferredName: input.preferredName,
+      personalEmail: input.email,
+      mobile: input.mobile,
+      status: "ACTIVE",
+      canClaimLeads: false,
+      provisionedAt: new Date(),
+    },
+    update: {
+      userId: input.userId,
+      legalName: input.legalName,
+      preferredName: input.preferredName,
+      mobile: input.mobile,
+      status: "ACTIVE",
+      canClaimLeads: false,
+    },
+  });
+}
+
 async function main() {
   if (process.env.E2E_ALLOW_DISPOSABLE_DB !== "true") {
     throw new Error("E2E_ALLOW_DISPOSABLE_DB=true is required before synthetic auth data may be seeded.");
@@ -84,20 +118,31 @@ async function main() {
     agentPassword: process.env.E2E_AGENT_PASSWORD,
     mfaPassword: process.env.E2E_MFA_PASSWORD,
     lockoutPassword: process.env.E2E_LOCKOUT_PASSWORD,
+    suspendedSessionPassword: process.env.E2E_SUSPENDED_SESSION_PASSWORD,
+    roleChangePassword: process.env.E2E_ROLE_CHANGE_PASSWORD,
     mfaTotpSecret: process.env.E2E_MFA_TOTP_SECRET,
   });
   if (!parsed.success) {
     throw new Error("Synthetic E2E passwords and the Base32 MFA secret must satisfy the test-only contract.");
   }
 
-  const [ownerPasswordHash, agentPasswordHash, mfaPasswordHash, lockoutPasswordHash] = await Promise.all([
+  const [
+    ownerPasswordHash,
+    agentPasswordHash,
+    mfaPasswordHash,
+    lockoutPasswordHash,
+    suspendedSessionPasswordHash,
+    roleChangePasswordHash,
+  ] = await Promise.all([
     hash(parsed.data.ownerPassword, passwordOptions),
     hash(parsed.data.agentPassword, passwordOptions),
     hash(parsed.data.mfaPassword, passwordOptions),
     hash(parsed.data.lockoutPassword, passwordOptions),
+    hash(parsed.data.suspendedSessionPassword, passwordOptions),
+    hash(parsed.data.roleChangePassword, passwordOptions),
   ]);
 
-  const [owner, agentUser, mfaUser, lockoutUser] = await Promise.all([
+  const [owner, agentUser, mfaUser, lockoutUser, suspendedSessionUser, roleChangeUser] = await Promise.all([
     upsertSyntheticUser({
       email: OWNER_EMAIL,
       passwordHash: ownerPasswordHash,
@@ -123,29 +168,36 @@ async function main() {
       role: "AGENT",
       mfaEnabled: false,
     }),
+    upsertSyntheticUser({
+      email: SUSPENDED_SESSION_EMAIL,
+      passwordHash: suspendedSessionPasswordHash,
+      role: "OWNER",
+      mfaEnabled: false,
+    }),
+    upsertSyntheticUser({
+      email: ROLE_CHANGE_EMAIL,
+      passwordHash: roleChangePasswordHash,
+      role: "OWNER",
+      mfaEnabled: false,
+    }),
   ]);
 
-  const agent = await db.agent.upsert({
-    where: { personalEmail: AGENT_EMAIL },
-    create: {
+  const [agent, roleChangeAgent] = await Promise.all([
+    upsertSyntheticAgentProfile({
       userId: agentUser.id,
-      legalName: "Authenticated E2E Agent",
-      preferredName: "E2E Agent",
-      personalEmail: AGENT_EMAIL,
-      mobile: "+15555550199",
-      status: "ACTIVE",
-      canClaimLeads: false,
-      provisionedAt: new Date(),
-    },
-    update: {
-      userId: agentUser.id,
+      email: AGENT_EMAIL,
       legalName: "Authenticated E2E Agent",
       preferredName: "E2E Agent",
       mobile: "+15555550199",
-      status: "ACTIVE",
-      canClaimLeads: false,
-    },
-  });
+    }),
+    upsertSyntheticAgentProfile({
+      userId: roleChangeUser.id,
+      email: ROLE_CHANGE_EMAIL,
+      legalName: "Live Role Change Agent",
+      preferredName: "Role Change Agent",
+      mobile: "+15555550200",
+    }),
+  ]);
 
   console.log("Authenticated E2E users ready.", {
     ownerId: owner.id,
@@ -153,6 +205,9 @@ async function main() {
     agentId: agent.id,
     mfaUserId: mfaUser.id,
     lockoutUserId: lockoutUser.id,
+    suspendedSessionUserId: suspendedSessionUser.id,
+    roleChangeUserId: roleChangeUser.id,
+    roleChangeAgentId: roleChangeAgent.id,
   });
 }
 
