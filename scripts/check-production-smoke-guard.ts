@@ -30,8 +30,10 @@ const guards: [string, string][] = [
   ["src/app/api/status/route.ts", "VERCEL_ENV"],
   ["src/app/api/status/route.ts", "VERCEL_GIT_COMMIT_REF"],
   ["src/app/api/status/route.ts", "VERCEL_GIT_COMMIT_SHA"],
-  ["src/app/api/status/route.ts", '"Cache-Control": "no-store, max-age=0"'],
-  ["src/app/api/status/route.ts", '"X-Robots-Tag": "noindex, nofollow, noarchive"'],
+  ["src/app/api/status/route.ts", "routeJsonResponse"],
+  ["src/app/api/status/route.ts", "{ noindex: true }"],
+  ["src/lib/route-json-response.ts", '"Cache-Control": "no-store, max-age=0"'],
+  ["src/lib/route-json-response.ts", 'headers["X-Robots-Tag"] = "noindex, nofollow, noarchive"'],
   ["scripts/run-production-smoke.ts", "/api/status"],
   ["scripts/run-production-smoke.ts", 'payload.environment === "production"'],
   ["scripts/run-production-smoke.ts", 'payload.git?.branch === "main"'],
@@ -79,7 +81,7 @@ for (const forbidden of [
   assertExcludes("scripts/run-production-smoke.ts", forbidden);
 }
 
-for (const forbidden of ["VERCEL_GIT_COMMIT_MESSAGE", "VERCEL_URL", "VERCEL_REGION", "new Date().toISOString()"] ) {
+for (const forbidden of ["VERCEL_GIT_COMMIT_MESSAGE", "VERCEL_URL", "VERCEL_REGION", "new Date().toISOString()", "NextResponse"] ) {
   assertExcludes("src/app/api/status/route.ts", forbidden);
 }
 
