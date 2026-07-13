@@ -116,7 +116,7 @@ function checkRepositoryContract() {
     ["scripts/check-route-boundary-registry.ts", "APPROVED_CLASSIFICATIONS"],
     ["src/app/admin/settings/page.tsx", "/admin/route-boundaries"],
     ["docs/ROUTE_BOUNDARY_REGISTRY.md", "Source-derived inventory"],
-    ["docs/ROUTE_BOUNDARY_REGISTRY.md", "does not invoke any route"],
+    ["docs/ROUTE_BOUNDARY_REGISTRY.md", "do not invoke any route"],
     ["docs/INDEX.md", "ROUTE_BOUNDARY_REGISTRY.md"],
     ["package.json", '"check:route-boundary-registry": "tsx scripts/check-route-boundary-registry.ts"'],
     ["package.json", '"check:route-boundary-control-plane": "tsx scripts/check-route-boundary-control-plane.ts"'],
