@@ -4,6 +4,7 @@ This file is the rolling index for implementation and rollout activity. Detailed
 
 | Date | Summary | Entry |
 |---|---|---|
+| 2026-07-13 | Stripe Connect readiness foundation: optional destination policy, environment contract, and sandbox setup discovery; no payment or payout execution | [2026-07-13](./daily-logs/2026-07-13.md) |
 | 2026-07-08 | Lead data correction and Cold Lead activity-first workspace alignment | [2026-07-08](./daily-logs/2026-07-08.md) |
 | 2026-07-02 | Lead, GHL relay, agent onboarding, servicing, audit/readiness, and documentation consolidation pass | [2026-07-02](./daily-logs/2026-07-02.md) |
 
