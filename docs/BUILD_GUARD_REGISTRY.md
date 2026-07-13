@@ -54,6 +54,14 @@ The runner does not use a shell, `eval`, dynamic remote commands, or secret-spec
 - deployment-verification derivation from the manifest;
 - documentation and index wiring.
 
+## Compatibility evidence
+
+Several established feature guards verify their own pass-line presence by reading the deployment-verification source and guard files. Clearly marked non-executable compatibility evidence blocks preserve those mature assertions. The registry self-check constructs the expected block from the manifest and requires an exact one-to-one match in both files, so neither block can silently drift or omit a registered line.
+
+Established guards also verify that their script filename remains discoverable from `package.json`. The non-executable `buildGuardCompatibilityScripts` index preserves that contract. The registry self-check derives the expected ordered string from the manifest and requires an exact match.
+
+Neither compatibility representation controls execution or runtime output. The JSON registry remains the only source used by the runner and deployment-verification data model.
+
 ## Deployment verification
 
 `src/lib/build-guard-registry.ts` derives:
@@ -62,8 +70,6 @@ The runner does not use a shell, `eval`, dynamic remote commands, or secret-spec
 - `DEPLOYMENT_GUARD_PASS_LINES` for the protected deployment-verification page and API.
 
 Deployment verification no longer contains a copied executable pass-line array. Its guard reads the source manifest and verifies the expected count and required self-check entries.
-
-Several established feature guards still verify their own pass-line presence by reading the deployment-verification source. A clearly marked non-executable compatibility evidence block preserves those mature assertions. The registry self-check constructs the expected block from the manifest and requires an exact one-to-one match, so the block cannot silently drift or omit a registered line.
 
 ## Unchanged behavior
 
