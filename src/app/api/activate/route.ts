@@ -3,6 +3,7 @@ import { authenticator } from "otplib";
 import QRCode from "qrcode";
 import { db } from "@/lib/db";
 import { hashPassword, hashToken } from "@/lib/password";
+import { preparePublicJsonBody } from "@/lib/public-json-body-boundary";
 import { routeJsonResponse, routeRequestId } from "@/lib/route-json-response";
 import { databaseErrorCode, databaseErrorName } from "@/lib/transient-database-retry";
 import {
@@ -60,30 +61,13 @@ async function loadActivation(rawToken: string) {
 
 export async function POST(req: NextRequest) {
   const id = requestId(req);
-  const declaredLength = Number(req.headers.get("content-length") ?? "0");
-  if (Number.isFinite(declaredLength) && declaredLength > MAX_ACTIVATION_BODY_BYTES) {
-    return json({ error: "Request too large." }, 413, id);
-  }
+  const prepared = await preparePublicJsonBody(req, {
+    maxBodyBytes: MAX_ACTIVATION_BODY_BYTES,
+    requestId: id,
+  });
+  if (!prepared.ok) return prepared.response;
 
-  let rawText: string;
-  try {
-    rawText = await req.text();
-  } catch {
-    return json({ error: "Unable to read request." }, 400, id);
-  }
-
-  if (new TextEncoder().encode(rawText).byteLength > MAX_ACTIVATION_BODY_BYTES) {
-    return json({ error: "Request too large." }, 413, id);
-  }
-
-  let raw: unknown;
-  try {
-    raw = JSON.parse(rawText);
-  } catch {
-    return json({ error: "Invalid JSON" }, 400, id);
-  }
-
-  const parsed = activationRequestSchema.safeParse(raw);
+  const parsed = activationRequestSchema.safeParse(prepared.body);
   if (!parsed.success) {
     return json({ error: "Invalid activation request." }, 422, id);
   }
