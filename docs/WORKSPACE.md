@@ -24,7 +24,7 @@ Feature flags are independent. Do not assume a flag value from this document; ve
 | Leads | `LEADS_ENABLED` | Core workflow deployed; 18/18 production acceptance steps and owner decision recorded PASS | Normal Lead Flow approved; keep live external GHL configuration and new import/export runs separately controlled |
 | Servicing | `SERVICING_ENABLED` | Workflow built; Client/Service raw-SQL tables present in production | Controlled Servicing acceptance only after a separate owner-authorized window |
 | Commissions | `COMMISSIONS_ENABLED` | Workflow built; PR #100 migration corrected and safety-branch-tested; Commission/Payout tables remain unapplied in production | Production migration apply requires new explicit authorization; acceptance and feature activation remain separate later decisions |
-| Finance | `FINANCE_ENABLED` | Readiness-only boundary | No money movement, payment-provider execution, or payout release |
+| Finance | `FINANCE_ENABLED` | Readiness-only boundary; optional Stripe Connect destination policy staged | No money movement, payment-provider execution, payout release, or Connect account/transfer action |
 
 ## Implemented workflow map
 
