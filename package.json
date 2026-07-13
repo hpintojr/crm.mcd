@@ -31,7 +31,7 @@
     "check:lead-import-concurrency": "tsx scripts/check-lead-import-concurrency.ts",
     "check:lead-import-db-harness": "tsx scripts/check-lead-import-db-harness.ts",
     "check:lead-import-research-provenance": "tsx scripts/check-lead-import-research-provenance.ts",
-    "check:lead-flow-alignment": "tsx scripts/check-lead-flow-alignment.ts && tsx scripts/check-owner-decision-prep-guard.ts && tsx scripts/check-deferred-acceptance-runbook-guard.ts && tsx scripts/check-acceptance-summary-csv-guard.ts && tsx scripts/check-print-runbook-guard.ts && tsx scripts/check-controlled-test-data-history-guard.ts && tsx scripts/check-acceptance-diff-guard.ts && tsx scripts/check-overview-deferred-summary-guard.ts && tsx scripts/check-deployment-verification-guard.ts && tsx scripts/check-deep-links-guard.ts && tsx scripts/check-deep-links-api-guard.ts && tsx scripts/check-deployment-verification-api-guard.ts && tsx scripts/check-controlled-warm-reply-guard.ts && tsx scripts/check-latest-production-commit-guard.ts && tsx scripts/check-appointment-closed-won-guard.ts && tsx scripts/check-commission-payout-migration-guard.ts && tsx scripts/check-project-readiness-guard.ts && tsx scripts/check-servicing-acceptance-preflight-guard.ts && tsx scripts/check-production-smoke-guard.ts && tsx scripts/check-lead-aging-cron-resilience.ts && tsx scripts/check-http-security-headers.ts && tsx scripts/check-auth-telemetry-hygiene.ts && tsx scripts/check-certification-preconditions.ts && tsx scripts/check-manager-claim-boundary.ts && tsx scripts/check-route-trace-hygiene.ts && tsx scripts/check-public-signup-boundary.ts && tsx scripts/check-account-activation-boundary.ts && tsx scripts/check-ghl-webhook-replay-claim.ts && tsx scripts/check-ghl-webhook-request-boundary.ts && tsx scripts/check-portal-write-request-boundary.ts && tsx scripts/check-admin-controlled-test-boundary.ts && tsx scripts/check-legacy-admin-lead-import-retirement.ts && tsx scripts/check-integration-health-control-plane.ts && tsx scripts/check-admin-read-report-boundary.ts && tsx scripts/check-lead-acceptance-report-boundary.ts && tsx scripts/check-protected-csv-download-boundary.ts && tsx scripts/check-admin-lead-import-request-boundary.ts && tsx scripts/check-route-boundary-registry.ts && tsx scripts/check-route-boundary-control-plane.ts && tsx scripts/check-signed-import-domain-error-mapping.ts && tsx scripts/check-shared-route-json-boundary.ts && tsx scripts/check-public-json-body-boundary.ts",
+    "check:lead-flow-alignment": "tsx scripts/run-build-guards.ts",
     "check:controlled-warm-reply-guard": "tsx scripts/check-controlled-warm-reply-guard.ts",
     "check:latest-production-commit-guard": "tsx scripts/check-latest-production-commit-guard.ts",
     "check:appointment-closed-won-guard": "tsx scripts/check-appointment-closed-won-guard.ts",
@@ -61,7 +61,8 @@
     "check:route-boundary-control-plane": "tsx scripts/check-route-boundary-control-plane.ts",
     "check:signed-import-domain-errors": "tsx scripts/check-signed-import-domain-error-mapping.ts",
     "check:shared-route-json-boundary": "tsx scripts/check-shared-route-json-boundary.ts",
-    "check:public-json-body-boundary": "tsx scripts/check-public-json-body-boundary.ts"
+    "check:public-json-body-boundary": "tsx scripts/check-public-json-body-boundary.ts",
+    "check:build-guard-registry": "tsx scripts/check-build-guard-registry.ts"
   },
   "dependencies": {
     "@node-rs/argon2": "^2.0.2",
