@@ -90,6 +90,16 @@ function checkRunner() {
   ]) assert(!content.includes(forbidden), `${path} contains forbidden shell or secret-specific behavior: ${forbidden}`);
 }
 
+function checkEvidenceBlock(path: string, expectedEvidenceBlock: string) {
+  const content = read(path);
+  assert(content.includes(expectedEvidenceBlock),
+    `${path} compatibility evidence must exactly mirror the source manifest.`);
+  assert((content.match(/BUILD_GUARD_REGISTRY_EVIDENCE_START/g) ?? []).length === 1,
+    `${path} must contain exactly one compatibility evidence start marker.`);
+  assert((content.match(/BUILD_GUARD_REGISTRY_EVIDENCE_END/g) ?? []).length === 1,
+    `${path} must contain exactly one compatibility evidence end marker.`);
+}
+
 function checkRepositoryWiring() {
   const packageJson = read("package.json");
   assert(packageJson.includes('"check:lead-flow-alignment": "tsx scripts/run-build-guards.ts"'),
@@ -121,18 +131,14 @@ function checkRepositoryWiring() {
     ...evidenceLines,
     "BUILD_GUARD_REGISTRY_EVIDENCE_END */",
   ].join("\n");
-  assert(deployment.includes(expectedEvidenceBlock),
-    "Deployment verification compatibility evidence must exactly mirror the source manifest.");
-  assert((deployment.match(/BUILD_GUARD_REGISTRY_EVIDENCE_START/g) ?? []).length === 1,
-    "Deployment verification must contain exactly one compatibility evidence block.");
-  assert((deployment.match(/BUILD_GUARD_REGISTRY_EVIDENCE_END/g) ?? []).length === 1,
-    "Deployment verification must close exactly one compatibility evidence block.");
+  checkEvidenceBlock("src/lib/lead-deployment-verification.ts", expectedEvidenceBlock);
+  checkEvidenceBlock("scripts/check-deployment-verification-guard.ts", expectedEvidenceBlock);
 
   const deploymentGuard = read("scripts/check-deployment-verification-guard.ts");
   assert(deploymentGuard.includes('config/build-guard-registry.json'),
     "Deployment verification guard must validate the source manifest.");
   assert(!deploymentGuard.includes('const expectedGuardLines = ['),
-    "Deployment verification guard must not retain a copied pass-line array.");
+    "Deployment verification guard must not retain a copied executable pass-line array.");
 
   for (const [path, expected] of [
     ["docs/BUILD_GUARD_REGISTRY.md", "Single source of truth"],
