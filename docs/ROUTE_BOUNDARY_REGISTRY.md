@@ -25,17 +25,18 @@ Each finding must be classified as:
 
 Every finding requires a non-empty rationale. Duplicate entries, invalid classifications, invalid counts, missing review dates, and drift all fail CI.
 
-The PR #127 baseline contains 11 approved findings across 8 routes and zero frozen findings.
+The current PR #128 baseline contains **6 approved findings across 4 routes** and zero frozen findings. PR #127 initially established 11 findings across 8 routes; five signed-import route findings were removed by centralizing typed domain-error mapping.
 
 ## Current reviewed exceptions
 
-The current findings cover:
+The current findings cover only:
 
 - public account activation raw-body limits and its route-local response helper;
 - public partner signup raw-body limits and minimal privacy-preserving response helper;
 - the secret-authenticated aging cron's conditional `Retry-After` response helper;
-- the intentionally minimal public deployment-status response;
-- named, typed Lead-import domain errors after signed transport verification, while unknown errors remain generic.
+- the intentionally minimal public deployment-status response.
+
+Signed Lead-import typed errors no longer appear as route-level findings. They are mapped centrally by `leadImportDomainErrorResponse`, while unknown failures remain generic.
 
 These classifications are not permanent exemptions. Any code or count change requires a new source review, and a shared-helper migration may remove a finding from the baseline.
 
