@@ -1,5 +1,5 @@
 {
-  "version": "2026-07-13-pr127",
+  "version": "2026-07-13-pr128",
   "reviewedAt": "2026-07-13",
   "findings": [
     {
@@ -22,41 +22,6 @@
       "count": 1,
       "classification": "APPROVED_EXCEPTION",
       "rationale": "The secret-authenticated cron route uses a route-local response helper because it conditionally adds Retry-After and request-ID headers while preserving no-store behavior."
-    },
-    {
-      "path": "src/app/api/lead-imports/[batchId]/preview/route.ts",
-      "primitive": "RAW_ERROR_MESSAGE",
-      "count": 2,
-      "classification": "APPROVED_EXCEPTION",
-      "rationale": "Only named LeadImportBatchNotFoundError and LeadImportBatchStateError messages are returned; unknown failures use a generic response and the signed transport boundary runs first."
-    },
-    {
-      "path": "src/app/api/lead-imports/[batchId]/route.ts",
-      "primitive": "RAW_ERROR_MESSAGE",
-      "count": 1,
-      "classification": "APPROVED_EXCEPTION",
-      "rationale": "Only the named LeadImportBatchNotFoundError message is returned; unknown failures use a generic response and the signed transport boundary runs first."
-    },
-    {
-      "path": "src/app/api/lead-imports/[batchId]/rows/route.ts",
-      "primitive": "RAW_ERROR_MESSAGE",
-      "count": 2,
-      "classification": "APPROVED_EXCEPTION",
-      "rationale": "Only named batch-not-found and invalid-state domain messages are returned; validation issues are structured and unknown failures remain generic."
-    },
-    {
-      "path": "src/app/api/lead-imports/[batchId]/submit/route.ts",
-      "primitive": "RAW_ERROR_MESSAGE",
-      "count": 2,
-      "classification": "APPROVED_EXCEPTION",
-      "rationale": "Only named batch-not-found and invalid-state domain messages are returned; validation issues are structured and unknown failures remain generic."
-    },
-    {
-      "path": "src/app/api/lead-imports/route.ts",
-      "primitive": "RAW_ERROR_MESSAGE",
-      "count": 1,
-      "classification": "APPROVED_EXCEPTION",
-      "rationale": "Only the named immutable replay-conflict message is returned; validation is structured and unknown failures remain generic."
     },
     {
       "path": "src/app/api/signup/route.ts",
