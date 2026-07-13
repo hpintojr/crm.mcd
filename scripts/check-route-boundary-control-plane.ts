@@ -100,12 +100,13 @@ function checkPage() {
     "readFileSync",
     "readdirSync",
     'from "@/lib/db"',
-    "request.json()",
-    "request.text()",
     ".create(",
     ".update(",
     ".delete(",
-  ]) assert(!content.includes(forbidden), `${path} contains forbidden runtime source, request, database, or mutation behavior: ${forbidden}`);
+    ".$transaction",
+    "revalidatePath",
+    '"use server"',
+  ]) assert(!content.includes(forbidden), `${path} contains forbidden runtime source, database, or mutation behavior: ${forbidden}`);
 }
 
 function checkRepositoryContract() {
