@@ -99,7 +99,7 @@ function checkRegistry() {
 function checkRepositoryContract() {
   for (const [path, expected] of [
     ["docs/SHARED_ROUTE_JSON_BOUNDARY.md", "Exact route contracts"],
-    ["docs/SHARED_ROUTE_JSON_BOUNDARY.md", "does not invoke"],
+    ["docs/SHARED_ROUTE_JSON_BOUNDARY.md", "do not invoke"],
     ["docs/ROUTE_BOUNDARY_REGISTRY.md", "2 approved findings"],
     ["docs/INDEX.md", "SHARED_ROUTE_JSON_BOUNDARY.md"],
     ["package.json", '"check:shared-route-json-boundary": "tsx scripts/check-shared-route-json-boundary.ts"'],
