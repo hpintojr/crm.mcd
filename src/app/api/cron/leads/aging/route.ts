@@ -1,9 +1,9 @@
-import { randomUUID } from "node:crypto";
 import { Prisma } from "@prisma/client";
-import { NextRequest, NextResponse } from "next/server";
+import { NextRequest } from "next/server";
 import { db } from "@/lib/db";
 import { features } from "@/lib/features";
 import { runLeadAgingSweep } from "@/lib/lead-aging-jobs";
+import { routeJsonResponse, routeRequestId } from "@/lib/route-json-response";
 import {
   databaseErrorCode,
   databaseErrorName,
@@ -39,18 +39,14 @@ function readLimit(request: NextRequest) {
 }
 
 function requestId(request: NextRequest) {
-  const supplied = request.headers.get("x-request-id")?.trim();
-  return supplied && supplied.length <= 128 && /^[A-Za-z0-9._:-]+$/.test(supplied) ? supplied : randomUUID();
+  return routeRequestId(request);
 }
 
 function json(body: unknown, status = 200, id?: string, retryable = false) {
-  return NextResponse.json(body, {
+  return routeJsonResponse(body, {
     status,
-    headers: {
-      "Cache-Control": "no-store, max-age=0",
-      ...(id ? { "X-Request-Id": id } : {}),
-      ...(retryable ? { "Retry-After": String(RETRY_AFTER_SECONDS) } : {}),
-    },
+    requestId: id,
+    retryAfterSeconds: retryable ? RETRY_AFTER_SECONDS : undefined,
   });
 }
 
