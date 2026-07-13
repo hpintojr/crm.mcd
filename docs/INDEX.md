@@ -14,8 +14,9 @@
 - [Lead Aging Cron](./LEAD_AGING_CRON.md) — secured schedule, bounded database readiness retries, failure contracts, and unchanged aging rules.
 - [HTTP Security Headers](./HTTP_SECURITY_HEADERS.md) — global anti-framing, MIME, referrer, browser-permission, and opener policies.
 - [Route Tracing](./ROUTE_TRACING.md) — opt-in server diagnostic progress logs and safe metadata boundaries.
-- [Route Boundary Registry](./ROUTE_BOUNDARY_REGISTRY.md) — source-derived direct-parser/response/error inventory, reviewed exceptions, fail-closed drift checks, and protected control plane.
+- [Route Boundary Registry](./ROUTE_BOUNDARY_REGISTRY.md) — source-derived direct-parser/response/error inventory, zero-finding baseline, fail-closed drift checks, and protected control plane.
 - [Shared Route JSON Boundary](./SHARED_ROUTE_JSON_BOUNDARY.md) — centralized no-store/request-ID/noindex/retry response metadata for activation, signup, cron, and public status while preserving exact route contracts.
+- [Public JSON Body Boundary](./PUBLIC_JSON_BODY_BOUNDARY.md) — shared declared-size, raw-read, actual UTF-8 size, and JSON-parse ordering for public activation and signup.
 - [Public Partner Signup](./PUBLIC_SIGNUP.md) — request limits, durable reservation, idempotent duplicate handling, GHL ordering, and minimal public responses.
 - [Account Activation](./ACCOUNT_ACTIVATION.md) — token privacy, bounded requests, authenticator preparation, and atomic single-use completion.
 - [GHL Webhook Replay](./GHL_WEBHOOK_REPLAY.md) — unique event ledger, duplicate handling, and atomic failed-event retry claims.
