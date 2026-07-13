@@ -164,10 +164,10 @@ async function assertLockoutRecoveryState() {
     "Recovery audit role metadata must remain OWNER.");
 }
 
-async function assertOffboardedState() {
+async function assertDisabledState() {
   const disabledUser = await syntheticUser(DISABLED_EMAIL);
   assert(disabledUser.role === "OWNER" && disabledUser.status === "DISABLED",
-    "Offboarded identity must remain DISABLED.");
+    "Disabled identity must remain DISABLED.");
   assert(disabledUser.failedLogins === 0 && disabledUser.lockedUntil === null && disabledUser.lastLoginAt === null,
     "Correct-password denial for an disabled account must not issue a session or alter lock state.");
 
@@ -219,7 +219,7 @@ async function main() {
   await assertMfaState();
   await assertLockoutState();
   await assertLockoutRecoveryState();
-  await assertOffboardedState();
+  await assertDisabledState();
   await assertSuspendedSessionState();
   await assertRoleChangeState();
 
