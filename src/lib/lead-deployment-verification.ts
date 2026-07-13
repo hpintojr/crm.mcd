@@ -1,6 +1,6 @@
 import "server-only";
 
-export const LEAD_DEPLOYMENT_VERIFICATION_VERSION = "2026-07-13-pr127";
+export const LEAD_DEPLOYMENT_VERIFICATION_VERSION = "2026-07-13-pr128";
 
 export const EXPECTED_LEAD_FLOW_GUARD_LINES = [
   "Lead import response boundary checks passed.",
@@ -43,6 +43,7 @@ export const EXPECTED_LEAD_FLOW_GUARD_LINES = [
   "Admin Lead import request boundary guard passed.",
   "Route boundary registry guard passed.",
   "Route boundary control plane guard passed.",
+  "Signed Lead import domain error mapping guard passed.",
 ];
 
 export type LeadDeploymentVerificationRow = {
