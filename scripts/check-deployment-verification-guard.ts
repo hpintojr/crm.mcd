@@ -44,6 +44,7 @@ Route boundary control plane guard passed.
 Signed Lead import domain error mapping guard passed.
 Shared route JSON response boundary guard passed.
 Public JSON body boundary guard passed.
+Authenticated E2E foundation guard passed.
 Build guard control plane guard passed.
 Build guard registry guard passed.
 BUILD_GUARD_REGISTRY_EVIDENCE_END */
@@ -84,6 +85,9 @@ if (expectedGuardLines.length !== registry.expectedDeploymentVisibleCount) {
 }
 if (!expectedGuardLines.includes("Deployment verification guard passed.")) {
   throw new Error("Deployment verification guard must remain registered.");
+}
+if (!expectedGuardLines.includes("Authenticated E2E foundation guard passed.")) {
+  throw new Error("Authenticated E2E safety validation must remain deployment-visible.");
 }
 if (!expectedGuardLines.includes("Build guard control plane guard passed.")) {
   throw new Error("Build guard control-plane validation must remain deployment-visible.");

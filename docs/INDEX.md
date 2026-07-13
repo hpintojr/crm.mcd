@@ -11,6 +11,7 @@
 - [Lead MVP Rollout Status](./LEAD_MVP_ROLLOUT_STATUS.md)
 - [Lead MVP Acceptance Test](./LEAD_MVP_ACCEPTANCE_TEST.md)
 - [Production Smoke](./PRODUCTION_SMOKE.md) — automated deployed-SHA, status, login, security-header, and protected-boundary verification.
+- [Authenticated E2E](./AUTHENTICATED_E2E.md) — localhost-only browser session, Owner/Agent role-boundary, logout, disposable PostgreSQL, and synthetic-user safety contract.
 - [Build Guard Registry](./BUILD_GUARD_REGISTRY.md) — single ordered manifest for Lead-flow guard execution, deployment-verification pass lines, and the protected Admin control plane.
 - [Lead Aging Cron](./LEAD_AGING_CRON.md) — secured schedule, bounded database readiness retries, failure contracts, and unchanged aging rules.
 - [HTTP Security Headers](./HTTP_SECURITY_HEADERS.md) — global anti-framing, MIME, referrer, browser-permission, and opener policies.

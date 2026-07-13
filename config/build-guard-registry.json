@@ -1,8 +1,8 @@
 {
-  "version": "2026-07-13-pr132",
+  "version": "2026-07-13-pr134",
   "reviewedAt": "2026-07-13",
-  "expectedDeploymentVisibleCount": 45,
-  "expectedLeadFlowCount": 44,
+  "expectedDeploymentVisibleCount": 46,
+  "expectedLeadFlowCount": 45,
   "guards": [
     {"id":"lead-import-response-contract","script":"scripts/check-lead-import-response-contract.ts","passLine":"Lead import response boundary checks passed.","runInLeadFlow":false,"exposeInDeploymentVerification":true},
     {"id":"lead-flow-alignment","script":"scripts/check-lead-flow-alignment.ts","passLine":"Lead flow alignment guard passed.","runInLeadFlow":true,"exposeInDeploymentVerification":true},
@@ -47,6 +47,7 @@
     {"id":"signed-import-domain-errors","script":"scripts/check-signed-import-domain-error-mapping.ts","passLine":"Signed Lead import domain error mapping guard passed.","runInLeadFlow":true,"exposeInDeploymentVerification":true},
     {"id":"shared-route-json-boundary","script":"scripts/check-shared-route-json-boundary.ts","passLine":"Shared route JSON response boundary guard passed.","runInLeadFlow":true,"exposeInDeploymentVerification":true},
     {"id":"public-json-body-boundary","script":"scripts/check-public-json-body-boundary.ts","passLine":"Public JSON body boundary guard passed.","runInLeadFlow":true,"exposeInDeploymentVerification":true},
+    {"id":"authenticated-e2e-foundation","script":"scripts/check-authenticated-e2e-foundation.ts","passLine":"Authenticated E2E foundation guard passed.","runInLeadFlow":true,"exposeInDeploymentVerification":true},
     {"id":"build-guard-control-plane","script":"scripts/check-build-guard-control-plane.ts","passLine":"Build guard control plane guard passed.","runInLeadFlow":true,"exposeInDeploymentVerification":true},
     {"id":"build-guard-registry","script":"scripts/check-build-guard-registry.ts","passLine":"Build guard registry guard passed.","runInLeadFlow":true,"exposeInDeploymentVerification":true}
   ]
