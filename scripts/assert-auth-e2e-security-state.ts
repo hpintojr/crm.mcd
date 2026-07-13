@@ -7,7 +7,7 @@ const AGENT_EMAIL = "e2e.agent@mercurycalldesk.test";
 const MFA_EMAIL = "e2e.mfa@mercurycalldesk.test";
 const LOCKOUT_EMAIL = "e2e.lockout@mercurycalldesk.test";
 const LOCKOUT_RECOVERY_EMAIL = "e2e.lockout-recovery@mercurycalldesk.test";
-const OFFBOARDED_EMAIL = "e2e.offboarded@mercurycalldesk.test";
+const DISABLED_EMAIL = "e2e.disabled@mercurycalldesk.test";
 const SUSPENDED_SESSION_EMAIL = "e2e.suspended-session@mercurycalldesk.test";
 const ROLE_CHANGE_EMAIL = "e2e.role-change@mercurycalldesk.test";
 
@@ -165,15 +165,15 @@ async function assertLockoutRecoveryState() {
 }
 
 async function assertOffboardedState() {
-  const offboardedUser = await syntheticUser(OFFBOARDED_EMAIL);
-  assert(offboardedUser.role === "OWNER" && offboardedUser.status === "OFFBOARDED",
-    "Offboarded identity must remain OFFBOARDED.");
-  assert(offboardedUser.failedLogins === 0 && offboardedUser.lockedUntil === null && offboardedUser.lastLoginAt === null,
-    "Correct-password denial for an offboarded account must not issue a session or alter lock state.");
+  const disabledUser = await syntheticUser(DISABLED_EMAIL);
+  assert(disabledUser.role === "OWNER" && disabledUser.status === "DISABLED",
+    "Offboarded identity must remain DISABLED.");
+  assert(disabledUser.failedLogins === 0 && disabledUser.lockedUntil === null && disabledUser.lastLoginAt === null,
+    "Correct-password denial for an disabled account must not issue a session or alter lock state.");
 
-  const audit = await userAudit(offboardedUser.id);
+  const audit = await userAudit(disabledUser.id);
   assert(audit.length === 0,
-    "Correct-password denial for an offboarded account must not create authentication audit events.");
+    "Correct-password denial for an disabled account must not create authentication audit events.");
 }
 
 async function assertSuspendedSessionState() {
