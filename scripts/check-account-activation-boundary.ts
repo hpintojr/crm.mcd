@@ -61,9 +61,10 @@ function checkRoute() {
     "MAX_ACTIVATION_BODY_BYTES",
     "activationRequestSchema.safeParse",
     "new TextEncoder().encode(rawText).byteLength",
-    '"Cache-Control": "no-store, max-age=0"',
-    '"X-Request-Id": id',
-    '"X-Robots-Tag": "noindex, nofollow, noarchive"',
+    "routeRequestId(req)",
+    "routeJsonResponse",
+    "requestId: id",
+    "noindex: true",
     "tx.activationToken.updateMany",
     "usedAt: null",
     "expiresAt: { gt: now }",
@@ -89,7 +90,7 @@ function checkRoute() {
   assert((route.match(/tx\.activationToken\.updateMany/g) ?? []).length === 1, "Activation token must be consumed exactly once.");
   assert((route.match(/await tx\.user\.update/g) ?? []).length === 1, "Activation must update the User exactly once.");
   assert((route.match(/db\.\$transaction\(async \(tx\)/g) ?? []).length === 1, "Activation completion must use one interactive transaction.");
-  assert((route.match(/NextResponse\.json/g) ?? []).length === 1, "Activation responses must use one centralized JSON helper.");
+  assert(!route.includes("NextResponse"), "Activation route must not construct responses directly.");
 
   for (const forbidden of [
     "db.$transaction([",
@@ -100,6 +101,17 @@ function checkRoute() {
   ]) {
     assertExcludes(path, forbidden);
   }
+}
+
+function checkSharedResponseBoundary() {
+  const path = "src/lib/route-json-response.ts";
+  for (const expected of [
+    '"Cache-Control": "no-store, max-age=0"',
+    'headers["X-Request-Id"] = requestId',
+    'headers["X-Robots-Tag"] = "noindex, nofollow, noarchive"',
+    "MAX_REQUEST_ID_LENGTH = 128",
+    "REQUEST_ID_PATTERN",
+  ]) assertContains(path, expected);
 }
 
 function checkPageAndClient() {
@@ -150,6 +162,7 @@ function checkRepository() {
 function main() {
   checkSchema();
   checkRoute();
+  checkSharedResponseBoundary();
   checkPageAndClient();
   checkRepository();
   console.log("Account activation boundary guard passed.");
