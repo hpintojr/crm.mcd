@@ -2,6 +2,7 @@ import { expect, test, type Page } from "@playwright/test";
 import { authenticator } from "otplib";
 import {
   closeDisposableAuthState,
+  expireSyntheticLockout,
   setSyntheticUserRole,
   setSyntheticUserStatus,
 } from "./disposable-auth-state";
@@ -10,6 +11,8 @@ const OWNER_EMAIL = "e2e.owner@mercurycalldesk.test";
 const AGENT_EMAIL = "e2e.agent@mercurycalldesk.test";
 const MFA_EMAIL = "e2e.mfa@mercurycalldesk.test";
 const LOCKOUT_EMAIL = "e2e.lockout@mercurycalldesk.test";
+const LOCKOUT_RECOVERY_EMAIL = "e2e.lockout-recovery@mercurycalldesk.test";
+const DISABLED_EMAIL = "e2e.disabled@mercurycalldesk.test";
 const SUSPENDED_SESSION_EMAIL = "e2e.suspended-session@mercurycalldesk.test";
 const ROLE_CHANGE_EMAIL = "e2e.role-change@mercurycalldesk.test";
 const UNKNOWN_EMAIL = "e2e.unknown@mercurycalldesk.test";
@@ -18,6 +21,8 @@ const ownerPassword = process.env.E2E_OWNER_PASSWORD;
 const agentPassword = process.env.E2E_AGENT_PASSWORD;
 const mfaPassword = process.env.E2E_MFA_PASSWORD;
 const lockoutPassword = process.env.E2E_LOCKOUT_PASSWORD;
+const lockoutRecoveryPassword = process.env.E2E_LOCKOUT_RECOVERY_PASSWORD;
+const disabledPassword = process.env.E2E_DISABLED_PASSWORD;
 const suspendedSessionPassword = process.env.E2E_SUSPENDED_SESSION_PASSWORD;
 const roleChangePassword = process.env.E2E_ROLE_CHANGE_PASSWORD;
 const mfaTotpSecret = process.env.E2E_MFA_TOTP_SECRET;
@@ -27,6 +32,8 @@ if (
   !agentPassword ||
   !mfaPassword ||
   !lockoutPassword ||
+  !lockoutRecoveryPassword ||
+  !disabledPassword ||
   !suspendedSessionPassword ||
   !roleChangePassword ||
   !mfaTotpSecret
@@ -131,6 +138,19 @@ test("suspending the underlying User revokes an already-issued Owner session", a
   await expect(page.getByRole("heading", { name: "Sign in" })).toBeVisible();
 });
 
+test("suspended and disabled accounts reject correct passwords without creating sessions", async ({ page }) => {
+  for (const account of [
+    { email: SUSPENDED_SESSION_EMAIL, password: suspendedSessionPassword },
+    { email: DISABLED_EMAIL, password: disabledPassword },
+  ]) {
+    await page.goto("/login");
+    await fillCredentials(page, account.email, account.password);
+    await submitCredentials(page);
+    await expect(loginAlert(page)).toHaveText("We could not sign you in with those credentials.");
+    await expect(page).toHaveURL(/\/login(?:\?|$)/);
+  }
+});
+
 test("changing the underlying role immediately removes Admin access and enables the Agent portal", async ({ page }) => {
   await signIn(page, ROLE_CHANGE_EMAIL, roleChangePassword, /\/admin(?:\?|$)/);
   await expect(page.getByRole("heading", { name: "Applicant review" })).toBeVisible();
@@ -176,4 +196,24 @@ test("five failed passwords lock the synthetic account and block the correct pas
     "This account is temporarily locked after too many sign-in attempts.",
   );
   await expect(page).toHaveURL(/\/login(?:\?|$)/);
+});
+
+test("an expired synthetic lockout accepts the correct password and resets the account", async ({ page }) => {
+  await page.goto("/login");
+  await fillCredentials(page, LOCKOUT_RECOVERY_EMAIL, "Wrong-E2E-Password-2026!");
+
+  for (let attempt = 0; attempt < 5; attempt += 1) {
+    await submitCredentials(page);
+    await expect(loginAlert(page)).toHaveText("We could not sign you in with those credentials.");
+  }
+
+  await page.getByLabel("Password").fill(lockoutRecoveryPassword);
+  await submitCredentials(page);
+  await expect(loginAlert(page)).toHaveText(
+    "This account is temporarily locked after too many sign-in attempts.",
+  );
+
+  await expireSyntheticLockout();
+  await signIn(page, LOCKOUT_RECOVERY_EMAIL, lockoutRecoveryPassword, /\/admin(?:\?|$)/);
+  await expect(page.getByRole("heading", { name: "Applicant review" })).toBeVisible();
 });
