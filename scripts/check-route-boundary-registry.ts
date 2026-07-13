@@ -3,6 +3,7 @@ import { join, relative, sep } from "node:path";
 
 const ROUTE_ROOT = "src/app";
 const REGISTRY_PATH = "config/route-boundary-registry.json";
+const APPROVED_CLASSIFICATIONS = new Set(["APPROVED_EXCEPTION", "FROZEN_EXISTING"]);
 
 type Primitive =
   | "REQUEST_JSON"
@@ -72,9 +73,31 @@ function sortFindings<T extends Finding>(findings: T[]) {
   return [...findings].sort((left, right) => findingKey(left).localeCompare(findingKey(right)));
 }
 
+function validateRegistry(registry: Registry) {
+  if (!registry.version.trim()) throw new Error("Route boundary registry version is required.");
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(registry.reviewedAt)) {
+    throw new Error("Route boundary registry reviewedAt must use YYYY-MM-DD.");
+  }
+
+  const keys = new Set<string>();
+  for (const finding of registry.findings) {
+    const key = findingKey(finding);
+    if (keys.has(key)) throw new Error(`Duplicate route boundary registry finding: ${key}.`);
+    keys.add(key);
+    if (!APPROVED_CLASSIFICATIONS.has(finding.classification)) {
+      throw new Error(`Invalid classification for ${key}: ${finding.classification}.`);
+    }
+    if (!finding.rationale.trim()) throw new Error(`Missing rationale for ${key}.`);
+    if (!Number.isSafeInteger(finding.count) || finding.count < 1) {
+      throw new Error(`Invalid count for ${key}.`);
+    }
+  }
+}
+
 function main() {
   const actual = sortFindings(walkRoutes(ROUTE_ROOT).flatMap(scanRoute));
   const registry = JSON.parse(readFileSync(REGISTRY_PATH, "utf8")) as Registry;
+  validateRegistry(registry);
   const expected = sortFindings(registry.findings);
 
   const actualKeys = new Set(actual.map(findingKey));
@@ -82,21 +105,17 @@ function main() {
   const added = actual.filter((finding) => !expectedKeys.has(findingKey(finding)));
   const removed = expected.filter((finding) => !actualKeys.has(findingKey(finding)));
 
-  console.log("ROUTE_BOUNDARY_FINDINGS_START");
-  console.log(JSON.stringify(actual, null, 2));
-  console.log("ROUTE_BOUNDARY_FINDINGS_END");
-
   if (added.length > 0 || removed.length > 0) {
+    console.error("ROUTE_BOUNDARY_FINDINGS_START");
+    console.error(JSON.stringify(actual, null, 2));
+    console.error("ROUTE_BOUNDARY_FINDINGS_END");
     console.error("Route boundary registry drift detected.");
     console.error(JSON.stringify({ added, removed }, null, 2));
     process.exit(1);
   }
 
-  for (const finding of registry.findings) {
-    if (!finding.rationale.trim()) throw new Error(`Missing rationale for ${findingKey(finding)}.`);
-  }
-
-  console.log(`Route boundary registry guard passed with ${actual.length} reviewed findings.`);
+  console.log("Route boundary registry guard passed.");
+  console.log(`Reviewed route boundary findings: ${actual.length}.`);
 }
 
 main();
