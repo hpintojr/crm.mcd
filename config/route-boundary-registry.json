@@ -1,5 +1,83 @@
 {
-  "version": "2026-07-13-discovery",
+  "version": "2026-07-13-pr127",
   "reviewedAt": "2026-07-13",
-  "findings": []
+  "findings": [
+    {
+      "path": "src/app/api/activate/route.ts",
+      "primitive": "DIRECT_NEXT_JSON",
+      "count": 1,
+      "classification": "APPROVED_EXCEPTION",
+      "rationale": "Public activation uses a route-local response helper with no-store, request-ID, and noindex headers; this route predates authenticated session helpers and has a dedicated activation boundary guard."
+    },
+    {
+      "path": "src/app/api/activate/route.ts",
+      "primitive": "REQUEST_TEXT",
+      "count": 1,
+      "classification": "APPROVED_EXCEPTION",
+      "rationale": "Public activation must read the raw body to enforce declared and actual UTF-8 byte limits before JSON parsing; its dedicated guard verifies this exact ordering."
+    },
+    {
+      "path": "src/app/api/cron/leads/aging/route.ts",
+      "primitive": "DIRECT_NEXT_JSON",
+      "count": 1,
+      "classification": "APPROVED_EXCEPTION",
+      "rationale": "The secret-authenticated cron route uses a route-local response helper because it conditionally adds Retry-After and request-ID headers while preserving no-store behavior."
+    },
+    {
+      "path": "src/app/api/lead-imports/[batchId]/preview/route.ts",
+      "primitive": "RAW_ERROR_MESSAGE",
+      "count": 2,
+      "classification": "APPROVED_EXCEPTION",
+      "rationale": "Only named LeadImportBatchNotFoundError and LeadImportBatchStateError messages are returned; unknown failures use a generic response and the signed transport boundary runs first."
+    },
+    {
+      "path": "src/app/api/lead-imports/[batchId]/route.ts",
+      "primitive": "RAW_ERROR_MESSAGE",
+      "count": 1,
+      "classification": "APPROVED_EXCEPTION",
+      "rationale": "Only the named LeadImportBatchNotFoundError message is returned; unknown failures use a generic response and the signed transport boundary runs first."
+    },
+    {
+      "path": "src/app/api/lead-imports/[batchId]/rows/route.ts",
+      "primitive": "RAW_ERROR_MESSAGE",
+      "count": 2,
+      "classification": "APPROVED_EXCEPTION",
+      "rationale": "Only named batch-not-found and invalid-state domain messages are returned; validation issues are structured and unknown failures remain generic."
+    },
+    {
+      "path": "src/app/api/lead-imports/[batchId]/submit/route.ts",
+      "primitive": "RAW_ERROR_MESSAGE",
+      "count": 2,
+      "classification": "APPROVED_EXCEPTION",
+      "rationale": "Only named batch-not-found and invalid-state domain messages are returned; validation issues are structured and unknown failures remain generic."
+    },
+    {
+      "path": "src/app/api/lead-imports/route.ts",
+      "primitive": "RAW_ERROR_MESSAGE",
+      "count": 1,
+      "classification": "APPROVED_EXCEPTION",
+      "rationale": "Only the named immutable replay-conflict message is returned; validation is structured and unknown failures remain generic."
+    },
+    {
+      "path": "src/app/api/signup/route.ts",
+      "primitive": "DIRECT_NEXT_JSON",
+      "count": 1,
+      "classification": "APPROVED_EXCEPTION",
+      "rationale": "Public signup uses a route-local response helper with no-store, request-ID, and noindex headers plus a deliberately minimal accepted response that avoids account-existence disclosure."
+    },
+    {
+      "path": "src/app/api/signup/route.ts",
+      "primitive": "REQUEST_TEXT",
+      "count": 1,
+      "classification": "APPROVED_EXCEPTION",
+      "rationale": "Public signup reads the raw body to enforce declared and actual UTF-8 byte limits before JSON parsing; its dedicated public-signup guard verifies this ordering."
+    },
+    {
+      "path": "src/app/api/status/route.ts",
+      "primitive": "DIRECT_NEXT_JSON",
+      "count": 1,
+      "classification": "APPROVED_EXCEPTION",
+      "rationale": "The intentionally minimal public status endpoint has no authentication context and returns only service/environment/git metadata with no-store and noindex headers."
+    }
+  ]
 }
