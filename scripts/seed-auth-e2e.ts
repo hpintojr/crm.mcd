@@ -6,10 +6,15 @@ const db = new PrismaClient();
 const LOCAL_DATABASE_HOSTS = new Set(["127.0.0.1", "localhost", "::1"]);
 const OWNER_EMAIL = "e2e.owner@mercurycalldesk.test";
 const AGENT_EMAIL = "e2e.agent@mercurycalldesk.test";
+const MFA_EMAIL = "e2e.mfa@mercurycalldesk.test";
+const LOCKOUT_EMAIL = "e2e.lockout@mercurycalldesk.test";
 
 const inputSchema = z.object({
   ownerPassword: z.string().min(12),
   agentPassword: z.string().min(12),
+  mfaPassword: z.string().min(12),
+  lockoutPassword: z.string().min(12),
+  mfaTotpSecret: z.string().regex(/^[A-Z2-7]{16,}$/),
 });
 
 const passwordOptions = {
@@ -35,6 +40,35 @@ function assertDisposableDatabase(name: "DATABASE_URL" | "DIRECT_URL") {
   }
 }
 
+async function upsertSyntheticUser(input: {
+  email: string;
+  passwordHash: string;
+  role: "OWNER" | "AGENT";
+  mfaEnabled: boolean;
+  totpSecret?: string | null;
+}) {
+  return db.user.upsert({
+    where: { email: input.email },
+    create: {
+      email: input.email,
+      passwordHash: input.passwordHash,
+      role: input.role,
+      status: "ACTIVE",
+      mfaEnabled: input.mfaEnabled,
+      totpSecret: input.totpSecret ?? null,
+    },
+    update: {
+      passwordHash: input.passwordHash,
+      role: input.role,
+      status: "ACTIVE",
+      mfaEnabled: input.mfaEnabled,
+      totpSecret: input.totpSecret ?? null,
+      failedLogins: 0,
+      lockedUntil: null,
+    },
+  });
+}
+
 async function main() {
   if (process.env.E2E_ALLOW_DISPOSABLE_DB !== "true") {
     throw new Error("E2E_ALLOW_DISPOSABLE_DB=true is required before synthetic auth data may be seeded.");
@@ -48,55 +82,48 @@ async function main() {
   const parsed = inputSchema.safeParse({
     ownerPassword: process.env.E2E_OWNER_PASSWORD,
     agentPassword: process.env.E2E_AGENT_PASSWORD,
+    mfaPassword: process.env.E2E_MFA_PASSWORD,
+    lockoutPassword: process.env.E2E_LOCKOUT_PASSWORD,
+    mfaTotpSecret: process.env.E2E_MFA_TOTP_SECRET,
   });
   if (!parsed.success) {
-    throw new Error("Synthetic E2E passwords must be present and at least 12 characters.");
+    throw new Error("Synthetic E2E passwords and the Base32 MFA secret must satisfy the test-only contract.");
   }
 
-  const [ownerPasswordHash, agentPasswordHash] = await Promise.all([
+  const [ownerPasswordHash, agentPasswordHash, mfaPasswordHash, lockoutPasswordHash] = await Promise.all([
     hash(parsed.data.ownerPassword, passwordOptions),
     hash(parsed.data.agentPassword, passwordOptions),
+    hash(parsed.data.mfaPassword, passwordOptions),
+    hash(parsed.data.lockoutPassword, passwordOptions),
   ]);
 
-  const owner = await db.user.upsert({
-    where: { email: OWNER_EMAIL },
-    create: {
+  const [owner, agentUser, mfaUser, lockoutUser] = await Promise.all([
+    upsertSyntheticUser({
       email: OWNER_EMAIL,
       passwordHash: ownerPasswordHash,
       role: "OWNER",
-      status: "ACTIVE",
       mfaEnabled: false,
-    },
-    update: {
-      passwordHash: ownerPasswordHash,
-      role: "OWNER",
-      status: "ACTIVE",
-      mfaEnabled: false,
-      totpSecret: null,
-      failedLogins: 0,
-      lockedUntil: null,
-    },
-  });
-
-  const agentUser = await db.user.upsert({
-    where: { email: AGENT_EMAIL },
-    create: {
+    }),
+    upsertSyntheticUser({
       email: AGENT_EMAIL,
       passwordHash: agentPasswordHash,
       role: "AGENT",
-      status: "ACTIVE",
       mfaEnabled: false,
-    },
-    update: {
-      passwordHash: agentPasswordHash,
+    }),
+    upsertSyntheticUser({
+      email: MFA_EMAIL,
+      passwordHash: mfaPasswordHash,
+      role: "OWNER",
+      mfaEnabled: true,
+      totpSecret: parsed.data.mfaTotpSecret,
+    }),
+    upsertSyntheticUser({
+      email: LOCKOUT_EMAIL,
+      passwordHash: lockoutPasswordHash,
       role: "AGENT",
-      status: "ACTIVE",
       mfaEnabled: false,
-      totpSecret: null,
-      failedLogins: 0,
-      lockedUntil: null,
-    },
-  });
+    }),
+  ]);
 
   const agent = await db.agent.upsert({
     where: { personalEmail: AGENT_EMAIL },
@@ -124,6 +151,8 @@ async function main() {
     ownerId: owner.id,
     agentUserId: agentUser.id,
     agentId: agent.id,
+    mfaUserId: mfaUser.id,
+    lockoutUserId: lockoutUser.id,
   });
 }
 
