@@ -18,11 +18,11 @@ That duplication made safe guard or documentation refactors vulnerable to stale 
 
 The current registry contains:
 
-- 45 deployment-visible pass lines;
-- 44 scripts executed by the Lead-flow runner;
+- 46 deployment-visible pass lines;
+- 45 scripts executed by the Lead-flow runner;
 - one build-prelude guard, `check-lead-import-response-contract.ts`, which remains executed earlier by the top-level build and is included in deployment verification.
 
-The final Lead-flow guard is the registry's own self-check.
+The final Lead-flow guard is the registry's own self-check. The authenticated E2E foundation source guard runs immediately before the Build Guard control-plane and registry checks.
 
 The manifest declares `expectedDeploymentVisibleCount` and `expectedLeadFlowCount`. Validation compares those declarations with the actual filtered entries, so adding or removing a guard requires one reviewed manifest update rather than synchronized count literals across executable scripts.
 
@@ -69,6 +69,12 @@ Neither compatibility representation controls execution or runtime output. The J
 
 The Admin-only Build Guard Registry control plane is available at `/admin/build-guards` with JSON at `/api/admin/build-guards`. Both surfaces derive static metadata from the checked-in manifest, expose role-only viewer metadata, and do not execute guards, read source contents, query databases, inspect secrets, access customer data, invoke application endpoints, or perform mutations.
 
+## Authenticated E2E safety guard
+
+`scripts/check-authenticated-e2e-foundation.ts` protects the disposable browser harness before it can run in CI. It requires localhost-only application and database targets, explicit disposable-database opt-in, disabled feature gates, synthetic test identities, no repository secrets, and no production, preview, Neon, GHL, migration, or money-movement target.
+
+The source guard runs during the ordinary Application Build. The browser workflow itself runs separately with PostgreSQL 17 and Chromium.
+
 ## Deployment verification
 
 `src/lib/build-guard-registry.ts` derives:
@@ -77,7 +83,7 @@ The Admin-only Build Guard Registry control plane is available at `/admin/build-
 - `LEAD_FLOW_BUILD_GUARDS` for the sequential runner;
 - `DEPLOYMENT_GUARD_PASS_LINES` for the protected deployment-verification page and API.
 
-Deployment verification no longer contains a copied version literal or executable pass-line array. Its guard reads the source manifest, verifies the manifest-declared visible count, and protects the required control-plane and self-check entries.
+Deployment verification no longer contains a copied version literal or executable pass-line array. Its guard reads the source manifest, verifies the manifest-declared visible count, and protects the required E2E, control-plane, and self-check entries.
 
 ## Unchanged behavior
 
@@ -87,4 +93,4 @@ The top-level build still runs the existing Lead-import prelude checks before th
 
 ## Safety boundary
 
-The manifest, runner, and checks operate on repository source and local child processes only. This work does not run application endpoints, authenticate into the application, query or mutate production data, invoke imports, exports, controlled tests, cron, signup, activation, or webhooks, call GHL, change feature flags or settings, apply migrations, activate Servicing or Commissions, store financial-account data, release payouts, or move money.
+The manifest, runner, and checks operate on repository source and local child processes only. This work does not run production application endpoints, authenticate into production, query or mutate production data, invoke production imports, exports, controlled tests, cron, signup, activation, or webhooks, call GHL, change feature flags or settings, apply migrations, activate Servicing or Commissions, store financial-account data, release payouts, or move money.
