@@ -2,7 +2,7 @@
 
 ## Purpose
 
-The authenticated E2E workflow verifies real browser session and credential-security behavior without using production accounts, production databases, preview databases, Vercel credentials, or external integrations.
+The authenticated E2E workflow verifies real browser session, credential-security, persisted account-state, and audit behavior without using production accounts, production databases, preview databases, Vercel credentials, or external integrations.
 
 ## Covered browser boundaries
 
@@ -32,6 +32,7 @@ The workflow:
 - installs Chromium;
 - starts the Next.js development server on `127.0.0.1:3000`;
 - runs the Playwright suite with one worker and no retries because lockout is intentionally stateful;
+- runs read-only persisted security assertions against the same disposable database;
 - retains traces, screenshots, videos, and the HTML report only when the job fails.
 
 No repository or account secret is required. All credentials and the TOTP seed are fixed synthetic values scoped to the disposable job.
@@ -67,6 +68,24 @@ The browser uses `otplib` to generate a current six-digit TOTP from the syntheti
 
 The production authentication source defines five failed logins and a 15-minute lockout. The test uses a dedicated synthetic identity so the account-enumeration and normal login scenarios cannot consume its failure counter. It submits five wrong passwords, then confirms that the correct password receives the temporary-lock public message instead of creating a session.
 
+## Persisted security evidence
+
+After Playwright completes, `scripts/assert-auth-e2e-security-state.ts` performs read-only assertions against the disposable database.
+
+It verifies:
+
+- the Owner's initial wrong-password counter was reset by the later successful login;
+- the Owner has ordered `LOGIN_FAILED`, `LOGIN_SUCCESS`, and `LOGOUT` evidence;
+- the normal Agent remains unlocked and has `LOGIN_SUCCESS` evidence;
+- MFA-required and invalid-code attempts created `LOGIN_FAILED` rows with reasons `MFA_REQUIRED` and `MFA_INVALID`;
+- the valid MFA login created `LOGIN_SUCCESS` without incrementing password lock counters;
+- the lockout identity persists exactly five failed logins and a future `lockedUntil` timestamp;
+- the lockout audit counters are exactly `1, 2, 3, 4, 5`;
+- exactly one `ACCOUNT_LOCKED` row exists and its ISO timestamp matches `User.lockedUntil`;
+- the locked identity has no successful-login timestamp or `LOGIN_SUCCESS` audit row.
+
+The assertion script selects only the four synthetic `User` rows and their `LOGIN_FAILED`, `ACCOUNT_LOCKED`, `LOGIN_SUCCESS`, and `LOGOUT` audit rows. It contains no create, update, upsert, delete, transaction, raw-SQL, business-table, or external-call operation and repeats the same localhost/PostgreSQL/`e2e`/Vercel safety sentinels.
+
 ## Browser target safety
 
 `playwright.auth.config.ts` accepts only `127.0.0.1`, `localhost`, or `::1` and rejects any Vercel environment. The tests contain relative application paths only and cannot target production or preview hosts.
@@ -92,6 +111,7 @@ npx prisma db push
 npm run seed:e2e-auth
 npx playwright install chromium
 npm run test:e2e:auth
+npm run assert:e2e-auth-security
 ```
 
 Never point these commands at Neon, Vercel, a shared development database, or production.
