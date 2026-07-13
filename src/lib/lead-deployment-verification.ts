@@ -1,6 +1,9 @@
 import "server-only";
 
-import { DEPLOYMENT_GUARD_PASS_LINES } from "@/lib/build-guard-registry";
+import {
+  BUILD_GUARD_REGISTRY_VERSION,
+  DEPLOYMENT_GUARD_PASS_LINES,
+} from "@/lib/build-guard-registry";
 
 /* BUILD_GUARD_REGISTRY_EVIDENCE_START
 Lead import response boundary checks passed.
@@ -50,7 +53,7 @@ Build guard control plane guard passed.
 Build guard registry guard passed.
 BUILD_GUARD_REGISTRY_EVIDENCE_END */
 
-export const LEAD_DEPLOYMENT_VERIFICATION_VERSION = "2026-07-13-pr132";
+export const LEAD_DEPLOYMENT_VERIFICATION_VERSION = BUILD_GUARD_REGISTRY_VERSION;
 export const EXPECTED_LEAD_FLOW_GUARD_LINES = DEPLOYMENT_GUARD_PASS_LINES;
 
 export type LeadDeploymentVerificationRow = {
