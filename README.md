@@ -9,6 +9,7 @@ Secure Admin and Agent portals for Mercury Call Desk. GoHighLevel (GHL) is a bac
 - [Lead MVP Rollout Status](./docs/LEAD_MVP_ROLLOUT_STATUS.md) — Lead, GHL relay, and servicing handoff status.
 - [Lead MVP Acceptance Test](./docs/LEAD_MVP_ACCEPTANCE_TEST.md) — owner-controlled test sequence.
 - [Production Smoke](./docs/PRODUCTION_SMOKE.md) — deployed-SHA, status, login, HTTP security header, and protected-boundary verification.
+- [Build Guard Registry](./docs/BUILD_GUARD_REGISTRY.md) — ordered fail-closed guard manifest and deployment-verification pass-line source.
 - [Lead Aging Cron](./docs/LEAD_AGING_CRON.md) — secured schedule, transient database readiness behavior, and unchanged aging rules.
 - [HTTP Security Headers](./docs/HTTP_SECURITY_HEADERS.md) — anti-framing, MIME, referrer, browser-permission, and opener policy baseline.
 - [Documentation Index](./docs/INDEX.md)
@@ -19,6 +20,7 @@ Secure Admin and Agent portals for Mercury Call Desk. GoHighLevel (GHL) is a bac
 - `main` is the production source branch.
 - Vercel deploys changes from `main` to `https://crm.mercurycalldesk.com`.
 - The read-only Production Smoke workflow waits for the exact merged SHA, validates `/api/status`, and verifies login, HTTP security headers, and protected-route boundaries after each `main` push and every six hours.
+- Lead-flow build guards run sequentially from `config/build-guard-registry.json`; every registered guard must exit successfully and emit its registered pass line.
 - Global HTTP security headers are emitted from `next.config.mjs`; Vercel supplies HSTS and Production Smoke verifies the combined deployed baseline.
 - Production environment values live in Vercel only; never commit credentials.
 - Neon schema changes use a disposable safety branch before an explicit production apply.
