@@ -1,9 +1,9 @@
-import { NextResponse } from "next/server";
+import { routeJsonResponse } from "@/lib/route-json-response";
 
 export const dynamic = "force-dynamic";
 
 export async function GET() {
-  return NextResponse.json(
+  return routeJsonResponse(
     {
       ok: true,
       service: "crm-mcd",
@@ -13,11 +13,6 @@ export async function GET() {
         commitSha: process.env.VERCEL_GIT_COMMIT_SHA ?? null,
       },
     },
-    {
-      headers: {
-        "Cache-Control": "no-store, max-age=0",
-        "X-Robots-Tag": "noindex, nofollow, noarchive",
-      },
-    },
+    { noindex: true },
   );
 }
