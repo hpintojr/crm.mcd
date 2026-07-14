@@ -4,6 +4,7 @@ This file is the rolling index for implementation and rollout activity. Detailed
 
 | Date | Summary | Entry |
 |---|---|---|
+| 2026-07-14 | Fail-closed approval patch merged and deployed; onboarding packet coordinator (Option B) staged behind a disabled flag with synthetic-data proof | [2026-07-14](./daily-logs/2026-07-14.md) |
 | 2026-07-08 | Lead data correction and Cold Lead activity-first workspace alignment | [2026-07-08](./daily-logs/2026-07-08.md) |
 | 2026-07-02 | Lead, GHL relay, agent onboarding, servicing, audit/readiness, and documentation consolidation pass | [2026-07-02](./daily-logs/2026-07-02.md) |
 
