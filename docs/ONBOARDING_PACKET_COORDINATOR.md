@@ -1,11 +1,28 @@
-# Onboarding Packet Coordinator (Option B) — Staged, Not Live
+# Onboarding Packet Coordinator (Option B) — ABANDONED (2026-07-14)
+
+**Decision:** After confirming live that GHL's public Documents & Contracts API does not
+return a recipient-facing signing URL (see "Critical finding" below), the owner decided
+to abandon this coordinator and keep GHL's original/native behavior: four separate
+documents, four separate emails, exactly as the existing "Agent Onboarding Documents" GHL
+workflow already sends them. This PR was never merged and none of this code was ever
+wired into a live flow or enabled (`ONBOARDING_PACKET_COORDINATOR_ENABLED` stayed
+`false` the entire time), so no production behavior changes as a result of this decision
+— the native four-email flow was already what applicants receive today, and continues to
+be what applicants receive going forward.
+
+This file, and the code in this branch, are kept only as a record of the investigation
+for future reference in case a combined-email approach is revisited later (e.g. if
+HighLevel documents or exposes a recipient-link field, or clarifies what's behind the
+"Share via link" UI action — see "Critical finding" below).
+
+---
 
 **Status:** Composition and fail-closed dispatch logic proven with synthetic data. Real
 GHL template ids confirmed live. One real test document was sent end to end through the
 GHL web UI to a disposable test contact and confirmed delivered. **Confirmed live
 (2026-07-14) that the public Send Template / List Documents API responses contain no
 recipient-facing signing URL at all — see "Critical finding" below.** This is a bigger
-gap than a field-name mismatch and blocks this design until resolved. Not wired into any
+gap than a field-name mismatch and is why this design was abandoned. Not wired into any
 live flow. Off by default.
 
 ## Operating decision
@@ -23,14 +40,15 @@ behavior of one email per document (four emails). Two designs were evaluated:
    API, collects each one's secure signing link from that same response, and — only if
    all four succeed — sends one CRM-composed email with all four links.
 
-Option 2 was selected because it preserves the already-built, already-gated four-document
-audit trail (`onboardingDocument` table, per-template completion webhooks, the
-`fourGatesComplete` check before agent provisioning) without any redesign. **This
-selection is now in question — see "Critical finding" below — because step 2's core
-premise (read the signing link from the Send Template response) has been disproven
-against the real API.**
+Option 2 was selected on paper because it preserves the already-built, already-gated
+four-document audit trail (`onboardingDocument` table, per-template completion webhooks,
+the `fourGatesComplete` check before agent provisioning) without any redesign. **It was
+ultimately abandoned** — see "Critical finding" below — because step 2's core premise
+(read the signing link from the Send Template response) was disproven against the real
+API, and the owner chose to keep the native four-email behavior (**neither Option 1 nor
+Option 2**) rather than continue chasing an unconfirmed alternate link source.
 
-## What's implemented
+## What's implemented (kept for reference only — not going live)
 
 - `src/lib/ghl-documents.ts` — calls GHL's Documents & Contracts **Send Template** public
   API (one call per document, no polling). As of 2026-07-14 this correctly targets the
@@ -65,19 +83,16 @@ and confirmed the following against the real account, not documentation:
   | `W9_PAYOUT` | MCD - W-9 / Payout Intake | `6a458b776a7ea4c86263dc3d` |
   | `ACKNOWLEDGMENT` | MCD - New Hire Acknowledgment | `6a458b37c17177da8ec5c7d0` |
 
-  These are ready to paste into `GHL_TEMPLATE_ID_SALES_AGREEMENT`,
-  `GHL_TEMPLATE_ID_NDA_IP`, `GHL_TEMPLATE_ID_W9_PAYOUT`, and
-  `GHL_TEMPLATE_ID_ACKNOWLEDGMENT` in Vercel when this is ready to enable.
 - Sent one real "MCD - New Hire Acknowledgment" document through the GHL web UI to a
   disposable test contact (`Agent 1 Test`, `agent1@bennyandpenny.com`, tagged
   `agent-signup` — not a real applicant, not the owner's own account). The document moved
   to "Sent" / "Waiting for others" in the GHL dashboard, confirming the template, contact
   model, and delivery path all work end to end.
-- **Ran a real, direct, server-side call to the public API** (a one-off script from a
-  machine holding `GHL_PRIVATE_TOKEN`, not through the web UI) and captured the raw JSON
-  response of both `POST /proposals/templates/send` and `GET /proposals/document`. This
-  confirmed the real request/response contract, documented below, and produced the
-  critical finding in the next section.
+- Ran a real, direct, server-side call to the public API (a one-off script from a machine
+  holding `GHL_PRIVATE_TOKEN`, not through the web UI) and captured the raw JSON response
+  of both `POST /proposals/templates/send` and `GET /proposals/document`. This confirmed
+  the real request/response contract, documented below, and produced the critical finding
+  in the next section.
 
 ### Real Send Template API contract (confirmed, 2026-07-14)
 
@@ -87,113 +102,59 @@ and confirmed the following against the real account, not documentation:
 - Required body fields: `templateId`, `userId` (a real GHL user id — omitting it returns
   `422`), `sendDocument`, `locationId`, `contactId`.
 - Required header: `Version: v3` for this endpoint family specifically — **not**
-  `2021-07-28` (the app's general default `GHL_API_VERSION`). Using the wrong version
-  value returns `401 Invalid JWT`-style auth failures in practice.
-- Response shape:
-  ```json
-  {
-    "success": true,
-    "links": [{
-      "_id": "...", "referenceId": "...", "documentId": "...",
-      "recipientId": "<the contactId you sent>", "entityName": "...",
-      "recipientCategory": "...", "documentRevision": 0, "deleted": false,
-      "createdBy": "...", "createdAt": "...", "updatedAt": "...", "__v": 0
-    }],
-    "traceId": "..."
-  }
-  ```
-- **There is no URL field anywhere in this response.** `recipientId` is just the contact
-  id you sent, not a link identifier.
+  `2021-07-28` (the app's general default `GHL_API_VERSION`).
+- Response contains only internal ids (`links[]._id`, `links[].referenceId`,
+  `links[].documentId`, `links[].recipientId` — which is just the contact id sent, not a
+  link id). **No URL field anywhere.**
 
 ### Real List Documents API contract (confirmed, 2026-07-14)
 
 - Endpoint: `GET https://services.leadconnectorhq.com/proposals/document?locationId=...`,
-  `Version: v3`.
-- Returns each document's full record, including its own `links` array in the same shape
-  as above, plus `status`, `recipients`, `fillableFields`, `paymentStatus`, etc.
-- **Also no URL field anywhere in the document object.** The `whiteLabelBaseUrl` field
-  documented by HighLevel's public API reference was present in the response shape but
-  came back empty/absent for this account in this call — even if populated, no field in
-  either response combines it with a document- or recipient-specific path to form a full
-  link.
+  `Version: v3`. Returns each document's full record. **Also no URL field anywhere.**
 
 ## Critical finding (2026-07-14): the public API does not expose a signing URL
 
 Three real, live API responses — one Send Template response and one List Documents
 response containing the full document object — all confirm the same thing: **GHL's
 public Documents & Contracts v3 API never returns a recipient-facing signing/public URL.
-It only returns internal ids** (`documentId`, link `_id`, `referenceId`). This directly
-contradicts this coordinator's core design assumption (read a signing link straight out
-of the API response). It is not a naming issue — `extractString()`'s search list
-(`url`, `link`, `documentUrl`, `signUrl`, `publicUrl`, etc.) cannot succeed against this
-response no matter what paths are tried, because none of those fields exist.
+It only returns internal ids.** This directly contradicts this coordinator's core design
+assumption. It is not a naming issue in `extractString()` — the field simply isn't in the
+response, at any path.
 
-**A real public link does exist, but only via a separate, unconfirmed path.** The GHL web
-UI has two distinct actions on a sent document: "Send Document" (native email, what the
-public Send Template API triggers) and a separate "**Share via link**" action. Clicking
-"Share via link" opened a modal showing a genuine per-recipient URL:
+A real public link does exist for documents in this account — the GHL web UI's separate
+"**Share via link**" action (distinct from "Send Document") produced:
 
 ```
 https://system.futureassistant.ai/documents/v1/47d46256-c6a7-43f0-903a-188b01dce41a?locale=en-US
 ```
 
-This confirms recipient-facing links do exist for documents in this account. However:
+But that link's UUID does not match `documentId`, `links[]._id`, `referenceId`, or
+`recipientId` from the real API responses for that same document — it is not derivable
+from this module's Send Template call. Repeated attempts to capture the network request
+behind "Share via link" (browser network-log reader, `window.fetch` monkey-patch) did not
+succeed — calls were either not retained or auto-redacted as URL/cookie data by the
+browser tooling's own safety filtering, which was not circumvented. It remains
+unconfirmed whether "Share via link" is a documented public endpoint, an undocumented
+one, or a session-cookie-only internal endpoint unreachable with a `GHL_PRIVATE_TOKEN`.
 
-- The UUID in that URL (`47d46256-c6a7-43f0-903a-188b01dce41a`) was checked against every
-  id in the real Send Template and List Documents responses captured for that same
-  document (`documentId`, link `_id`, `referenceId`, `recipientId`) — **none of them
-  match.** This link's identifier is not derivable from any field the public API returns.
-- Repeated attempts to capture the network request that "Share via link" fires (both via
-  the browser extension's network-request reader and a `window.fetch` monkey-patch) did
-  not succeed — the calls were either not retained by the capture buffer or were
-  auto-redacted as URL/cookie data by the browser tooling's own safety filtering, which
-  was not circumvented. So it remains **unconfirmed** whether "Share via link" calls a
-  documented public endpoint, an undocumented one, or a session-cookie-authenticated
-  internal endpoint that isn't reachable at all with a `GHL_PRIVATE_TOKEN` from
-  server-side code.
+**Options considered, and the decision:**
 
-**Net effect:** as designed, this coordinator cannot currently be completed. Fixing
-`extractString()`'s field paths will not help — the field simply isn't in the response it
-reads. Before this design can move forward, one of the following needs to happen:
-
-1. Find a documented public API call (Send Template or otherwise) that does return a
-   recipient link — not confirmed to exist based on everything captured so far.
-2. Identify and confirm the actual endpoint behind "Share via link," and confirm it's
-   callable server-side with the account's existing API credentials (not a browser-session
-   cookie). This needs either a cleaner network capture (e.g. a proxy/HAR capture done
-   directly in a real browser session, not through this remote-controlled one) or asking
-   HighLevel support directly.
-3. Accept GHL's native per-document email (four separate emails) instead of one combined
-   email, and drop this coordinator — i.e. revisit whether Option 1 (native one-packet
-   template) or simply not combining the emails is preferable to a coordinator that
-   cannot get a real signing link.
-
-## Gates before `ONBOARDING_PACKET_COORDINATOR_ENABLED=true` in production
-
-1. **Resolve the signing-URL gap above.** This supersedes the old "verify field names"
-   gate — the real blocker is that no confirmed, server-callable API path returns a
-   recipient link at all yet, not that the field names in `extractString()` were wrong.
-2. Disable or unpublish the native **Agent Onboarding Documents** GHL workflow's four
-   Send Document actions (or repoint its trigger away from `agent-approved`), or
-   applicants will receive both the native four documents/emails and this one composed
-   email for the same four documents.
-3. Set the four `GHL_TEMPLATE_ID_*` environment variables to the real template ids listed
-   above, plus the new `GHL_SENDING_USER_ID` environment variable (the real GHL user id
-   documents are sent as — confirmed live as `QFI1UtOuwrYNKUfBYdIy` for Hamilton Pinto in
-   the MCD account, but this should be set explicitly rather than hardcoded).
-4. Wire `dispatchOnboardingPacket()` into the admin approval action (or a separate
-   explicit "send onboarding packet" admin action) — nothing calls it yet.
-5. Run one owner-authorized end-to-end synthetic approval before using it on a real
-   applicant.
+1. Find a documented public API call that returns a recipient link — not confirmed to
+   exist based on everything captured.
+2. Identify and confirm the endpoint behind "Share via link" and whether it's
+   server-callable — would need a HAR capture from a real logged-in browser session or
+   asking HighLevel support directly. Not pursued further.
+3. **Chosen:** keep GHL's native per-document email (four separate emails) and drop this
+   coordinator entirely. Nothing needs to change in GHL to do this — the native "Agent
+   Onboarding Documents" workflow's four Send Document actions were never disabled or
+   modified during this investigation, so this is already the live behavior.
 
 ## Non-negotiable controls preserved
 
 - The admin approval gate (PR #140) is unchanged and untouched by this work.
 - No business terms, pricing, commissions, or unrelated GHL locations were touched.
 - No live document was sent to a real applicant and no live email was composed or
-  delivered to a real applicant. All live documents sent during this investigation
-  (through the web UI and through the one-off verification script) went to the same
-  disposable, clearly-labeled test contact (`Agent 1 Test`) that already existed in the
-  MCD account for this purpose, with the owner's explicit action-time authorization. No
-  bearer token was extracted from the browser session; browser-tooling redactions of
-  token-like/cookie-like data were respected rather than worked around.
+  delivered to a real applicant. All live documents sent during this investigation went
+  to the same disposable, clearly-labeled test contact (`Agent 1 Test`) that already
+  existed in the MCD account for this purpose, with the owner's explicit action-time
+  authorization. No bearer token was extracted from the browser session.
