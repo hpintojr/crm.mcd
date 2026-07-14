@@ -3,15 +3,31 @@
 // Used only by the onboarding packet coordinator (Option B). Not called anywhere yet —
 // see docs/ONBOARDING_PACKET_COORDINATOR.md before wiring this into a live flow.
 //
-// NOT YET LIVE-VERIFIED: the response field names read below for the document id and the
-// recipient-facing secure signing link are this module's best-effort mapping from
+// LIVE-VERIFIED (2026-07-14): logged into the MCD GHL sub-account directly and confirmed
+// the four templates below are real, published, and reachable at this module's
+// `services.leadconnectorhq.com/proposals/...` path family. Sent one real document
+// ("MCD - New Hire Acknowledgment") through the GHL web UI to a disposable test contact
+// and confirmed it moved to "Sent" — the template, contact, and delivery model this
+// module assumes are all correct.
+//
+// STILL UNVERIFIED: the exact JSON field names read below for the document id and the
+// recipient-facing secure signing link. Sending through the web UI does not necessarily
+// exercise the same response shape as this module's direct API call, and a live capture
+// of that specific API response was not achievable from this session (see
+// docs/ONBOARDING_PACKET_COORDINATOR.md for why). This remains a best-effort mapping from
 // HighLevel's published Documents & Contracts "Send Template" contract
 // (https://marketplace.gohighlevel.com/docs/ghl/proposals/documents-and-contracts-api/index.html).
-// This repo has no live credential to test that response shape from this environment.
 // Before ONBOARDING_PACKET_COORDINATOR_ENABLED is ever set to true in production, run one
-// real Send Template call against a disposable/synthetic contact and confirm the field
-// names in extractString() below actually match. If they don't, this function fails
-// closed (returns ok:false) rather than sending a broken or empty link.
+// real Send Template call (e.g. via curl/script from an environment holding
+// GHL_PRIVATE_TOKEN) against a disposable/synthetic contact and confirm the field names in
+// extractString() below actually match. If they don't, this function fails closed
+// (returns ok:false) rather than sending a broken or empty link.
+//
+// Real template ids confirmed live in the MCD account (see docs/ONBOARDING_PACKET_COORDINATOR.md):
+//   SALES_AGREEMENT  -> 6a4586d766f3bacccf2a9ff7
+//   NDA_IP           -> 6a458a0466f3ba56a42af191
+//   W9_PAYOUT        -> 6a458b776a7ea4c86263dc3d
+//   ACKNOWLEDGMENT   -> 6a458b37c17177da8ec5c7d0
 
 import "server-only";
 import { env, ghlConfigured } from "@/lib/env";
