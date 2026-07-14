@@ -32,6 +32,14 @@ export const env = {
     webhookSecret: get("GHL_WEBHOOK_SECRET"),
     allowedLocationIds: csv("GHL_ALLOWED_LOCATION_IDS"),
     miniCrmLeadIdFieldId: get("GHL_MINI_CRM_LEAD_ID_FIELD_ID"),
+    // Onboarding packet coordinator (Option B) template ids. Unused unless
+    // ONBOARDING_PACKET_COORDINATOR_ENABLED is true. See docs/ONBOARDING_PACKET_COORDINATOR.md.
+    templateIds: {
+      salesAgreement: get("GHL_TEMPLATE_ID_SALES_AGREEMENT"),
+      ndaIp: get("GHL_TEMPLATE_ID_NDA_IP"),
+      w9Payout: get("GHL_TEMPLATE_ID_W9_PAYOUT"),
+      acknowledgment: get("GHL_TEMPLATE_ID_ACKNOWLEDGMENT"),
+    },
   },
 
   emailAccessToken: get("EMAIL_ACCESS_TOKEN"),
@@ -50,6 +58,10 @@ export const env = {
 export const ghlConfigured = Boolean(env.ghl.token && env.ghl.salesHqLocationId);
 export const ghlMiniCrmLeadIdFieldConfigured = Boolean(env.ghl.miniCrmLeadIdFieldId);
 export const smtpConfigured = Boolean(env.smtp.user && env.smtp.password);
+
+// Option B onboarding packet coordinator. Default OFF. Do not set true in production
+// until the gates in docs/ONBOARDING_PACKET_COORDINATOR.md are satisfied.
+export const onboardingPacketCoordinatorEnabled = get("ONBOARDING_PACKET_COORDINATOR_ENABLED", "false") === "true";
 
 export function allowedGhlLocations(): Set<string> {
   return new Set([env.ghl.salesHqLocationId, ...env.ghl.allowedLocationIds].filter(Boolean));
