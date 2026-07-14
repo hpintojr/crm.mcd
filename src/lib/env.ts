@@ -40,6 +40,11 @@ export const env = {
       w9Payout: get("GHL_TEMPLATE_ID_W9_PAYOUT"),
       acknowledgment: get("GHL_TEMPLATE_ID_ACKNOWLEDGMENT"),
     },
+    // Onboarding packet coordinator (Option B) only. The real Send Template API requires a
+    // userId in the request body (confirmed live 2026-07-14 — omitting it returns 422).
+    // This is the GHL user id documents are sent "as" (e.g. QFI1UtOuwrYNKUfBYdIy for
+    // Hamilton Pinto in the MCD account) — set explicitly per environment, not hardcoded.
+    sendingUserId: get("GHL_SENDING_USER_ID"),
   },
 
   emailAccessToken: get("EMAIL_ACCESS_TOKEN"),
