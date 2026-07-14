@@ -40,6 +40,9 @@ function onboardingComplete(documents: readonly DocumentState[]) {
 }
 
 function noticeState(notice?: string, recipient?: string) {
+  if (notice === "onboarding-started" && recipient) return { success: true, message: `Onboarding was handed off to GoHighLevel for ${recipient}.` };
+  if (notice === "onboarding-unavailable") return { success: false, message: "Onboarding was not started because this applicant is not linked to a GoHighLevel contact. Review Integration attention below." };
+  if (notice === "onboarding-trigger-failed") return { success: false, message: "GoHighLevel did not accept the onboarding trigger. The applicant remains unapproved; review Integration attention below and retry after resolving it." };
   if (notice === "activation-sent" && recipient) return { success: true, message: `Activation email sent to ${recipient}. The previous unused link was invalidated.` };
   if (notice === "activation-failed") return { success: false, message: "Activation email was not sent. Review Integration attention below." };
   if (notice === "activation-unavailable") return { success: false, message: "Activation email is available only for a provisioned invited account with completed onboarding." };
@@ -112,16 +115,31 @@ export default async function AdminPage({ searchParams }: AdminPageProps) {
         return;
       }
       if (!agent.confirmedCallAt) throw new Error("Confirm the applicant by call before approving.");
-      const tagResult = agent.ghlContactId ? await addContactTag(agent.ghlContactId, "agent-approved") : null;
+      if (!agent.ghlContactId) {
+        await db.$transaction([
+          db.auditLog.create({ data: { actorUserId: reviewer.id, actorRole: reviewer.role, actionType: "APPLICANT_APPROVAL_GHL_HANDOFF_FAILED", entityType: "Agent", entityId: agent.id, ipAddress, metadata: { reason: "missing_ghl_contact" } } }),
+          db.integrationError.create({ data: { source: "ghl.applicant-approval", refId: agent.id, message: "Applicant approval could not start onboarding because no linked GoHighLevel contact exists.", payload: { agentId: agent.id, tag: "agent-approved" } } }),
+        ]);
+        revalidatePath("/admin");
+        redirect("/admin?notice=onboarding-unavailable");
+      }
+
+      const tagResult = await addContactTag(agent.ghlContactId, "agent-approved");
+      if (!tagResult.ok) {
+        await db.$transaction([
+          db.auditLog.create({ data: { actorUserId: reviewer.id, actorRole: reviewer.role, actionType: "APPLICANT_APPROVAL_GHL_HANDOFF_FAILED", entityType: "Agent", entityId: agent.id, ipAddress, metadata: { reason: "tag_failed" } } }),
+          db.integrationError.create({ data: { source: "ghl.applicant-approval", refId: agent.ghlContactId, message: tagResult.error, payload: { agentId: agent.id, tag: "agent-approved" } } }),
+        ]);
+        revalidatePath("/admin");
+        redirect("/admin?notice=onboarding-trigger-failed");
+      }
+
       await db.$transaction(async (tx) => {
         await tx.agent.update({ where: { id: agent.id }, data: { status: "APPROVED", approvedById: reviewer.id, approvedAt: new Date(), reviewNote: null } });
-        await tx.auditLog.create({ data: { actorUserId: reviewer.id, actorRole: reviewer.role, actionType: "APPLICANT_APPROVED", entityType: "Agent", entityId: agent.id, ipAddress, metadata: { ghlContactLinked: Boolean(agent.ghlContactId), ghlTagStub: tagResult?.ok ? Boolean(tagResult.stub) : false } } });
-        if (tagResult && !tagResult.ok) {
-          await tx.integrationError.create({ data: { source: "ghl.applicant-approval", refId: agent.ghlContactId, message: tagResult.error, payload: { agentId: agent.id, tag: "agent-approved" } } });
-        }
+        await tx.auditLog.create({ data: { actorUserId: reviewer.id, actorRole: reviewer.role, actionType: "APPLICANT_APPROVED", entityType: "Agent", entityId: agent.id, ipAddress, metadata: { ghlContactLinked: true, ghlTagStub: Boolean(tagResult.stub) } } });
       });
       revalidatePath("/admin");
-      return;
+      redirect(`/admin?notice=onboarding-started&recipient=${encodeURIComponent(agent.personalEmail)}`);
     }
 
     if (parsed.data.action === "resend_activation") {
