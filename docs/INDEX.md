@@ -23,6 +23,7 @@
 - [Account Activation](./ACCOUNT_ACTIVATION.md) — token privacy, bounded requests, authenticator preparation, and atomic single-use completion.
 - [GHL Webhook Replay](./GHL_WEBHOOK_REPLAY.md) — unique event ledger, duplicate handling, and atomic failed-event retry claims.
 - [GHL Webhook Request Boundary](./GHL_WEBHOOK_REQUEST_BOUNDARY.md) — secret-first authentication, bounded JSON intake, response metadata, and sanitized failures.
+- [Onboarding Packet Coordinator](./ONBOARDING_PACKET_COORDINATOR.md) — Option B one-email/four-secure-link design, staged and proven with synthetic data, disabled by default pending live GHL API field verification.
 - [Portal Write Request Boundary](./PORTAL_WRITE_REQUEST_BOUNDARY.md) — authenticated body ordering, 16 KiB limits, hardened responses, and expected-error handling.
 - [Admin Controlled Test Request Boundary](./ADMIN_CONTROLLED_TEST_REQUEST_BOUNDARY.md) — Admin-first parsing, bounded requests, controlled-test error mapping, and unchanged preview/apply semantics.
 - [Legacy Admin Lead Import Retirement](./LEGACY_ADMIN_LEAD_IMPORT_RETIREMENT.md) — retired duplicate writer, HTTP 410 contract, and supported guarded preview/commit paths.
