@@ -21,6 +21,7 @@
     "test:lead-import-research-db": "node --conditions=react-server --import tsx scripts/test-lead-import-research-fields-db.ts",
     "smoke:production": "tsx scripts/run-production-smoke.ts",
     "check:commission-policy": "tsx scripts/check-commission-policy.ts",
+    "check:agent-activation-policy": "tsx scripts/check-agent-activation-policy.ts",
     "check:next-dynamic-route-collisions": "tsx scripts/check-next-dynamic-route-collisions.ts",
     "check:recovery-route-guard": "tsx scripts/check-recovery-route-guard.ts",
     "check:login-completion": "tsx scripts/check-login-completion.ts",
