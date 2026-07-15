@@ -37,6 +37,15 @@ export const env = {
   emailAccessToken: get("EMAIL_ACCESS_TOKEN"),
   payoutProvider: get("PAYOUT_PROVIDER", "stripe"),
 
+  // Readiness metadata only. No module may use these values to initiate
+  // payment collection, transfers, payouts, or Connected Account actions.
+  stripe: {
+    secretKey: get("STRIPE_SECRET_KEY"),
+    webhookSecret: get("STRIPE_WEBHOOK_SECRET"),
+    connectPayoutMode: get("STRIPE_CONNECT_PAYOUT_MODE", "MANUAL_EXTERNAL"),
+    connectTransfersEnabled: get("STRIPE_CONNECT_TRANSFERS_ENABLED", "false") === "true",
+  },
+
   smtp: {
     host: get("EMAIL_SMTP_HOST", "smtp.ionos.com"),
     port: Number(get("EMAIL_SMTP_PORT", "587")) || 587,
@@ -49,6 +58,7 @@ export const env = {
 
 export const ghlConfigured = Boolean(env.ghl.token && env.ghl.salesHqLocationId);
 export const ghlMiniCrmLeadIdFieldConfigured = Boolean(env.ghl.miniCrmLeadIdFieldId);
+export const stripeWebhookConfigured = Boolean(env.stripe.secretKey && env.stripe.webhookSecret);
 export const smtpConfigured = Boolean(env.smtp.user && env.smtp.password);
 
 export function allowedGhlLocations(): Set<string> {
