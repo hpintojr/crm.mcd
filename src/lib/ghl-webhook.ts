@@ -5,6 +5,7 @@ import { Prisma } from "@prisma/client";
 import { NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { allowedGhlLocations, env } from "@/lib/env";
+import { captureIntegrationError } from "@/lib/error-tracking";
 import { databaseErrorCode, databaseErrorName } from "@/lib/transient-database-retry";
 
 export const MAX_GHL_WEBHOOK_BODY_BYTES = 1_048_576;
@@ -181,6 +182,7 @@ export async function logIntegrationError(input: {
   refId?: string | null;
   payload?: Prisma.InputJsonValue;
 }) {
+  captureIntegrationError(input.source, input.message, input.refId ?? null);
   return db.integrationError.create({
     data: {
       source: input.source,

@@ -37,6 +37,12 @@ export const env = {
   emailAccessToken: get("EMAIL_ACCESS_TOKEN"),
   payoutProvider: get("PAYOUT_PROVIDER", "stripe"),
 
+  // Server-only structured error tracking. Disabled unless a DSN is provided.
+  sentry: {
+    dsn: get("SENTRY_DSN"),
+    environment: get("SENTRY_ENVIRONMENT", "production"),
+  },
+
   // Readiness metadata only. No module may use these values to initiate
   // payment collection, transfers, payouts, or Connected Account actions.
   stripe: {
@@ -60,6 +66,7 @@ export const ghlConfigured = Boolean(env.ghl.token && env.ghl.salesHqLocationId)
 export const ghlMiniCrmLeadIdFieldConfigured = Boolean(env.ghl.miniCrmLeadIdFieldId);
 export const stripeWebhookConfigured = Boolean(env.stripe.secretKey && env.stripe.webhookSecret);
 export const smtpConfigured = Boolean(env.smtp.user && env.smtp.password);
+export const sentryConfigured = Boolean(env.sentry.dsn);
 
 export function allowedGhlLocations(): Set<string> {
   return new Set([env.ghl.salesHqLocationId, ...env.ghl.allowedLocationIds].filter(Boolean));

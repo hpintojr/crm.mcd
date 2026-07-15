@@ -119,7 +119,7 @@ The matching JSON endpoint is `/api/admin/project-readiness`. Both are read-only
 - Commission acceptance remains gated until after an approved production schema apply.
 - Finance/payment provider execution, bank data, payment collection, and payouts are not implemented.
 - External email/SMS campaign sending is not part of the inbound-reply relay.
-- Preview and production environment isolation, least-privilege database role/RLS, structured error tracking, authenticated login smoke automation, and scaling/backups policy remain platform-hardening work.
+- Preview and production environment isolation, least-privilege database role/RLS, authenticated login smoke automation, and scaling/backups policy remain platform-hardening work.
 
 ## Current next sequence
 
