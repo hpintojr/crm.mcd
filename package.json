@@ -22,6 +22,7 @@
     "smoke:production": "tsx scripts/run-production-smoke.ts",
     "check:commission-policy": "tsx scripts/check-commission-policy.ts",
     "check:agent-activation-policy": "tsx scripts/check-agent-activation-policy.ts",
+    "check:error-tracking-boundary": "tsx scripts/check-error-tracking-boundary.ts",
     "check:next-dynamic-route-collisions": "tsx scripts/check-next-dynamic-route-collisions.ts",
     "check:recovery-route-guard": "tsx scripts/check-recovery-route-guard.ts",
     "check:login-completion": "tsx scripts/check-login-completion.ts",
@@ -74,6 +75,7 @@
   "dependencies": {
     "@node-rs/argon2": "^2.0.2",
     "@prisma/client": "^6.1.0",
+    "@sentry/nextjs": "^10.65.0",
     "next": "^15.1.0",
     "next-auth": "beta",
     "nodemailer": "^7.0.13",

@@ -98,6 +98,7 @@ Secure Admin and Agent portals for Mercury Call Desk. GoHighLevel (GHL) is a bac
 - Readiness Board summarizes operational queues and acceptance evidence.
 - Audit History surfaces rollout evidence separately from the general event stream.
 - Integration Monitor includes active errors, resolution notes, setup references, and a short-term resolved-history view.
+- Server-only structured error tracking (Sentry) is gated on `SENTRY_DSN`: uncaught server request errors are captured, and integration failures forward source/message/reference id only — webhook bodies and stored JSON never leave the database.
 
 ## Module status
 
@@ -142,4 +143,4 @@ Secure Admin and Agent portals for Mercury Call Desk. GoHighLevel (GHL) is a bac
 4. Open a Client Servicing acceptance window only after explicit owner authorization; do not change `SERVICING_ENABLED` as part of ordinary code work.
 5. Apply the PR #100 Commission migration only after a new explicit Hamilton authorization and a fresh production-apply plan; migration apply and feature activation must remain separate decisions.
 6. Run controlled Commission acceptance only after production schema approval; keep Finance locked and readiness-only.
-7. Continue platform hardening separately: preview/production secret isolation, least-privilege database access/RLS decision, structured error tracking, authenticated-session E2E smoke coverage, and scaling/backups review.
+7. Continue platform hardening separately: preview/production secret isolation, least-privilege database access/RLS decision, authenticated-session E2E smoke coverage, and scaling/backups review.
