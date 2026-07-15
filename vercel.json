@@ -4,6 +4,10 @@
     {
       "path": "/api/cron/leads/aging",
       "schedule": "0 12 * * *"
+    },
+    {
+      "path": "/api/cron/servicing/cadence",
+      "schedule": "30 12 * * *"
     }
   ]
 }

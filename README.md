@@ -75,6 +75,7 @@ Secure Admin and Agent portals for Mercury Call Desk. GoHighLevel (GHL) is a bac
 ### Client Servicing
 
 - Closed Won onboarding queue, client account creation guard, launch confirmations, account detail, service-case queue, response/resolution controls, and owner/House transfer controls.
+- Scheduled cadence check-ins: a daily cron opens `SERVICE_CADENCE` Service Cases per package cadence rules (Starter biweekly→monthly, Growth weekly→biweekly, Pro/Enterprise weekly); inert while `SERVICING_ENABLED=false`, deduped on open cases, audited as SYSTEM actions.
 - Linked Client Accounts can only be created from active, verified, non-suppressed `CLOSED_WON` Leads; duplicate links are rejected under a transaction lock.
 - Healthy, current-paying accounts are not reassigned merely because they are quiet.
 - Service cases are trigger-based: client request, support issue, payment problem, renewal event, escalation, or documented review.

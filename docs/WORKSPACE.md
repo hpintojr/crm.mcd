@@ -75,6 +75,7 @@ All three use verified webhook handling, approved location validation, idempoten
    - originating agent and GHL contact are sourced from the live Lead record
 4. Admin confirms launch as Current on Payments or Payment Issue.
 5. Triggered service work creates a Service Case; response and resolution are documented.
+   - A daily cadence cron (12:30 UTC) also opens `SERVICE_CADENCE` cases when a package's check-in period elapses without a health confirmation; it is inert while `SERVICING_ENABLED=false` and never duplicates an open cadence case.
 6. Healthy, current-paying accounts remain with their owner when quiet. House transfer requires a reason and audit record.
 
 The Client/Service schema is already present in production. Normal Servicing use remains feature-gated and requires a separately authorized controlled acceptance window.
