@@ -244,6 +244,12 @@ model Agent {
   approvedAt       DateTime?
   reviewNote       String?
   provisionedAt    DateTime?
+  w9VerifiedAt          DateTime?
+  w9VerifiedById        String?
+  profileCompletedAt    DateTime?
+  profileCompletedById  String?
+  trainingCompletedAt   DateTime?
+  trainingCompletedById String?
   ghlContactId     String?
   ghlUserId        String?
   onboardingDocs   OnboardingDocument[]

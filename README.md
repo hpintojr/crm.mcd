@@ -46,6 +46,7 @@ Secure Admin and Agent portals for Mercury Call Desk. GoHighLevel (GHL) is a bac
 - Partner signup, credentials authentication, activation, MFA, role-gated pages, lockout protections, and audit history.
 - Admin document tracking for Sales Agreement, NDA/IP, W-9/entity acknowledgment, and New Hire Acknowledgment.
 - Company/entity name support on the Agent profile for W-9/entity test coverage; no tax forms, tax identifiers, banking information, signatures, or raw document contents are stored in the MiniCRM.
+- Internal activation gates: admin-recorded W-9 secure-intake verification, profile completeness, and CRM training/check-in are required (with audit evidence) before a provisioning activation email is issued; document webhooks alone never activate a partner, and agents provisioned before the gates existed are grandfathered.
 - Manager-recorded certification with scores, decision history, audit evidence, and Lead eligibility control.
 - Agent Training workspace readiness summary: document count, certification decision, and Lead eligibility state.
 

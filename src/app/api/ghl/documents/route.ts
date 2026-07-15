@@ -2,6 +2,7 @@ import { Prisma } from "@prisma/client";
 import { NextRequest } from "next/server";
 import { z } from "zod";
 import { createActivation } from "@/lib/activation";
+import { evaluateAgentActivation } from "@/lib/agent-activation-policy";
 import { db } from "@/lib/db";
 import { activationEmail } from "@/lib/emails/activation-email";
 import {
@@ -132,7 +133,17 @@ export async function POST(request: NextRequest) {
     const fourGatesComplete = requiredDocuments.every((required) => completed.get(required)?.status === "COMPLETED");
     const agreementCountersigned = completed.get("SALES_AGREEMENT")?.countersigned === true;
 
-    if (!fourGatesComplete || !agreementCountersigned || current.userId || current.status !== "APPROVED") {
+    const activationPolicy = evaluateAgentActivation({
+      agentApproved: current.status === "APPROVED",
+      documentsComplete: fourGatesComplete,
+      agreementCountersigned,
+      w9Verified: Boolean(current.w9VerifiedAt),
+      profileComplete: Boolean(current.profileCompletedAt),
+      trainingComplete: Boolean(current.trainingCompletedAt),
+      provisioned: Boolean(current.userId),
+    });
+
+    if (!activationPolicy.mayIssueActivation) {
       await finishInboundEvent(payload.ghl_event_id, "PROCESSED");
       return ghlWebhookJson({
         ok: true,
@@ -140,6 +151,8 @@ export async function POST(request: NextRequest) {
         gatesComplete: fourGatesComplete,
         countersigned: agreementCountersigned,
         approved: current.status === "APPROVED",
+        activationState: activationPolicy.state,
+        missingInternalGates: activationPolicy.missingInternalGates,
       }, 200, requestId);
     }
 

@@ -30,6 +30,7 @@
 - [Signed Lead Import Response Boundary](./LEAD_IMPORT_RESPONSE_BOUNDARY.md) — HMAC-gated bounded body handling and consistent no-store/noindex/request-ID responses across the lifecycle API.
 - [Signed Lead Import Domain Errors](./SIGNED_IMPORT_DOMAIN_ERRORS.md) — centralized typed domain-error mapping that preserves exact messages/statuses and removes route-level raw-error findings.
 - [Integration Health Control Plane](./INTEGRATION_HEALTH_CONTROL_PLANE.md) — protected aggregate webhook/error health, configuration readiness, privacy contract, and read-failure behavior.
+- [Agent Activation Gates](./AGENT_ACTIVATION_GATES.md) — internal W-9/profile/training verification evidence, derived activation state policy, provisioning boundary, and grandfathering rule.
 - [Stripe Connect Readiness](./STRIPE_CONNECT_READINESS.md) — staged optional destination policy, privacy boundary, acceptance sequence, and no-execution contract.
 - [Protected Admin Read Report Boundary](./ADMIN_READ_REPORT_BOUNDARY.md) — shared request-ID/no-store/noindex responses and role-only viewer metadata for operational JSON reports.
 - [Lead Acceptance Report Boundary](./LEAD_ACCEPTANCE_REPORT_BOUNDARY.md) — standardized non-download acceptance JSON responses while preserving report calculations and separate CSV contracts.

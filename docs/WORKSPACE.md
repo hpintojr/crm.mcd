@@ -32,6 +32,7 @@ Feature flags are independent. Do not assume a flag value from this document; ve
 
 - Admin document tracker records status for Sales Agreement, NDA/IP, W-9/entity acknowledgment, and New Hire Acknowledgment.
 - `Agent.companyName` is used for company/entity W-9 test coverage. The MiniCRM stores only the name and external-reference/status metadata; never the tax form or tax identifiers.
+- Internal activation gates (W-9 secure-intake verification, profile completeness, CRM training/check-in) are recorded by an admin with a note and audit evidence; provisioning requires all three plus completed, countersigned documents. The activation state is derived by `src/lib/agent-activation-policy.ts`, never stored. Previously provisioned agents are grandfathered.
 - Certification requires an active agent, all four documents completed, a manager decision, and audit evidence.
 - Training workspace shows the agent their document count, certification outcome, and Lead eligibility state.
 

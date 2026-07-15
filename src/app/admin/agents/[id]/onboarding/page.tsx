@@ -3,6 +3,7 @@ import { revalidatePath } from "next/cache";
 import { notFound } from "next/navigation";
 import { z } from "zod";
 import { ADMIN_ROLES, requireRole } from "@/lib/authz";
+import { evaluateAgentActivation } from "@/lib/agent-activation-policy";
 import { db } from "@/lib/db";
 
 export const dynamic = "force-dynamic";
@@ -35,6 +36,19 @@ const companySchema = z.object({
   note: z.string().trim().min(3).max(2_000),
 });
 
+const gateSchema = z.object({
+  agentId: z.string().cuid(),
+  gate: z.enum(["W9_VERIFICATION", "PROFILE_COMPLETION", "TRAINING_COMPLETION"]),
+  gateAction: z.enum(["RECORD", "CLEAR"]),
+  note: z.string().trim().min(3).max(2_000),
+});
+
+const gateDefinitions = [
+  { gate: "W9_VERIFICATION", label: "Official W-9 verified", detail: "Internal confirmation that the official W-9 was received through the approved secure intake. Status evidence only; never place the form or tax identifiers in the MiniCRM." },
+  { gate: "PROFILE_COMPLETION", label: "Profile complete", detail: "Verified personal email, mobile number, mailing address, and required contact information." },
+  { gate: "TRAINING_COMPLETION", label: "CRM training / check-in complete", detail: "CRM training or check-in completion confirmed by an admin." },
+] as const;
+
 function label(value: string) {
   return value.replaceAll("_", " ").toLowerCase().replace(/^./, (letter) => letter.toUpperCase());
 }
@@ -50,6 +64,20 @@ export default async function AgentOnboardingDocumentsPage({ params }: PageProps
   if (!agent) notFound();
   const docsByType = new Map(agent.onboardingDocs.map((document) => [document.docType, document]));
   const completed = agent.onboardingDocs.filter((document) => document.status === "COMPLETED").length;
+  const gateRecordedAt = {
+    W9_VERIFICATION: agent.w9VerifiedAt,
+    PROFILE_COMPLETION: agent.profileCompletedAt,
+    TRAINING_COMPLETION: agent.trainingCompletedAt,
+  } as const;
+  const activation = evaluateAgentActivation({
+    agentApproved: agent.status === "APPROVED",
+    documentsComplete: documents.every((definition) => docsByType.get(definition.type)?.status === "COMPLETED"),
+    agreementCountersigned: docsByType.get("SALES_AGREEMENT")?.countersigned === true,
+    w9Verified: Boolean(agent.w9VerifiedAt),
+    profileComplete: Boolean(agent.profileCompletedAt),
+    trainingComplete: Boolean(agent.trainingCompletedAt),
+    provisioned: Boolean(agent.userId),
+  });
 
   async function recordCompanyName(formData: FormData) {
     "use server";
@@ -60,6 +88,29 @@ export default async function AgentOnboardingDocumentsPage({ params }: PageProps
     await db.$transaction([
       db.agent.update({ where: { id: current.id }, data: { companyName: parsed.companyName || null } }),
       db.auditLog.create({ data: { actorUserId: actor.id, actorRole: actor.role, actionType: "AGENT_COMPANY_NAME_RECORDED", entityType: "Agent", entityId: current.id, reason: parsed.note, metadata: { priorCompanyName: current.companyName, companyName: parsed.companyName || null, purpose: "W9_ENTITY_PROFILE" } } }),
+    ]);
+    revalidatePath(`/admin/agents/${current.id}/onboarding`);
+    revalidatePath(`/admin/agents/${current.id}/certify`);
+    revalidatePath("/admin/agents");
+    revalidatePath("/admin/audit");
+  }
+
+  async function recordGate(formData: FormData) {
+    "use server";
+    const actor = await requireRole(ADMIN_ROLES);
+    const parsed = gateSchema.parse({ agentId: formData.get("agentId"), gate: formData.get("gate"), gateAction: formData.get("gateAction"), note: formData.get("note") });
+    const current = await db.agent.findUnique({ where: { id: parsed.agentId }, select: { id: true } });
+    if (!current) throw new Error("Agent not found.");
+    const recording = parsed.gateAction === "RECORD";
+    const at = recording ? new Date() : null;
+    const by = recording ? actor.id : null;
+    const data =
+      parsed.gate === "W9_VERIFICATION" ? { w9VerifiedAt: at, w9VerifiedById: by }
+      : parsed.gate === "PROFILE_COMPLETION" ? { profileCompletedAt: at, profileCompletedById: by }
+      : { trainingCompletedAt: at, trainingCompletedById: by };
+    await db.$transaction([
+      db.agent.update({ where: { id: current.id }, data }),
+      db.auditLog.create({ data: { actorUserId: actor.id, actorRole: actor.role, actionType: recording ? "AGENT_ACTIVATION_GATE_RECORDED" : "AGENT_ACTIVATION_GATE_CLEARED", entityType: "Agent", entityId: current.id, reason: parsed.note, metadata: { gate: parsed.gate } } }),
     ]);
     revalidatePath(`/admin/agents/${current.id}/onboarding`);
     revalidatePath(`/admin/agents/${current.id}/certify`);
@@ -97,5 +148,5 @@ export default async function AgentOnboardingDocumentsPage({ params }: PageProps
     revalidatePath("/admin/audit");
   }
 
-  return <main className="mx-auto min-h-screen max-w-6xl px-6 py-12"><div className="flex flex-wrap items-start justify-between gap-4"><div><p className="text-sm font-medium uppercase tracking-widest text-brand-400">Mercury Call Desk</p><h1 className="mt-2 text-3xl font-semibold text-white">Onboarding documents</h1><p className="mt-2 text-gray-400">Track approved signing-process status for {agent.preferredName || agent.legalName}. MiniCRM stores status, company/entity profile information, and audit evidence only.</p></div><div className="flex flex-wrap gap-2"><Link className="rounded-lg border border-ink-700 px-3 py-2 text-sm text-gray-200" href="/admin/agents">Agent operations</Link><Link className="rounded-lg border border-brand-500 px-3 py-2 text-sm text-brand-200" href={`/admin/agents/${agent.id}/certify`}>Certification</Link></div></div><section className="mt-6 grid gap-5 lg:grid-cols-[0.8fr_1.2fr]"><div className="rounded-xl border border-ink-700 bg-ink-900 px-5 py-4 text-sm text-gray-300"><strong className="text-white">Document completion: {completed} / 4.</strong><p className="mt-2">Mark a document Completed only after the approved external signing process confirms it. Do not put tax forms, banking data, signatures, or raw document contents into this workspace.</p></div><form action={recordCompanyName} className="rounded-xl border border-ink-700 bg-ink-900 p-5"><input name="agentId" type="hidden" value={agent.id} /><p className="text-sm font-medium text-white">Company / entity name for W-9 testing</p><p className="mt-1 text-xs text-gray-500">Use this only when the agent is operating through a company or business entity. Leave blank for an individual-only profile.</p><div className="mt-3 grid gap-3 md:grid-cols-[1fr_1fr_auto]"><input className="rounded-lg border border-ink-700 bg-ink-950 px-3 py-2 text-sm text-gray-100" defaultValue={agent.companyName || ""} name="companyName" placeholder="Company or legal entity name" /><input className="rounded-lg border border-ink-700 bg-ink-950 px-3 py-2 text-sm text-gray-100" name="note" placeholder="Why this was added or changed" required /><button className="rounded-lg border border-brand-500 px-4 py-2 text-sm text-brand-200" type="submit">Save company name</button></div></form></section><section className="mt-8 space-y-4">{documents.map((definition) => { const document = docsByType.get(definition.type); const isW9 = definition.type === "W9_PAYOUT"; return <article className="rounded-2xl border border-ink-700 bg-ink-900 p-5" key={definition.type}><div className="flex flex-wrap items-start justify-between gap-4"><div><h2 className="font-semibold text-white">{definition.label}</h2><p className="mt-2 text-sm text-gray-400">{definition.detail}</p>{isW9 && <p className="mt-2 text-sm text-gray-300">Company / entity name: <span className="font-medium text-white">{agent.companyName || "Individual profile — no company name recorded"}</span></p>}<p className="mt-2 text-xs text-gray-500">Current status: {document ? label(document.status) : "Pending"} · Completed {pacific(document?.completedAt || null)}</p></div><span className={document?.status === "COMPLETED" ? "rounded-full border border-emerald-700 px-2.5 py-1 text-xs text-emerald-200" : "rounded-full border border-amber-700 px-2.5 py-1 text-xs text-amber-200"}>{document?.status === "COMPLETED" ? "Complete" : "Needs review"}</span></div><form action={recordDocument} className="mt-5 grid gap-3 border-t border-ink-700 pt-5"><input name="agentId" type="hidden" value={agent.id} /><input name="docType" type="hidden" value={definition.type} /><div className="grid gap-3 md:grid-cols-3"><select className="rounded-lg border border-ink-700 bg-ink-950 px-3 py-2 text-sm text-gray-100" defaultValue={document?.status || "PENDING"} name="status">{(["PENDING", "SENT", "VIEWED", "SIGNED", "COMPLETED", "REJECTED"] as Status[]).map((status) => <option key={status} value={status}>{label(status)}</option>)}</select><input className="rounded-lg border border-ink-700 bg-ink-950 px-3 py-2 text-sm text-gray-100" defaultValue={document?.version || ""} name="version" placeholder="Document version (optional)" /><input className="rounded-lg border border-ink-700 bg-ink-950 px-3 py-2 text-sm text-gray-100" defaultValue={document?.ghlDocumentId || ""} name="ghlDocumentId" placeholder="External document reference (optional)" /></div><label className="flex items-center gap-2 text-sm text-gray-300"><input defaultChecked={document?.countersigned || false} name="countersigned" type="checkbox" />Countersigned / externally confirmed when required</label><div className="grid gap-3 md:grid-cols-[1fr_auto]"><textarea className="min-h-24 rounded-lg border border-ink-700 bg-ink-950 px-3 py-2 text-sm text-gray-100" name="note" placeholder="Status evidence or correction note" required /><button className="rounded-lg border border-brand-500 px-4 py-2 text-sm text-brand-200" type="submit">Save document status</button></div></form></article>; })}</section></main>;
+  return <main className="mx-auto min-h-screen max-w-6xl px-6 py-12"><div className="flex flex-wrap items-start justify-between gap-4"><div><p className="text-sm font-medium uppercase tracking-widest text-brand-400">Mercury Call Desk</p><h1 className="mt-2 text-3xl font-semibold text-white">Onboarding documents</h1><p className="mt-2 text-gray-400">Track approved signing-process status for {agent.preferredName || agent.legalName}. MiniCRM stores status, company/entity profile information, and audit evidence only.</p></div><div className="flex flex-wrap gap-2"><Link className="rounded-lg border border-ink-700 px-3 py-2 text-sm text-gray-200" href="/admin/agents">Agent operations</Link><Link className="rounded-lg border border-brand-500 px-3 py-2 text-sm text-brand-200" href={`/admin/agents/${agent.id}/certify`}>Certification</Link></div></div><section className="mt-6 grid gap-5 lg:grid-cols-[0.8fr_1.2fr]"><div className="rounded-xl border border-ink-700 bg-ink-900 px-5 py-4 text-sm text-gray-300"><strong className="text-white">Document completion: {completed} / 4.</strong><p className="mt-2">Mark a document Completed only after the approved external signing process confirms it. Do not put tax forms, banking data, signatures, or raw document contents into this workspace.</p></div><form action={recordCompanyName} className="rounded-xl border border-ink-700 bg-ink-900 p-5"><input name="agentId" type="hidden" value={agent.id} /><p className="text-sm font-medium text-white">Company / entity name for W-9 testing</p><p className="mt-1 text-xs text-gray-500">Use this only when the agent is operating through a company or business entity. Leave blank for an individual-only profile.</p><div className="mt-3 grid gap-3 md:grid-cols-[1fr_1fr_auto]"><input className="rounded-lg border border-ink-700 bg-ink-950 px-3 py-2 text-sm text-gray-100" defaultValue={agent.companyName || ""} name="companyName" placeholder="Company or legal entity name" /><input className="rounded-lg border border-ink-700 bg-ink-950 px-3 py-2 text-sm text-gray-100" name="note" placeholder="Why this was added or changed" required /><button className="rounded-lg border border-brand-500 px-4 py-2 text-sm text-brand-200" type="submit">Save company name</button></div></form></section><section className="mt-8 rounded-2xl border border-ink-700 bg-ink-900 p-5"><div className="flex flex-wrap items-start justify-between gap-4"><div><h2 className="font-semibold text-white">Internal activation gates</h2><p className="mt-2 text-sm text-gray-400">Documented internal proof required before a provisioning activation email is issued. Document webhooks alone never activate a partner. Agents provisioned before these gates existed are grandfathered.</p></div><span className="rounded-full border border-ink-700 px-2.5 py-1 text-xs text-gray-300">Derived state: {label(activation.state)}</span></div><div className="mt-5 space-y-4">{gateDefinitions.map((definition) => { const recordedAt = gateRecordedAt[definition.gate]; return <article className="rounded-xl border border-ink-700 bg-ink-950 p-4" key={definition.gate}><div className="flex flex-wrap items-start justify-between gap-3"><div><h3 className="text-sm font-medium text-white">{definition.label}</h3><p className="mt-1 text-xs text-gray-500">{definition.detail}</p><p className="mt-2 text-xs text-gray-400">Status: {recordedAt ? `Recorded ${pacific(recordedAt)}` : "Not recorded"}</p></div><span className={recordedAt ? "rounded-full border border-emerald-700 px-2.5 py-1 text-xs text-emerald-200" : "rounded-full border border-amber-700 px-2.5 py-1 text-xs text-amber-200"}>{recordedAt ? "Recorded" : "Required"}</span></div><form action={recordGate} className="mt-4 grid gap-3 md:grid-cols-[1fr_auto_auto]"><input name="agentId" type="hidden" value={agent.id} /><input name="gate" type="hidden" value={definition.gate} /><input className="min-w-0 rounded-lg border border-ink-700 bg-ink-900 px-3 py-2 text-sm text-gray-100" name="note" placeholder="Verification evidence or correction note" required /><button className="rounded-lg border border-brand-500 px-4 py-2 text-sm text-brand-200" name="gateAction" value="RECORD" type="submit">Record</button><button className="rounded-lg border border-amber-700 px-4 py-2 text-sm text-amber-300" name="gateAction" value="CLEAR" type="submit">Clear</button></form></article>; })}</div></section><section className="mt-8 space-y-4">{documents.map((definition) => { const document = docsByType.get(definition.type); const isW9 = definition.type === "W9_PAYOUT"; return <article className="rounded-2xl border border-ink-700 bg-ink-900 p-5" key={definition.type}><div className="flex flex-wrap items-start justify-between gap-4"><div><h2 className="font-semibold text-white">{definition.label}</h2><p className="mt-2 text-sm text-gray-400">{definition.detail}</p>{isW9 && <p className="mt-2 text-sm text-gray-300">Company / entity name: <span className="font-medium text-white">{agent.companyName || "Individual profile — no company name recorded"}</span></p>}<p className="mt-2 text-xs text-gray-500">Current status: {document ? label(document.status) : "Pending"} · Completed {pacific(document?.completedAt || null)}</p></div><span className={document?.status === "COMPLETED" ? "rounded-full border border-emerald-700 px-2.5 py-1 text-xs text-emerald-200" : "rounded-full border border-amber-700 px-2.5 py-1 text-xs text-amber-200"}>{document?.status === "COMPLETED" ? "Complete" : "Needs review"}</span></div><form action={recordDocument} className="mt-5 grid gap-3 border-t border-ink-700 pt-5"><input name="agentId" type="hidden" value={agent.id} /><input name="docType" type="hidden" value={definition.type} /><div className="grid gap-3 md:grid-cols-3"><select className="rounded-lg border border-ink-700 bg-ink-950 px-3 py-2 text-sm text-gray-100" defaultValue={document?.status || "PENDING"} name="status">{(["PENDING", "SENT", "VIEWED", "SIGNED", "COMPLETED", "REJECTED"] as Status[]).map((status) => <option key={status} value={status}>{label(status)}</option>)}</select><input className="rounded-lg border border-ink-700 bg-ink-950 px-3 py-2 text-sm text-gray-100" defaultValue={document?.version || ""} name="version" placeholder="Document version (optional)" /><input className="rounded-lg border border-ink-700 bg-ink-950 px-3 py-2 text-sm text-gray-100" defaultValue={document?.ghlDocumentId || ""} name="ghlDocumentId" placeholder="External document reference (optional)" /></div><label className="flex items-center gap-2 text-sm text-gray-300"><input defaultChecked={document?.countersigned || false} name="countersigned" type="checkbox" />Countersigned / externally confirmed when required</label><div className="grid gap-3 md:grid-cols-[1fr_auto]"><textarea className="min-h-24 rounded-lg border border-ink-700 bg-ink-950 px-3 py-2 text-sm text-gray-100" name="note" placeholder="Status evidence or correction note" required /><button className="rounded-lg border border-brand-500 px-4 py-2 text-sm text-brand-200" type="submit">Save document status</button></div></form></article>; })}</section></main>;
 }
